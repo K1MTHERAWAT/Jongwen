@@ -158,8 +158,8 @@ export default function StaffWalkInPage() {
           value={serviceType}
           onChange={setServiceType}
           options={[
-            { value: 'booking', label: 'จองสถานที่' },
-            { value: 'borrow', label: 'ยืม–คืนอุปกรณ์' },
+            { value: 'booking', label: 'สถานที่' },
+            { value: 'borrow', label: 'อุปกรณ์' },
             { value: 'repair', label: 'แจ้งซ่อม' },
           ]}
         />

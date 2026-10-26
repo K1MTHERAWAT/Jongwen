@@ -159,8 +159,8 @@ export default function RequestHistoryPage() {
               className="w-full sm:w-[420px]"
               options={[
                 { value: 'all', label: 'ทุกประเภท' },
-                { value: 'booking', label: 'จองสถานที่' },
-                { value: 'borrow', label: 'ยืม–คืน' },
+                { value: 'booking', label: 'สถานที่' },
+                { value: 'borrow', label: 'อุปกรณ์' },
                 { value: 'repair', label: 'แจ้งซ่อม' },
               ]}
             />

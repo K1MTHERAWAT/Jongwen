@@ -81,14 +81,14 @@ export default function BorrowWizardPage() {
 
   return (
     <AppShell
-      title={step === 1 ? 'ยืม–คืนครุภัณฑ์' : step === 2 ? 'แบบคำขอยืม' : 'ลงนามและส่งคำขอ'}
+      title={step === 1 ? 'อุปกรณ์' : step === 2 ? 'แบบคำขอใช้อุปกรณ์' : 'ลงนามและส่งคำขอ'}
       backHref={step === 1 ? '/' : undefined}
       onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
       footer={
         step === 1 ? (
           <div className="flex w-full sm:w-auto gap-2.5">
             <Link href="/borrow/my" className="jw-btn-sec flex-1 sm:w-44">
-              รายการยืมของฉัน
+              รายการอุปกรณ์ของฉัน
             </Link>
             <button
               type="button"
@@ -211,12 +211,12 @@ export default function BorrowWizardPage() {
         </div>
       )}
 
-      {/* STEP 2: กรอกคำขอยืม */}
+      {/* STEP 2: กรอกคำขอใช้อุปกรณ์ */}
       {step === 2 && (
         <div className="max-w-[640px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="jw-lbl">ผู้ยืม</label>
+              <label className="jw-lbl">ผู้ขอใช้อุปกรณ์</label>
               <input type="text" value={account?.name || 'สมชาย ใจดี'} readOnly className="jw-in bg-soft/40" />
             </div>
             <div>
@@ -285,7 +285,7 @@ export default function BorrowWizardPage() {
       {step === 3 && (
         <div className="max-w-[640px] mx-auto flex flex-col gap-4">
           <div className="jw-card p-5 flex flex-col gap-2.5">
-            <b className="text-[16px]">สรุปรายการที่ขอยืม</b>
+            <b className="text-[16px]">สรุปรายการที่ขอใช้</b>
             {selectedItems.map(({ eq, qty }) => (
               <div key={eq.id} className="flex justify-between text-[14px]">
                 <b className="text-ink-mute">{eq.name}</b>
@@ -293,7 +293,7 @@ export default function BorrowWizardPage() {
               </div>
             ))}
             <div className="flex justify-between text-[14px] pt-2 border-t border-line">
-              <b className="text-ink-mute">ช่วงยืม</b>
+              <b className="text-ink-mute">ช่วงขอใช้</b>
               <span>
                 {formatThaiDate(pickupDate, false)}–{formatThaiDate(returnDate, true)}
               </span>
@@ -301,19 +301,19 @@ export default function BorrowWizardPage() {
           </div>
 
           <div className="jw-card p-5 flex flex-col gap-2">
-            <label className="jw-lbl">เขียนลายเซ็นผู้ขอยืม ({account?.name || 'สมชาย ใจดี'})</label>
+            <label className="jw-lbl">เขียนลายเซ็นผู้ขอใช้อุปกรณ์ ({account?.name || 'สมชาย ใจดี'})</label>
             <SignatureBox
               value={signature}
               onChange={setSignature}
               savedSignature={account?.signature}
-              signerLabel={`${account?.name || 'สมชาย ใจดี'} · ผู้ยื่นคำขอยืม`}
+              signerLabel={`${account?.name || 'สมชาย ใจดี'} · ผู้ยื่นคำขอใช้อุปกรณ์`}
             />
             <p className="text-[13px] text-ink-mute mt-1">
               ต้องลงนามทุกฝ่าย (4 ฝ่าย): (1) ผู้ยื่นคำขอ → (2) เจ้าหน้าที่ผู้ตรวจสอบ → (3) ปลัด อบต. → (4) นายก อบต.
             </p>
             {draftSaved && (
               <div className="rounded-[10px] bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold mt-1">
-                บันทึกร่างคำขอยืมอุปกรณ์เรียบร้อยแล้ว
+                บันทึกร่างคำขอใช้อุปกรณ์เรียบร้อยแล้ว
               </div>
             )}
           </div>

@@ -39,13 +39,13 @@ export default function MyBorrowsPage() {
   });
 
   return (
-    <AppShell title="ยืม–คืนอุปกรณ์" backHref="/" maxWidth="max-w-[760px]">
+    <AppShell title="อุปกรณ์" backHref="/" maxWidth="max-w-[760px]">
       <div className="flex flex-col gap-4">
         <Tabs<BorrowTab>
           value={tab}
           onChange={setTab}
           options={[
-            { value: 'borrowing', label: 'กำลังยืม' },
+            { value: 'borrowing', label: 'กำลังใช้งาน' },
             { value: 'inspect', label: 'รอตรวจสภาพ' },
             { value: 'history', label: 'ประวัติ' },
           ]}
@@ -91,7 +91,7 @@ export default function MyBorrowsPage() {
         </p>
 
         <Link href="/borrow" className="jw-btn-sec w-full">
-          + ขอยืมอุปกรณ์เพิ่ม
+          + ยื่นขอใช้อุปกรณ์เพิ่ม
         </Link>
       </div>
     </AppShell>

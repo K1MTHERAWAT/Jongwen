@@ -212,7 +212,7 @@ export default function BookingWizardPage() {
     <AppShell
       title={
         step === 1
-          ? 'จองสถานที่'
+          ? 'สถานที่'
           : step === 2
           ? 'เลือกวัน-เวลา'
           : step === 3
@@ -522,7 +522,7 @@ export default function BookingWizardPage() {
           </div>
 
           <div className="flex flex-col gap-3">
-            <b className="text-[17px]">ช่วงเวลาที่จอง</b>
+            <b className="text-[17px]">ช่วงเวลาที่ขอใช้</b>
             {periods.map((p, idx) => {
               const hasConflict = effectiveConflicts.some((c) => c.periodIndex === idx);
               const isEditing = activePeriodIdx === idx;
@@ -635,7 +635,7 @@ export default function BookingWizardPage() {
                   <b>{effectiveConflicts[0].venueName} ไม่ว่างในช่วงนี้</b>
                   <br />
                   วันที่ {formatThaiDateTime(effectiveConflicts[0].start)}–
-                  {new Date(effectiveConflicts[0].end).toTimeString().slice(0, 5)} มีผู้จองแล้ว กรุณาปรับวัน-เวลาใหม่
+                  {new Date(effectiveConflicts[0].end).toTimeString().slice(0, 5)} มีผู้ขอใช้แล้ว กรุณาปรับวัน-เวลาใหม่
                 </div>
               </div>
             ) : (

@@ -863,17 +863,17 @@ export function OfficialGovFormDocument({
   const isBorrow = req?.type === 'borrow';
   const formTitle =
     customFields?.formTitle ||
-    (isBorrow ? 'แบบคำขอยืมครุภัณฑ์ราชการ' : 'แบบขอใช้สถานที่ราชการ');
+    (isBorrow ? 'แบบคำขอใช้อุปกรณ์ราชการ' : 'แบบขอใช้สถานที่ราชการ');
   const subject =
     customFields?.subject ||
-    (isBorrow ? 'ขออนุญาตยืมครุภัณฑ์ของทางราชการ' : 'ขออนุญาตใช้สถานที่ราชการ');
+    (isBorrow ? 'ขออนุญาตใช้อุปกรณ์ของทางราชการ' : 'ขออนุญาตใช้สถานที่ราชการ');
   const toWhom = customFields?.toWhom || 'นายกองค์การบริหารส่วนตำบลน้ำชำ';
   const desireLabel =
     customFields?.desireLabel ||
-    (isBorrow ? 'มีความประสงค์ขอยืมครุภัณฑ์ราชการ ดังนี้' : 'มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้');
+    (isBorrow ? 'มีความประสงค์ขอใช้อุปกรณ์ราชการ ดังนี้' : 'มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้');
   const requesterRoleCaption =
     customFields?.requesterRoleCaption ||
-    (isBorrow ? 'ผู้ขออนุญาตยืมครุภัณฑ์ราชการ' : 'ผู้ขออนุญาตใช้สถานที่ราชการ');
+    (isBorrow ? 'ผู้ขออนุญาตใช้อุปกรณ์ราชการ' : 'ผู้ขออนุญาตใช้สถานที่ราชการ');
 
   const dateParts = parseThaiDateParts(req?.createdAt);
   const writtenAt = blankMode

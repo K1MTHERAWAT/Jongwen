@@ -74,9 +74,9 @@ function getNavForAccount(account: PublicAccount | null, unreadCount: number): N
     default:
       return [
         { href: '/', label: 'หน้าแรก', icon: 'home' },
-        { href: '/booking', label: 'จองสถานที่', icon: 'calendar' },
+        { href: '/booking', label: 'สถานที่', icon: 'calendar' },
         { href: '/repair', label: 'แจ้งซ่อม', icon: 'tool' },
-        { href: '/borrow/my', label: 'ยืม–คืน', icon: 'package' },
+        { href: '/borrow/my', label: 'อุปกรณ์', icon: 'package' },
         { href: '#notif', label: 'แจ้งเตือน', icon: 'bell', badge: unreadCount || undefined, action: 'notifications' },
       ];
   }

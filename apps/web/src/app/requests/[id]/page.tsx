@@ -124,7 +124,7 @@ export default function RequestDetailPage() {
           )}
           {req.type === 'borrow' && (
             <div className="flex gap-2">
-              <b className="w-24 shrink-0 text-ink-mute">ช่วงยืม</b>
+              <b className="w-24 shrink-0 text-ink-mute">ช่วงขอใช้</b>
               <span>
                 {formatThaiDate(req.pickupDate, false)}–{formatThaiDate(req.returnDate, true)}
               </span>
@@ -163,7 +163,7 @@ export default function RequestDetailPage() {
               <b className="text-[16px] text-ink">
                 {req.type === 'booking'
                   ? 'เอกสารราชการ: แบบขอใช้สถานที่ราชการ (อบต.น้ำชำ)'
-                  : 'เอกสารราชการ: แบบคำขอยืมครุภัณฑ์ราชการ (อบต.น้ำชำ)'}
+                  : 'เอกสารราชการ: แบบคำขอใช้อุปกรณ์ราชการ (อบต.น้ำชำ)'}
               </b>
               <button
                 type="button"

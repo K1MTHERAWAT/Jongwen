@@ -100,7 +100,7 @@ export default function HomePage() {
             <Icon name="building-community" className="w-6 h-6" />
           </div>
           <div>
-            <b className="block text-[14px] sm:text-[17px] text-ink">จองสถานที่</b>
+            <b className="block text-[14px] sm:text-[17px] text-ink">สถานที่</b>
             <span className="text-[12px] sm:text-[13px] text-ink-mute">เลือกวัน-เวลา</span>
           </div>
         </Link>
@@ -126,7 +126,7 @@ export default function HomePage() {
             <Icon name="package" className="w-6 h-6" />
           </div>
           <div>
-            <b className="block text-[14px] sm:text-[17px] text-ink">ยืม–คืน</b>
+            <b className="block text-[14px] sm:text-[17px] text-ink">อุปกรณ์</b>
             <span className="text-[12px] sm:text-[13px] text-ink-mute">ติดตามกำหนดคืน</span>
           </div>
         </Link>
@@ -143,7 +143,7 @@ export default function HomePage() {
                 href="/borrow/my"
                 className="text-[13px] font-semibold text-brand inline-flex items-center gap-1 hover:underline"
               >
-                รายการยืมของฉัน <Icon name="chevron-right" className="w-4 h-4" />
+                รายการอุปกรณ์ของฉัน <Icon name="chevron-right" className="w-4 h-4" />
               </Link>
             </div>
             <Tabs<TabFilter>
@@ -152,9 +152,9 @@ export default function HomePage() {
               className="w-full sm:w-[380px]"
               options={[
                 { value: 'all', label: 'ทั้งหมด' },
-                { value: 'booking', label: 'จอง' },
+                { value: 'booking', label: 'สถานที่' },
                 { value: 'repair', label: 'แจ้งซ่อม' },
-                { value: 'borrow', label: 'ยืม–คืน' },
+                { value: 'borrow', label: 'อุปกรณ์' },
               ]}
             />
           </div>
