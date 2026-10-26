@@ -1,0 +1,217 @@
+import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  ACTIVE_BOOKING_STATUSES,
+  BookingRequest,
+  ConflictInfo,
+  DayAvailability,
+  Equipment,
+  EquipmentCategory,
+  Period,
+  Venue,
+  VenueType,
+  overlaps,
+} from '@jongwen/shared';
+import { Permissions, Public } from '../auth/auth.guard';
+import { DbService } from '../db/db.service';
+
+const VALID_VENUE_TYPES: VenueType[] = ['meeting', 'pavilion', 'field', 'yard', 'training'];
+const VALID_EQUIPMENT_CATEGORIES: EquipmentCategory[] = ['audio', 'tent', 'it'];
+
+@Controller('resources')
+export class ResourcesController {
+  constructor(private readonly db: DbService) {}
+
+  @Public()
+  @Get('venues')
+  listVenues() {
+    return this.db.venues;
+  }
+
+  @Public()
+  @Get('equipment')
+  listEquipment() {
+    return this.db.equipment;
+  }
+
+  @Permissions('manageResources')
+  @Post('venues')
+  createVenue(@Body() body: Partial<Venue>) {
+    if (!body.name?.trim()) throw new BadRequestException('กรุณาระบุชื่อสถานที่');
+    const capacity = Math.max(1, Math.min(10000, Math.floor(Number(body.capacity ?? 50))));
+    const advanceDays = Math.max(0, Math.min(365, Math.floor(Number(body.advanceDays ?? 3))));
+    const venue: Venue = {
+      id: this.db.nextId('v'),
+      name: body.name.trim().slice(0, 120),
+      type: body.type && VALID_VENUE_TYPES.includes(body.type) ? body.type : 'meeting',
+      building: (body.building ?? 'อาคารสำนักงาน').trim().slice(0, 120),
+      floor: (body.floor ?? 'ชั้น 1').trim().slice(0, 60),
+      capacity: Number.isFinite(capacity) ? capacity : 50,
+      status: body.enabled === false ? 'maintenance' : 'available',
+      enabled: body.enabled ?? true,
+      facilities: Array.isArray(body.facilities)
+        ? body.facilities.map((f) => String(f).trim()).filter(Boolean).slice(0, 20)
+        : ['เครื่องปรับอากาศ'],
+      openTime: /^\d{2}:\d{2}$/.test(body.openTime ?? '') ? body.openTime! : '08:00',
+      closeTime: /^\d{2}:\d{2}$/.test(body.closeTime ?? '') ? body.closeTime! : '17:00',
+      openDays: Array.isArray(body.openDays)
+        ? body.openDays.map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 6)
+        : [1, 2, 3, 4, 5],
+      advanceDays: Number.isFinite(advanceDays) ? advanceDays : 3,
+      formName: (body.formName ?? 'แบบคำขอใช้สถานที่').trim().slice(0, 120),
+      approvalLevels: 3,
+    };
+    this.db.venues.push(venue);
+    this.db.log('resource', `เพิ่มสถานที่ ${venue.name}`, `${venue.capacity} คน`);
+    return venue;
+  }
+
+  @Permissions('manageResources')
+  @Patch('venues/:id')
+  updateVenue(@Param('id') id: string, @Body() body: Partial<Venue>) {
+    const venue = this.db.venues.find((v) => v.id === id);
+    if (!venue) throw new NotFoundException('ไม่พบสถานที่');
+    if (typeof body.name === 'string' && body.name.trim()) venue.name = body.name.trim().slice(0, 120);
+    if (body.type && VALID_VENUE_TYPES.includes(body.type)) venue.type = body.type;
+    if (typeof body.building === 'string') venue.building = body.building.trim().slice(0, 120);
+    if (typeof body.floor === 'string') venue.floor = body.floor.trim().slice(0, 60);
+    if (body.capacity !== undefined) {
+      const cap = Math.floor(Number(body.capacity));
+      if (!Number.isFinite(cap) || cap < 1 || cap > 10000) {
+        throw new BadRequestException('ความจุสถานที่ต้องอยู่ระหว่าง 1 ถึง 10,000 คน');
+      }
+      venue.capacity = cap;
+    }
+    if (body.advanceDays !== undefined) {
+      const adv = Math.floor(Number(body.advanceDays));
+      if (!Number.isFinite(adv) || adv < 0 || adv > 365) {
+        throw new BadRequestException('จำนวนวันจองล่วงหน้าต้องอยู่ระหว่าง 0 ถึง 365 วัน');
+      }
+      venue.advanceDays = adv;
+    }
+    if (typeof body.openTime === 'string' && /^\d{2}:\d{2}$/.test(body.openTime)) venue.openTime = body.openTime;
+    if (typeof body.closeTime === 'string' && /^\d{2}:\d{2}$/.test(body.closeTime)) venue.closeTime = body.closeTime;
+    if (Array.isArray(body.facilities)) {
+      venue.facilities = body.facilities.map((f) => String(f).trim()).filter(Boolean).slice(0, 20);
+    }
+    if (typeof body.enabled === 'boolean') {
+      venue.enabled = body.enabled;
+      venue.status = body.enabled ? 'available' : 'maintenance';
+      this.db.log('resource', `${body.enabled ? 'เปิด' : 'ปิด'}ให้จอง ${venue.name}`, venue.status);
+    }
+    return venue;
+  }
+
+  @Permissions('manageResources')
+  @Post('equipment')
+  createEquipment(@Body() body: Partial<Equipment>) {
+    if (!body.name?.trim()) throw new BadRequestException('กรุณาระบุชื่ออุปกรณ์');
+    const stock = Math.floor(Number(body.stock ?? 1));
+    if (!Number.isFinite(stock) || stock < 0 || stock > 10000) {
+      throw new BadRequestException('จำนวนอุปกรณ์คงคลังต้องอยู่ระหว่าง 0 ถึง 10,000');
+    }
+    const eq: Equipment = {
+      id: this.db.nextId('e'),
+      name: body.name.trim().slice(0, 120),
+      category:
+        body.category && VALID_EQUIPMENT_CATEGORIES.includes(body.category)
+          ? body.category
+          : 'audio',
+      stock,
+      enabled: body.enabled ?? true,
+    };
+    this.db.equipment.push(eq);
+    this.db.log('resource', `เพิ่มอุปกรณ์ ${eq.name}`, `คงเหลือ ${eq.stock}`);
+    return eq;
+  }
+
+  @Permissions('manageResources')
+  @Patch('equipment/:id')
+  updateEquipment(@Param('id') id: string, @Body() body: Partial<Equipment>) {
+    const eq = this.db.equipment.find((e) => e.id === id);
+    if (!eq) throw new NotFoundException('ไม่พบอุปกรณ์');
+    if (typeof body.name === 'string' && body.name.trim()) eq.name = body.name.trim().slice(0, 120);
+    if (body.category && VALID_EQUIPMENT_CATEGORIES.includes(body.category)) {
+      eq.category = body.category;
+    }
+    if (body.stock !== undefined) {
+      const stock = Math.floor(Number(body.stock));
+      if (!Number.isFinite(stock) || stock < 0 || stock > 10000) {
+        throw new BadRequestException('จำนวนอุปกรณ์คงคลังต้องอยู่ระหว่าง 0 ถึง 10,000');
+      }
+      eq.stock = stock;
+    }
+    if (typeof body.enabled === 'boolean') eq.enabled = body.enabled;
+    return eq;
+  }
+
+  /** ปฏิทินความว่างรายเดือนของสถานที่ */
+  @Public()
+  @Get('availability')
+  availability(@Query('venueIds') venueIdsParam = '', @Query('month') month = '2026-10'): DayAvailability[] {
+    const venueIds = venueIdsParam.split(',').filter(Boolean);
+    const [y, m] = month.split('-').map(Number);
+    const daysInMonth = new Date(y, m, 0).getDate();
+    const bookings = this.db.requests.filter(
+      (r): r is BookingRequest =>
+        r.type === 'booking' &&
+        ACTIVE_BOOKING_STATUSES.includes(r.status) &&
+        (venueIds.length === 0 || r.venueIds.some((id) => venueIds.includes(id))),
+    );
+
+    const out: DayAvailability[] = [];
+    for (let d = 1; d <= daysInMonth; d++) {
+      const dateStr = `${month}-${String(d).padStart(2, '0')}`;
+      const dayStart = new Date(`${dateStr}T00:00:00+07:00`);
+      const dayEnd = new Date(`${dateStr}T23:59:59+07:00`);
+      let bookedHours = 0;
+      for (const b of bookings) {
+        for (const p of b.periods) {
+          if (overlaps(p, { start: dayStart.toISOString(), end: dayEnd.toISOString() })) {
+            const s = Math.max(new Date(p.start).getTime(), dayStart.getTime());
+            const e = Math.min(new Date(p.end).getTime(), dayEnd.getTime());
+            bookedHours += Math.max(1, (e - s) / 3600000);
+          }
+        }
+      }
+      const level: DayAvailability['level'] =
+        bookedHours >= 7 ? 'full' : bookedHours >= 3 ? 'few' : 'many';
+      out.push({ date: dateStr, level, bookedHours });
+    }
+    return out;
+  }
+
+  /** ตรวจสอบช่วงเวลาซ้อนทับ */
+  @Public()
+  @Post('check-conflicts')
+  checkConflicts(@Body() body: { venueIds: string[]; periods: Period[]; excludeRequestId?: string }): {
+    conflicts: ConflictInfo[];
+  } {
+    const conflicts: ConflictInfo[] = [];
+    const active = this.db.requests.filter(
+      (r): r is BookingRequest =>
+        r.type === 'booking' &&
+        ACTIVE_BOOKING_STATUSES.includes(r.status) &&
+        r.id !== body.excludeRequestId &&
+        r.venueIds.some((v) => body.venueIds.includes(v)),
+    );
+    body.periods.forEach((p, periodIndex) => {
+      for (const b of active) {
+        for (const bp of b.periods) {
+          if (overlaps(p, bp)) {
+            const venueId = b.venueIds.find((v) => body.venueIds.includes(v)) ?? b.venueIds[0];
+            const venueName = this.db.venues.find((v) => v.id === venueId)?.name ?? venueId;
+            conflicts.push({
+              periodIndex,
+              venueId,
+              venueName,
+              start: bp.start,
+              end: bp.end,
+              code: b.code,
+            });
+          }
+        }
+      }
+    });
+    return { conflicts };
+  }
+}

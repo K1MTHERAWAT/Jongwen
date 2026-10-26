@@ -1,0 +1,150 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { ActivityLog } from '@jongwen/shared';
+import { AppShell } from '@/components/shell';
+import { Icon, IconName } from '@/components/icons';
+import { api, formatThaiDateTime } from '@/lib/api';
+
+export default function AdminHomePage() {
+  const [overview, setOverview] = useState<{
+    usersCount: number;
+    resourcesCount: number;
+    monthRequestsCount: number;
+    todayRequestsCount?: number;
+    pendingCount?: number;
+    dueReturnCount?: number;
+    activities: ActivityLog[];
+  }>({
+    usersCount: 248,
+    resourcesCount: 32,
+    monthRequestsCount: 128,
+    todayRequestsCount: 6,
+    pendingCount: 3,
+    dueReturnCount: 1,
+    activities: [],
+  });
+
+  useEffect(() => {
+    api.adminOverview().then(setOverview).catch(() => {});
+  }, []);
+
+  const iconForKind = (kind: ActivityLog['kind']): IconName => {
+    switch (kind) {
+      case 'user':
+        return 'users';
+      case 'role':
+        return 'shield-check';
+      case 'resource':
+        return 'building-community';
+      default:
+        return 'file-text';
+    }
+  };
+
+  return (
+    <AppShell title="หน้าแรกผู้ดูแลระบบ" maxWidth="max-w-[960px]">
+      <div className="flex flex-col gap-5">
+        {/* KPI ภาพรวมระบบและคำขอวันนี้ (6.3.1) */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
+          <div className="jw-card p-4 flex flex-col gap-1">
+            <span className="text-[12px] text-ink-mute">คำขอวันนี้</span>
+            <b className="text-[24px] sm:text-[28px] text-brand leading-tight">
+              {overview.todayRequestsCount ?? 6}
+            </b>
+          </div>
+          <div className="jw-card p-4 flex flex-col gap-1">
+            <span className="text-[12px] text-ink-mute">รอดำเนินการ</span>
+            <b className="text-[24px] sm:text-[28px] text-status-crit leading-tight">
+              {overview.pendingCount ?? 3}
+            </b>
+          </div>
+          <div className="jw-card p-4 flex flex-col gap-1">
+            <span className="text-[12px] text-ink-mute">ใกล้ครบกำหนดคืน</span>
+            <b className="text-[24px] sm:text-[28px] text-ink leading-tight">
+              {overview.dueReturnCount ?? 1}
+            </b>
+          </div>
+          <div className="jw-card p-4 flex flex-col gap-1">
+            <span className="text-[12px] text-ink-mute">ผู้ใช้ทั้งหมด</span>
+            <b className="text-[24px] sm:text-[28px] text-ink leading-tight">{overview.usersCount}</b>
+          </div>
+          <div className="jw-card p-4 flex flex-col gap-1">
+            <span className="text-[12px] text-ink-mute">ทรัพยากร</span>
+            <b className="text-[24px] sm:text-[28px] text-ink leading-tight">{overview.resourcesCount}</b>
+          </div>
+          <div className="jw-card p-4 flex flex-col gap-1">
+            <span className="text-[12px] text-ink-mute">คำขอเดือนนี้</span>
+            <b className="text-[24px] sm:text-[28px] text-ink leading-tight">{overview.monthRequestsCount}</b>
+          </div>
+        </div>
+
+        {/* จัดการระบบ 3 ปุ่ม */}
+        <div>
+          <h2 className="text-[16px] sm:text-[18px] font-bold text-ink mb-3">จัดการระบบ</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+            <Link
+              href="/admin/resources"
+              className="jw-card p-4 flex items-center gap-3 hover:ring-1 hover:ring-brand transition"
+            >
+              <div className="w-11 h-11 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+                <Icon name="building-community" className="w-6 h-6" />
+              </div>
+              <b className="text-[15px]">ทรัพยากร</b>
+            </Link>
+
+            <Link
+              href="/admin/permissions"
+              className="jw-card p-4 flex items-center gap-3 hover:ring-1 hover:ring-brand transition"
+            >
+              <div className="w-11 h-11 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+                <Icon name="shield-check" className="w-6 h-6" />
+              </div>
+              <b className="text-[15px]">จัดการสิทธิ์</b>
+            </Link>
+
+            <Link
+              href="/admin/resources"
+              className="jw-card p-4 flex items-center gap-3 hover:ring-1 hover:ring-brand transition"
+            >
+              <div className="w-11 h-11 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+                <Icon name="file-text" className="w-6 h-6" />
+              </div>
+              <b className="text-[15px]">แบบฟอร์ม</b>
+            </Link>
+          </div>
+        </div>
+
+        {/* กิจกรรมล่าสุด */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between">
+            <b className="text-[16px] sm:text-[18px]">กิจกรรมล่าสุด</b>
+            <Link
+              href="/admin/resources/new"
+              className="text-[13px] font-semibold text-brand inline-flex items-center gap-1 hover:underline"
+            >
+              + เพิ่มทรัพยากรใหม่ <Icon name="chevron-right" className="w-4 h-4" />
+            </Link>
+          </div>
+
+          <div className="jw-card px-4 divide-y divide-line">
+            {overview.activities.map((act) => (
+              <div key={act.id} className="py-3.5 flex items-center gap-3.5">
+                <div className="w-10 h-10 rounded-[12px] bg-soft text-brand flex items-center justify-center shrink-0">
+                  <Icon name={iconForKind(act.kind)} className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <b className="block text-[14px] text-ink">{act.title}</b>
+                  <span className="text-[12px] text-ink-mute">
+                    {act.detail} · {formatThaiDateTime(act.at)}
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </AppShell>
+  );
+}

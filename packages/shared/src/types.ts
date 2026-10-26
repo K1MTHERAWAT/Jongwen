@@ -1,0 +1,256 @@
+// ===== Roles & accounts =====
+export type Role = 'USER' | 'STAFF' | 'APPROVER_L2' | 'APPROVER_L1' | 'ADMIN';
+
+export type PermissionKey =
+  | 'review'
+  | 'handover'
+  | 'walkIn'
+  | 'manageResources'
+  | 'sign'
+  | 'manageUsers';
+
+export interface Account {
+  id: string;
+  username: string;
+  password: string;
+  name: string;
+  nickname: string;
+  initial: string;
+  role: Role;
+  position: string;
+  department: string;
+  phone: string;
+  lineName?: string;
+  permissions: Record<PermissionKey, boolean>;
+  /** ข้อความ/ภาพลายเซ็น (data URL) — null = ยังไม่ตั้งค่า */
+  signature: string | null;
+  pin: string | null;
+  /** สถานะเปิด/ปิดการใช้งานบัญชี (ค่าเริ่มต้น = true) */
+  active?: boolean;
+  createdAt: string;
+}
+
+export type PublicAccount = Omit<Account, 'password' | 'pin'> & { hasPin: boolean };
+
+// ===== Resources =====
+export type VenueType = 'meeting' | 'pavilion' | 'field' | 'yard' | 'training';
+
+export interface Venue {
+  id: string;
+  name: string;
+  type: VenueType;
+  building: string;
+  floor: string;
+  capacity: number;
+  status: 'available' | 'maintenance';
+  enabled: boolean;
+  facilities: string[];
+  openTime: string;
+  closeTime: string;
+  /** 0 = อาทิตย์ … 6 = เสาร์ */
+  openDays: number[];
+  advanceDays: number;
+  formName: string;
+  approvalLevels: number;
+}
+
+export type EquipmentCategory = 'audio' | 'tent' | 'it';
+
+export interface Equipment {
+  id: string;
+  name: string;
+  category: EquipmentCategory;
+  stock: number;
+  enabled: boolean;
+}
+
+// ===== Requests =====
+export interface Period {
+  start: string;
+  end: string;
+}
+
+export type RequestType = 'booking' | 'borrow' | 'repair';
+
+export type RequestStatus =
+  | 'pending_staff'
+  | 'pending_l2'
+  | 'pending_l1'
+  | 'approved'
+  | 'rejected'
+  | 'cancelled'
+  | 'borrowing'
+  | 'return_inspect'
+  | 'returned'
+  | 'repair_submitted'
+  | 'repair_in_progress'
+  | 'repair_awaiting_acceptance'
+  | 'repair_done';
+
+export type SignLevel = 'staff' | 'l2' | 'l1';
+
+export interface SignatureRecord {
+  level: SignLevel;
+  signerId: string;
+  signerName: string;
+  title: string;
+  at: string;
+  decision: 'approve' | 'reject';
+  /** ภาพลายเซ็นที่วาดด้วยมือ (data:image/...) */
+  signature?: string;
+  note?: string;
+}
+
+export interface TimelineStep {
+  key: string;
+  label: string;
+  at?: string;
+  note?: string;
+  state: 'done' | 'current' | 'todo' | 'rejected';
+}
+
+export interface ItemQty {
+  equipmentId: string;
+  qty: number;
+}
+
+export interface OfficialFormPurposeItem {
+  item: string;
+  forWhat: string;
+}
+
+interface BaseRequest {
+  id: string;
+  code: string;
+  status: RequestStatus;
+  requesterId: string;
+  requesterName: string;
+  organization: string;
+  createdAt: string;
+  updatedAt: string;
+  /** ลายเซ็นผู้ยื่นคำขอ (วาดบนหน้าจอ data:image/...) */
+  requesterSignature?: string;
+  /** เจ้าหน้าที่ที่กรอกแทนที่เคาน์เตอร์ */
+  createdByStaffId?: string;
+  /** ลายเซ็นเจ้าหน้าที่ผู้กรอกแทนที่เคาน์เตอร์ */
+  createdByStaffSignature?: string;
+  rejectReason?: string;
+  /** ข้อมูลตามแบบขอใช้สถานที่ราชการ (Official Government Form) */
+  writtenAt?: string;
+  requesterPosition?: string;
+  addressHouseNo?: string;
+  addressMoo?: string;
+  addressSubdistrict?: string;
+  addressDistrict?: string;
+  addressProvince?: string;
+  purposeItems?: OfficialFormPurposeItem[];
+}
+
+export interface BookingRequest extends BaseRequest {
+  type: 'booking';
+  venueIds: string[];
+  periods: Period[];
+  attendees: number;
+  activity: string;
+  purpose: string;
+  attachments: string[];
+  extraItems: ItemQty[];
+  signatures: SignatureRecord[];
+  rescheduleTo?: Period[];
+}
+
+export interface BorrowRequest extends BaseRequest {
+  type: 'borrow';
+  items: ItemQty[];
+  pickupDate: string;
+  returnDate: string;
+  purpose: string;
+  attachments: string[];
+  signatures: SignatureRecord[];
+  returnRequestedAt?: string;
+  returnedAt?: string;
+}
+
+export interface RepairRequest extends BaseRequest {
+  type: 'repair';
+  building: string;
+  floor: string;
+  location: string;
+  category: string;
+  detail: string;
+  photos: number;
+  acceptedAt?: string;
+  startedAt?: string;
+  finishedAt?: string;
+  resolution?: string;
+  /** ลายเซ็นเจ้าหน้าที่ผู้รับเรื่อง/ซ่อมเสร็จ */
+  staffSignature?: string;
+  staffSignerName?: string;
+  /** ลายเซ็นผู้แจ้งตรวจรับงานซ่อม */
+  acceptanceSignature?: string;
+  acceptedByRequesterAt?: string;
+}
+
+export type AnyRequest = BookingRequest | BorrowRequest | RepairRequest;
+
+export type RequestWithTimeline = AnyRequest & {
+  timeline: TimelineStep[];
+  title: string;
+  subtitle: string;
+  handovers?: HandoverRecord[];
+  handoverBefore?: HandoverRecord;
+  handoverAfter?: HandoverRecord;
+};
+
+// ===== Others =====
+export interface AppNotification {
+  id: string;
+  userId: string;
+  title: string;
+  body: string;
+  at: string;
+  read: boolean;
+  link?: string;
+}
+
+export interface ActivityLog {
+  id: string;
+  kind: 'user' | 'role' | 'resource' | 'request';
+  title: string;
+  detail: string;
+  at: string;
+}
+
+export interface HandoverRecord {
+  requestId: string;
+  phase: 'before' | 'after';
+  items: { label: string; ok: boolean }[];
+  note: string;
+  at: string;
+  staffId: string;
+  staffName?: string;
+  /** ลายเซ็นผู้รับมอบ / ผู้ส่งคืน (ฝั่งผู้ยืม/ผู้ขอ) */
+  citizenSignature?: string;
+  /** ลายเซ็นเจ้าหน้าที่ผู้ส่งมอบ / ผู้ตรวจรับคืน */
+  staffSignature?: string;
+}
+
+export interface DayAvailability {
+  date: string; // YYYY-MM-DD
+  level: 'many' | 'few' | 'full' | 'closed';
+  bookedHours: number;
+}
+
+export interface ConflictInfo {
+  periodIndex: number;
+  venueId: string;
+  venueName: string;
+  start: string;
+  end: string;
+  code: string;
+}
+
+export interface LoginResponse {
+  token: string;
+  account: PublicAccount;
+}

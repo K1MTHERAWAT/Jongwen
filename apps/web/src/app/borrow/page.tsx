@@ -1,0 +1,324 @@
+'use client';
+
+import React, { useEffect, useState } from 'react';
+import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { EQUIPMENT_CATEGORY_LABEL, Equipment, EquipmentCategory } from '@jongwen/shared';
+import { useAuth } from '@/components/auth-context';
+import { AppShell } from '@/components/shell';
+import { Icon } from '@/components/icons';
+import { SignatureBox, Stepper, equipmentIconName } from '@/components/ui';
+import { api, formatThaiDate } from '@/lib/api';
+
+const STEPS = ['เลือกอุปกรณ์', 'กรอกคำขอ', 'ลงนามและส่ง'];
+
+export default function BorrowWizardPage() {
+  const router = useRouter();
+  const { account } = useAuth();
+  const [step, setStep] = useState(1);
+  const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [cat, setCat] = useState<'all' | EquipmentCategory>('all');
+  const [search, setSearch] = useState('');
+  const [quantities, setQuantities] = useState<Record<string, number>>({
+    'e-audio': 1,
+    'e-tent': 2,
+  });
+
+  // Step 2
+  const [organization, setOrganization] = useState(account?.department || 'กองสวัสดิการสังคม');
+  const [pickupDate, setPickupDate] = useState('2026-10-22');
+  const [returnDate, setReturnDate] = useState('2026-10-25');
+  const [purpose, setPurpose] = useState('ใช้ในงานอบรมกลางแจ้ง หมู่ 5');
+  const [attachmentName, setAttachmentName] = useState('');
+
+  // Step 3
+  const [signature, setSignature] = useState('');
+  const [draftSaved, setDraftSaved] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+
+  useEffect(() => {
+    api.equipment().then(setEquipment).catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (account) {
+      setOrganization(account.department);
+    }
+  }, [account]);
+
+  const setQty = (id: string, max: number, next: number) => {
+    const clamped = Math.max(0, Math.min(max, next));
+    setQuantities((prev) => ({ ...prev, [id]: clamped }));
+  };
+
+  const selectedItems = equipment
+    .map((eq) => ({ eq, qty: quantities[eq.id] ?? 0 }))
+    .filter((x) => x.qty > 0);
+
+  const filtered = equipment.filter((e) => {
+    if (cat !== 'all' && e.category !== cat) return false;
+    if (search.trim() && !e.name.toLowerCase().includes(search.toLowerCase())) return false;
+    return true;
+  });
+
+  const handleSubmit = async () => {
+    setSubmitting(true);
+    try {
+      const created = await api.createBorrow({
+        items: selectedItems.map((s) => ({ equipmentId: s.eq.id, qty: s.qty })),
+        pickupDate,
+        returnDate,
+        purpose,
+        organization,
+        requesterSignature: signature,
+        attachments: attachmentName ? [attachmentName] : [],
+      });
+      router.push(`/requests/${created.id}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  return (
+    <AppShell
+      title={step === 1 ? 'ยืม–คืนครุภัณฑ์' : step === 2 ? 'แบบคำขอยืม' : 'ลงนามและส่งคำขอ'}
+      backHref={step === 1 ? '/' : undefined}
+      onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
+      footer={
+        step === 1 ? (
+          <div className="flex w-full sm:w-auto gap-2.5">
+            <Link href="/borrow/my" className="jw-btn-sec flex-1 sm:w-44">
+              รายการยืมของฉัน
+            </Link>
+            <button
+              type="button"
+              disabled={selectedItems.length === 0}
+              onClick={() => setStep(2)}
+              className="jw-btn flex-[1.5] sm:w-64"
+            >
+              ถัดไป · กรอกคำขอ ({selectedItems.length} รายการ)
+            </button>
+          </div>
+        ) : step === 2 ? (
+          <div className="flex w-full sm:w-auto gap-2.5">
+            <button type="button" onClick={() => setStep(1)} className="jw-btn-sec flex-1 sm:w-36">
+              ย้อนกลับ
+            </button>
+            <button type="button" onClick={() => setStep(3)} className="jw-btn flex-[1.5] sm:w-56">
+              ถัดไป · ลงนามและส่ง
+            </button>
+          </div>
+        ) : (
+          <div className="flex w-full sm:w-auto gap-2.5">
+            <button
+              type="button"
+              onClick={() => {
+                setDraftSaved(true);
+                setTimeout(() => setDraftSaved(false), 2500);
+              }}
+              className="jw-btn-sec flex-1 sm:w-36"
+            >
+              บันทึกร่าง
+            </button>
+            <button
+              type="button"
+              disabled={submitting || !signature.trim()}
+              onClick={handleSubmit}
+              className="jw-btn flex-[1.5] sm:w-56"
+            >
+              {submitting ? 'กำลังส่งคำขอ...' : 'ส่งคำขอ'}
+            </button>
+          </div>
+        )
+      }
+    >
+      <div className="max-w-[680px] mx-auto mb-5">
+        <Stepper steps={STEPS} current={step} onSelect={setStep} />
+      </div>
+
+      {/* STEP 1: เลือกอุปกรณ์ */}
+      {step === 1 && (
+        <div className="max-w-[680px] mx-auto flex flex-col gap-3.5">
+          <input
+            type="text"
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="ค้นหาอุปกรณ์"
+            className="jw-in"
+          />
+
+          <div className="flex flex-wrap gap-2">
+            {(
+              [
+                ['all', 'ทั้งหมด'],
+                ['audio', 'เครื่องเสียง'],
+                ['tent', 'เต็นท์ / เก้าอี้'],
+                ['it', 'IT'],
+              ] as const
+            ).map(([val, label]) => (
+              <button
+                key={val}
+                type="button"
+                onClick={() => setCat(val)}
+                className={`h-[38px] px-4 rounded-full border-[1.5px] text-[13px] font-semibold transition ${
+                  cat === val
+                    ? 'bg-brand border-brand text-white'
+                    : 'bg-white border-line text-ink hover:border-brand'
+                }`}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+
+          <div className="flex flex-col gap-3">
+            {filtered.map((eq) => {
+              const qty = quantities[eq.id] ?? 0;
+              return (
+                <div key={eq.id} className="jw-card p-3.5 flex items-center gap-3.5">
+                  <div className="w-14 h-14 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+                    <Icon name={equipmentIconName(eq.category)} className="w-6 h-6" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <b className="block text-[15px] text-ink">{eq.name}</b>
+                    <span className="text-[13px] text-ink-mute">
+                      {EQUIPMENT_CATEGORY_LABEL[eq.category]} · คงเหลือ {eq.stock}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2.5">
+                    <button
+                      type="button"
+                      disabled={qty <= 0}
+                      onClick={() => setQty(eq.id, eq.stock, qty - 1)}
+                      className="w-[34px] h-[34px] rounded-full border-[1.5px] border-ink flex items-center justify-center disabled:opacity-40"
+                    >
+                      <Icon name="minus" className="w-4 h-4" />
+                    </button>
+                    <b className="min-w-[20px] text-center text-[15px]">{qty}</b>
+                    <button
+                      type="button"
+                      disabled={qty >= eq.stock}
+                      onClick={() => setQty(eq.id, eq.stock, qty + 1)}
+                      className="w-[34px] h-[34px] rounded-full bg-ink text-white flex items-center justify-center disabled:opacity-40"
+                    >
+                      <Icon name="plus" className="w-4 h-4" />
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* STEP 2: กรอกคำขอยืม */}
+      {step === 2 && (
+        <div className="max-w-[640px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div>
+              <label className="jw-lbl">ผู้ยืม</label>
+              <input type="text" value={account?.name || 'สมชาย ใจดี'} readOnly className="jw-in bg-soft/40" />
+            </div>
+            <div>
+              <label className="jw-lbl">หน่วยงาน</label>
+              <input
+                type="text"
+                value={organization}
+                onChange={(e) => setOrganization(e.target.value)}
+                className="jw-in"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="jw-lbl">วันที่รับ</label>
+              <input
+                type="date"
+                value={pickupDate}
+                onChange={(e) => setPickupDate(e.target.value)}
+                className="jw-in"
+              />
+            </div>
+            <div>
+              <label className="jw-lbl">กำหนดคืน</label>
+              <input
+                type="date"
+                value={returnDate}
+                onChange={(e) => setReturnDate(e.target.value)}
+                className="jw-in"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="jw-lbl">วัตถุประสงค์</label>
+            <textarea
+              rows={3}
+              value={purpose}
+              onChange={(e) => setPurpose(e.target.value)}
+              className="jw-in h-24 py-2.5"
+            />
+          </div>
+
+          <div>
+            <label className="jw-lbl">แนบเอกสาร</label>
+            <label className="border-[1.5px] border-dashed border-[#7A7A7A] rounded-[12px] p-4 text-center text-ink-mute bg-white cursor-pointer block hover:border-brand">
+              <input
+                type="file"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) setAttachmentName(f.name);
+                }}
+              />
+              <div className="font-medium text-ink">
+                {attachmentName ? `ไฟล์ที่แนบ: ${attachmentName}` : 'ลากไฟล์มาวางหรือเลือกไฟล์'}
+              </div>
+              <div className="text-[12px] text-ink-mute mt-0.5">PDF / JPG ไม่เกิน 10 MB</div>
+            </label>
+          </div>
+        </div>
+      )}
+
+      {/* STEP 3: ลงนามและส่ง */}
+      {step === 3 && (
+        <div className="max-w-[640px] mx-auto flex flex-col gap-4">
+          <div className="jw-card p-5 flex flex-col gap-2.5">
+            <b className="text-[16px]">สรุปรายการที่ขอยืม</b>
+            {selectedItems.map(({ eq, qty }) => (
+              <div key={eq.id} className="flex justify-between text-[14px]">
+                <b className="text-ink-mute">{eq.name}</b>
+                <span className="font-semibold">× {qty}</span>
+              </div>
+            ))}
+            <div className="flex justify-between text-[14px] pt-2 border-t border-line">
+              <b className="text-ink-mute">ช่วงยืม</b>
+              <span>
+                {formatThaiDate(pickupDate, false)}–{formatThaiDate(returnDate, true)}
+              </span>
+            </div>
+          </div>
+
+          <div className="jw-card p-5 flex flex-col gap-2">
+            <label className="jw-lbl">เขียนลายเซ็นผู้ขอยืม ({account?.name || 'สมชาย ใจดี'})</label>
+            <SignatureBox
+              value={signature}
+              onChange={setSignature}
+              savedSignature={account?.signature}
+              signerLabel={`${account?.name || 'สมชาย ใจดี'} · ผู้ยื่นคำขอยืม`}
+            />
+            <p className="text-[13px] text-ink-mute mt-1">
+              ต้องลงนามทุกฝ่าย (4 ฝ่าย): (1) ผู้ยื่นคำขอ → (2) เจ้าหน้าที่ผู้ตรวจสอบ → (3) ปลัด อบต. → (4) นายก อบต.
+            </p>
+            {draftSaved && (
+              <div className="rounded-[10px] bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold mt-1">
+                บันทึกร่างคำขอยืมอุปกรณ์เรียบร้อยแล้ว
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </AppShell>
+  );
+}
