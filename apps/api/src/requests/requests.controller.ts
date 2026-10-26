@@ -145,7 +145,7 @@ export class RequestsController {
   }
 
   @Post('booking')
-  createBooking(
+  async createBooking(
     @CurrentUser() user: Account,
     @Body()
     body: {
@@ -236,13 +236,14 @@ export class RequestsController {
         : undefined,
     };
     this.db.requests.unshift(req);
+    await this.db.persistRequest(req);
     this.db.notifyRole('STAFF', 'มีคำขอจองสถานที่ใหม่', `${req.code} · ${req.requesterName}`, `/staff/review?id=${req.id}`);
     this.db.log('request', `ส่งคำขอจอง ${req.code}`, req.requesterName);
     return this.enrich(req);
   }
 
   @Post('borrow')
-  createBorrow(
+  async createBorrow(
     @CurrentUser() user: Account,
     @Body()
     body: {
@@ -301,13 +302,14 @@ export class RequestsController {
       signatures: [],
     };
     this.db.requests.unshift(req);
+    await this.db.persistRequest(req);
     this.db.notifyRole('STAFF', 'มีคำขอยืมครุภัณฑ์ใหม่', `${req.code} · ${req.requesterName}`, `/staff/review?id=${req.id}`);
     this.db.log('request', `ส่งคำขอยืม ${req.code}`, req.requesterName);
     return this.enrich(req);
   }
 
   @Post('repair')
-  createRepair(
+  async createRepair(
     @CurrentUser() user: Account,
     @Body()
     body: {
@@ -361,6 +363,7 @@ export class RequestsController {
       photos: Math.max(0, Math.min(3, Math.floor(Number(body.photos ?? 0)) || 0)),
     };
     this.db.requests.unshift(req);
+    await this.db.persistRequest(req);
     this.db.notifyRole('STAFF', 'แจ้งซ่อมใหม่', `${req.code} · ${req.location}`, `/staff/review?id=${req.id}`);
     this.db.log('request', `แจ้งซ่อม ${req.code}`, req.location);
     return this.enrich(req);
@@ -369,7 +372,7 @@ export class RequestsController {
   /** ลงนาม / อนุมัติ 3 ระดับ (เจ้าหน้าที่ → ปลัด L2 → นายก L1) */
   @Permissions('review', 'sign')
   @Post(':id/sign')
-  sign(
+  async sign(
     @CurrentUser() user: Account,
     @Param('id') id: string,
     @Body() body: { decision: 'approve' | 'reject'; note?: string; pin?: string; signature?: string },
@@ -435,13 +438,14 @@ export class RequestsController {
       );
     }
 
+    await this.db.persistRequest(req);
     this.db.log('request', `${body.decision === 'approve' ? 'ลงนาม' : 'ไม่ผ่าน'} ${req.code}`, `${user.name} (${SIGN_LEVEL_TITLE[level]})`);
     return this.enrich(req);
   }
 
   /** ขอเลื่อนวัน หรือ ยกเลิกคำขอ (เฉพาะเจ้าของคำขอ หรือ เจ้าหน้าที่ที่มีสิทธิ์ตรวจคำขอ) */
   @Post(':id/reschedule')
-  reschedule(@CurrentUser() user: Account, @Param('id') id: string, @Body() body: { periods: Period[] }) {
+  async reschedule(@CurrentUser() user: Account, @Param('id') id: string, @Body() body: { periods: Period[] }) {
     const req = this.db.requests.find((r): r is BookingRequest => (r.id === id || r.code === id) && r.type === 'booking');
     if (!req) throw new NotFoundException('ไม่พบคำขอจอง');
     if (req.requesterId !== user.id && !hasPermission(user, 'review')) {
@@ -458,12 +462,13 @@ export class RequestsController {
     req.status = 'pending_staff';
     req.signatures = [];
     req.updatedAt = new Date().toISOString();
+    await this.db.persistRequest(req);
     this.db.log('request', `ขอเลื่อนวัน ${req.code}`, user.name);
     return this.enrich(req);
   }
 
   @Post(':id/cancel')
-  cancel(@CurrentUser() user: Account, @Param('id') id: string, @Body() body: { reason?: string }) {
+  async cancel(@CurrentUser() user: Account, @Param('id') id: string, @Body() body: { reason?: string }) {
     const req = this.db.requests.find((r) => r.id === id || r.code === id);
     if (!req) throw new NotFoundException('ไม่พบคำขอ');
     if (req.requesterId !== user.id && !hasPermission(user, 'review')) {
@@ -475,13 +480,14 @@ export class RequestsController {
     req.status = 'cancelled';
     req.rejectReason = body.reason ? String(body.reason).slice(0, 1000) : undefined;
     req.updatedAt = new Date().toISOString();
+    await this.db.persistRequest(req);
     this.db.log('request', `ยกเลิกคำขอ ${req.code}`, user.name);
     return this.enrich(req);
   }
 
   /** ผู้ยืมแจ้งคืนอุปกรณ์ */
   @Post(':id/return-request')
-  requestReturn(@CurrentUser() user: Account, @Param('id') id: string) {
+  async requestReturn(@CurrentUser() user: Account, @Param('id') id: string) {
     const req = this.db.requests.find((r): r is BorrowRequest => (r.id === id || r.code === id) && r.type === 'borrow');
     if (!req) throw new NotFoundException('ไม่พบรายการยืม');
     if (req.requesterId !== user.id && !hasPermission(user, 'handover')) {
@@ -492,6 +498,7 @@ export class RequestsController {
     req.status = 'return_inspect';
     req.returnRequestedAt = now;
     req.updatedAt = now;
+    await this.db.persistRequest(req);
     this.db.notifyRole('STAFF', `แจ้งคืนอุปกรณ์ ${req.code}`, req.requesterName, `/staff/handover?id=${req.id}`);
     return this.enrich(req);
   }
@@ -499,7 +506,7 @@ export class RequestsController {
   /** เจ้าหน้าที่บันทึกเช็คลิสต์รับมอบ / รับคืน (ต้องมีลายเซ็นทั้งผู้รับมอบ/ผู้คืน และเจ้าหน้าที่) */
   @Permissions('handover')
   @Post(':id/handover')
-  handover(
+  async handover(
     @CurrentUser() user: Account,
     @Param('id') id: string,
     @Body()
@@ -522,7 +529,7 @@ export class RequestsController {
     const citizenSig = requireDrawnSignature(body.citizenSignature, 'ผู้รับมอบ/ผู้ส่งคืน');
     const staffSig = requireDrawnSignature(body.staffSignature, 'เจ้าหน้าที่ผู้ตรวจสภาพ');
     const now = new Date().toISOString();
-    this.db.handovers.push({
+    const handoverRecord = {
       requestId: req.id,
       phase: body.phase,
       items: (Array.isArray(body.items) ? body.items : [])
@@ -534,19 +541,22 @@ export class RequestsController {
       staffName: user.name,
       citizenSignature: citizenSig,
       staffSignature: staffSig,
-    });
+    };
+    this.db.handovers.push(handoverRecord);
     if (req.type === 'borrow') {
       req.status = body.phase === 'before' ? 'borrowing' : 'returned';
       if (body.phase === 'after') req.returnedAt = now;
     }
     req.updatedAt = now;
+    await this.db.persistHandover(handoverRecord);
+    await this.db.persistRequest(req);
     this.db.log('request', `${body.phase === 'before' ? 'ยืนยันรับมอบ' : 'ยืนยันรับคืน'} ${req.code}`, user.name);
     return this.enrich(req);
   }
 
   /** อัปเดตสถานะงานซ่อม + ผู้แจ้งตรวจรับงาน (พร้อมลายเซ็นเจ้าหน้าที่และผู้แจ้งตรวจรับ) */
   @Post(':id/repair-status')
-  updateRepair(
+  async updateRepair(
     @CurrentUser() user: Account,
     @Param('id') id: string,
     @Body()
@@ -614,6 +624,7 @@ export class RequestsController {
       req.status = 'repair_in_progress';
     }
     req.updatedAt = now;
+    await this.db.persistRequest(req);
     this.db.log('request', `อัปเดตงานซ่อม ${req.code}`, user.name);
     return this.enrich(req);
   }

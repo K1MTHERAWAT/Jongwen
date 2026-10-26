@@ -35,7 +35,7 @@ export class ResourcesController {
 
   @Permissions('manageResources')
   @Post('venues')
-  createVenue(@Body() body: Partial<Venue>) {
+  async createVenue(@Body() body: Partial<Venue>) {
     if (!body.name?.trim()) throw new BadRequestException('กรุณาระบุชื่อสถานที่');
     const capacity = Math.max(1, Math.min(10000, Math.floor(Number(body.capacity ?? 50))));
     const advanceDays = Math.max(0, Math.min(365, Math.floor(Number(body.advanceDays ?? 3))));
@@ -61,13 +61,14 @@ export class ResourcesController {
       approvalLevels: 3,
     };
     this.db.venues.push(venue);
+    await this.db.persistVenue(venue);
     this.db.log('resource', `เพิ่มสถานที่ ${venue.name}`, `${venue.capacity} คน`);
     return venue;
   }
 
   @Permissions('manageResources')
   @Patch('venues/:id')
-  updateVenue(@Param('id') id: string, @Body() body: Partial<Venue>) {
+  async updateVenue(@Param('id') id: string, @Body() body: Partial<Venue>) {
     const venue = this.db.venues.find((v) => v.id === id);
     if (!venue) throw new NotFoundException('ไม่พบสถานที่');
     if (typeof body.name === 'string' && body.name.trim()) venue.name = body.name.trim().slice(0, 120);
@@ -98,12 +99,13 @@ export class ResourcesController {
       venue.status = body.enabled ? 'available' : 'maintenance';
       this.db.log('resource', `${body.enabled ? 'เปิด' : 'ปิด'}ให้จอง ${venue.name}`, venue.status);
     }
+    await this.db.persistVenue(venue);
     return venue;
   }
 
   @Permissions('manageResources')
   @Post('equipment')
-  createEquipment(@Body() body: Partial<Equipment>) {
+  async createEquipment(@Body() body: Partial<Equipment>) {
     if (!body.name?.trim()) throw new BadRequestException('กรุณาระบุชื่ออุปกรณ์');
     const stock = Math.floor(Number(body.stock ?? 1));
     if (!Number.isFinite(stock) || stock < 0 || stock > 10000) {
@@ -120,13 +122,14 @@ export class ResourcesController {
       enabled: body.enabled ?? true,
     };
     this.db.equipment.push(eq);
+    await this.db.persistEquipment(eq);
     this.db.log('resource', `เพิ่มอุปกรณ์ ${eq.name}`, `คงเหลือ ${eq.stock}`);
     return eq;
   }
 
   @Permissions('manageResources')
   @Patch('equipment/:id')
-  updateEquipment(@Param('id') id: string, @Body() body: Partial<Equipment>) {
+  async updateEquipment(@Param('id') id: string, @Body() body: Partial<Equipment>) {
     const eq = this.db.equipment.find((e) => e.id === id);
     if (!eq) throw new NotFoundException('ไม่พบอุปกรณ์');
     if (typeof body.name === 'string' && body.name.trim()) eq.name = body.name.trim().slice(0, 120);
@@ -141,6 +144,7 @@ export class ResourcesController {
       eq.stock = stock;
     }
     if (typeof body.enabled === 'boolean') eq.enabled = body.enabled;
+    await this.db.persistEquipment(eq);
     return eq;
   }
 

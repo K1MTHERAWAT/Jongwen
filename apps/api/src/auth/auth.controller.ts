@@ -57,7 +57,7 @@ export class AuthController {
 
   @Public()
   @Post('register')
-  register(
+  async register(
     @Body()
     body: {
       name: string;
@@ -101,6 +101,7 @@ export class AuthController {
       createdAt: new Date().toISOString(),
     };
     this.db.accounts.unshift(account);
+    await this.db.persistAccount(account);
     this.db.log('user', 'ผู้ใช้ใหม่ลงทะเบียน', account.name);
     return { token: createSession(account.id), account: this.db.toPublic(account) };
   }
@@ -111,19 +112,21 @@ export class AuthController {
   }
 
   @Post('signature')
-  saveSignature(@CurrentUser() user: Account, @Body() body: { signature: string }) {
+  async saveSignature(@CurrentUser() user: Account, @Body() body: { signature: string }) {
     user.signature = requireDrawnSignature(body.signature, 'ผู้ใช้');
+    await this.db.persistAccount(user);
     return this.db.toPublic(user);
   }
 
   @Post('pin')
-  savePin(@CurrentUser() user: Account, @Body() body: { pin: string }) {
+  async savePin(@CurrentUser() user: Account, @Body() body: { pin: string }) {
     if (!/^\d{6}$/.test(body.pin ?? '')) throw new BadRequestException('PIN ต้องเป็นตัวเลข 6 หลัก');
     if (!user.signature) {
       throw new BadRequestException('กรุณาเขียนและบันทึกลายเซ็นก่อนตั้งรหัส PIN');
     }
     user.pin = body.pin;
     clearFailures(`pin:${user.id}`);
+    await this.db.persistAccount(user);
     return this.db.toPublic(user);
   }
 

@@ -124,12 +124,13 @@ erDiagram
     accounts ||--o{ handover_records : "staff_id"
     accounts ||--o{ notifications : "user_id"
 
+    requests ||--o{ request_venues : "request_id"
     requests ||--o{ request_periods : "request_id"
     requests ||--o{ request_items : "request_id"
     requests ||--o{ signature_records : "request_id"
     requests ||--o{ handover_records : "request_id"
 
-    venues ||--o{ request_periods : "venue_id"
+    venues ||--o{ request_venues : "venue_id"
     equipments ||--o{ request_items : "equipment_id"
 
     accounts {
@@ -209,10 +210,16 @@ erDiagram
         timestamp updated_at
     }
 
+    request_venues {
+        string request_id PK,FK
+        string venue_id PK,FK
+    }
+
     request_periods {
         serial id PK
         string request_id FK
-        string venue_id FK
+        string kind "current, reschedule"
+        int sort_order
         timestamptz start_time
         timestamptz end_time
     }
@@ -222,8 +229,6 @@ erDiagram
         string request_id FK
         string equipment_id FK
         int qty
-        date pickup_date
-        date return_date
     }
 
     signature_records {

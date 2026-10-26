@@ -1,0 +1,24 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: jongwen-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-jongwen}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-jongwen_dev}
+      POSTGRES_DB: ${POSTGRES_DB:-jongwen}
+      TZ: Asia/Bangkok
+      PGTZ: Asia/Bangkok
+    ports:
+      # ใช้ 5433 ฝั่งเครื่อง เพราะ 5432 มี PostgreSQL ที่ติดตั้งในเครื่องใช้อยู่แล้ว
+      - '${POSTGRES_PORT:-5433}:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-jongwen} -d ${POSTGRES_DB:-jongwen}']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:

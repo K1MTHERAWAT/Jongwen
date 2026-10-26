@@ -44,7 +44,7 @@ export class AdminController {
 
   @Permissions('manageUsers')
   @Patch('users/:id/permissions')
-  updatePermissions(
+  async updatePermissions(
     @CurrentUser() actor: Account,
     @Param('id') id: string,
     @Body() body: { role?: Role; permissions?: Partial<Record<PermissionKey, boolean>>; active?: boolean },
@@ -84,6 +84,7 @@ export class AdminController {
       target.permissions = nextPerms;
       this.db.log('role', `อัปเดตสิทธิ์การใช้งานรายย่อย`, target.name);
     }
+    await this.db.persistAccount(target);
     return this.db.toPublic(target);
   }
 
@@ -114,14 +115,14 @@ export class AdminController {
 
   @Post('notifications/read-all')
   readAll(@CurrentUser() user: Account) {
-    this.db.notifications.filter((n) => n.userId === user.id).forEach((n) => (n.read = true));
+    this.db.markAllNotificationsRead(user.id);
     return { ok: true };
   }
 
   @Permissions('manageUsers')
   @Post('dev/reset')
-  reset() {
-    this.db.reset();
+  async reset() {
+    await this.db.reset();
     return { ok: true };
   }
 }
