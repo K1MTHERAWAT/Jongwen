@@ -89,6 +89,7 @@ BookingV1/
 | `pnpm db:down` | หยุดและปิด container (`docker compose down`) |
 | `pnpm db:logs` | ดู Logs แบบ Real-time ของ PostgreSQL |
 | `pnpm db:seed` | นำเข้าข้อมูลเริ่มต้น (Mock Data 6 บัญชี, 6 สถานที่, 5 อุปกรณ์, 14 คำขอ) |
+| `pnpm db:clear` | ล้างเฉพาะข้อมูลคำขอและประวัติทั้งหมด (เหลือเฉพาะบัญชีผู้ใช้และทรัพยากร) |
 | `pnpm db:studio` | เปิด **Prisma Studio** (Web GUI บริหารจัดการข้อมูลผ่าน Browser ที่ `http://localhost:5555`) |
 | `pnpm db:psql` | เข้าสู่ Terminal Interactive PSQL ใน container |
 

@@ -64,8 +64,8 @@ export default function BookingWizardPage() {
   const [activity, setActivity] = useState('ประชุมคณะกรรมการกองทุนหมู่บ้าน');
   const [purpose, setPurpose] = useState('ประชุมคณะกรรมการกองทุนหมู่บ้าน และจัดอบรมอาสาสมัครประจำหมู่บ้าน');
   const [purposeItems, setPurposeItems] = useState<OfficialFormPurposeItem[]>([
-    { item: 'อาคารหอประชุมสภา อบต.น้ำชำ', forWhat: 'ประชุมคณะกรรมการกองทุนหมู่บ้าน' },
-    { item: 'เครื่องเสียงพร้อมไมโครโฟน 1 ชุด', forWhat: 'ใช้ประกอบการประชุมและชี้แจงสมาชิก' },
+    { item: '', forWhat: 'ประชุมคณะกรรมการกองทุนหมู่บ้าน' },
+    { item: '', forWhat: '' },
     { item: '', forWhat: '' },
   ]);
   const [attachmentName, setAttachmentName] = useState('โครงการอบรม_ไตรมาส4.pdf');
@@ -120,6 +120,41 @@ export default function BookingWizardPage() {
 
   const selectedVenues = venues.filter((v) => selectedIds.includes(v.id));
   const buildings = Array.from(new Set(venues.map((v) => v.building)));
+
+  // ดึงชื่อสถานที่ที่เลือกมาใส่ในแบบฟอร์ม (ข้อ 1–3) อัตโนมัติ
+  const autoFillSelectedVenues = (venueList = selectedVenues) => {
+    if (!venueList.length) return;
+    setPurposeItems((prev) => {
+      const next: OfficialFormPurposeItem[] = [
+        { item: '', forWhat: '' },
+        { item: '', forWhat: '' },
+        { item: '', forWhat: '' },
+      ];
+      if (venueList.length === 1) {
+        next[0] = {
+          item: venueList[0].name,
+          forWhat: prev[0]?.forWhat || activity || purpose || 'ใช้จัดกิจกรรมและประชุม',
+        };
+        next[1] = prev[1]?.item && prev[1].item !== venueList[0].name ? prev[1] : { item: '', forWhat: '' };
+        next[2] = prev[2]?.item && prev[2].item !== venueList[0].name ? prev[2] : { item: '', forWhat: '' };
+      } else {
+        venueList.slice(0, 3).forEach((v, idx) => {
+          next[idx] = {
+            item: v.name,
+            forWhat: prev[idx]?.forWhat || activity || purpose || 'ใช้จัดกิจกรรมและประชุม',
+          };
+        });
+      }
+      return next;
+    });
+  };
+
+  // ซิงค์ชื่อสถานที่ลงข้อ 1-3 อัตโนมัติทุกครั้งที่รายการสถานที่ที่เลือกเปลี่ยน
+  useEffect(() => {
+    if (selectedVenues.length > 0) {
+      autoFillSelectedVenues(selectedVenues);
+    }
+  }, [selectedIds, venues]);
 
   const effectiveConflicts: ConflictInfo[] = simulateOverlap
     ? [
@@ -240,7 +275,10 @@ export default function BookingWizardPage() {
             <button
               type="button"
               disabled={effectiveConflicts.length > 0 || periods.length === 0}
-              onClick={() => setStep(3)}
+              onClick={() => {
+                autoFillSelectedVenues(selectedVenues);
+                setStep(3);
+              }}
               className="jw-btn flex-[1.5] sm:w-56"
             >
               ถัดไป · กรอกคำขอ
@@ -681,7 +719,7 @@ export default function BookingWizardPage() {
                 setActivity('ประชุมคณะกรรมการกองทุนหมู่บ้าน');
                 setPurpose('ประชุมคณะกรรมการกองทุนหมู่บ้าน หมู่ที่ 1 ตำบลน้ำชำ');
                 setPurposeItems([
-                  { item: 'อาคารหอประชุมสภา อบต.น้ำชำ', forWhat: 'ประชุมคณะกรรมการกองทุนหมู่บ้าน' },
+                  { item: selectedVenues.map((v) => v.name).join(', ') || 'ห้องประชุมใหญ่ อบต.', forWhat: 'ประชุมคณะกรรมการกองทุนหมู่บ้าน' },
                   { item: '', forWhat: '' },
                   { item: '', forWhat: '' },
                 ]);
@@ -795,21 +833,19 @@ export default function BookingWizardPage() {
 
           {/* มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ (ข้อ 1..3 เพื่อ...) */}
           <div className="rounded-[12px] bg-soft/60 border border-line p-4 flex flex-col gap-3">
-            <div className="flex items-center justify-between gap-2">
-              <b className="text-[14px] text-ink">มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ (ข้อ 1–3)</b>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <b className="text-[14px] text-ink">มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ (ข้อ 1–3)</b>
+                <span className="text-[11.5px] font-semibold text-brand bg-brand-mint px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <Icon name="check" className="w-3 h-3" strokeWidth={3} /> ดึงจากสถานที่ที่เลือกอัตโนมัติ
+                </span>
+              </div>
               <button
                 type="button"
-                onClick={() => {
-                  const venueText = selectedVenues.map((v) => v.name).join(', ') || 'อาคารหอประชุมสภา อบต.น้ำชำ';
-                  setPurposeItems((prev) => [
-                    { item: venueText, forWhat: prev[0]?.forWhat || activity },
-                    prev[1] || { item: '', forWhat: '' },
-                    prev[2] || { item: '', forWhat: '' },
-                  ]);
-                }}
+                onClick={() => autoFillSelectedVenues(selectedVenues)}
                 className="text-[12px] font-semibold text-brand hover:underline"
               >
-                ดึงชื่อสถานที่ที่เลือกมาใส่ข้อ 1
+                ดึงข้อมูลสถานที่ที่เลือกใหม่อีกครั้ง
               </button>
             </div>
             {[0, 1, 2].map((idx) => (

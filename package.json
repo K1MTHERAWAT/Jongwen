@@ -16,6 +16,7 @@
     "db:logs": "docker compose logs -f postgres",
     "db:psql": "docker exec -it jongwen-postgres psql -U jongwen -d jongwen",
     "db:seed": "pnpm --filter @jongwen/api prisma:seed",
+    "db:clear": "pnpm --filter @jongwen/api exec tsx prisma/clear.ts",
     "db:studio": "pnpm --filter @jongwen/api prisma:studio"
   }
 }

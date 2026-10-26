@@ -38,12 +38,12 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   accounts: Account[] = clone(mockAccounts);
   venues: Venue[] = clone(mockVenues);
   equipment: Equipment[] = clone(mockEquipment);
-  requests: AnyRequest[] = clone(mockRequests);
-  notifications: AppNotification[] = clone(mockNotifications);
-  activities: ActivityLog[] = clone(mockActivities);
+  requests: AnyRequest[] = [];
+  notifications: AppNotification[] = [];
+  activities: ActivityLog[] = [];
   handovers: HandoverRecord[] = [];
 
-  private seq = { BK: 150, BR: 40, RP: 70, n: 100, l: 100, u: 100, v: 100, e: 100 };
+  private seq = { BK: 0, BR: 0, RP: 0, n: 0, l: 0, u: 100, v: 100, e: 100 };
 
   async onModuleInit() {
     try {
@@ -87,6 +87,25 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
     this.handovers = [];
     await this.seedDatabase(true);
     await this.loadFromDatabase();
+  }
+
+  /** ล้างเฉพาะข้อมูลคำขอและประวัติ (requests, handovers, notifications, activities) */
+  async clearTransactions() {
+    await this.prisma.$transaction([
+      this.prisma.handoverRecord.deleteMany(),
+      this.prisma.signatureRecord.deleteMany(),
+      this.prisma.requestItem.deleteMany(),
+      this.prisma.requestPeriod.deleteMany(),
+      this.prisma.requestVenue.deleteMany(),
+      this.prisma.request.deleteMany(),
+      this.prisma.notification.deleteMany(),
+      this.prisma.activityLog.deleteMany(),
+    ]);
+    this.requests = [];
+    this.notifications = [];
+    this.activities = [];
+    this.handovers = [];
+    this.seq = { BK: 0, BR: 0, RP: 0, n: 0, l: 0, u: this.accounts.length, v: this.venues.length, e: this.equipment.length };
   }
 
   toPublic(a: Account): PublicAccount {

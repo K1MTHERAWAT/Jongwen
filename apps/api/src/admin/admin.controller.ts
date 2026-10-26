@@ -98,9 +98,9 @@ export class AdminController {
       (r) => r.status === 'borrowing' || r.status === 'return_inspect',
     ).length;
     return {
-      usersCount: 242 + this.db.accounts.length,
+      usersCount: this.db.accounts.length,
       resourcesCount: this.db.venues.length + this.db.equipment.length,
-      monthRequestsCount: 118 + this.db.requests.length,
+      monthRequestsCount: this.db.requests.length,
       todayRequestsCount: this.db.requests.length,
       pendingCount,
       dueReturnCount,
@@ -116,6 +116,13 @@ export class AdminController {
   @Post('notifications/read-all')
   readAll(@CurrentUser() user: Account) {
     this.db.markAllNotificationsRead(user.id);
+    return { ok: true };
+  }
+
+  @Permissions('manageUsers')
+  @Post('dev/clear-requests')
+  async clearRequests() {
+    await this.db.clearTransactions();
     return { ok: true };
   }
 
