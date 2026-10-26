@@ -69,9 +69,12 @@ export default function ApproverHomePage() {
         {/* รายการเอกสารรอลงนาม */}
         <div className="flex items-center justify-between">
           <b className="text-[16px] sm:text-[18px]">เอกสารรอลงนาม</b>
-          <span className="text-[13px] text-ink font-semibold inline-flex items-center gap-1">
+          <Link
+            href="/history"
+            className="text-[13px] text-ink font-semibold inline-flex items-center gap-1 hover:underline"
+          >
             ดูทั้งหมด <Icon name="chevron-right" className="w-4 h-4" />
-          </span>
+          </Link>
         </div>
 
         <div className="flex flex-col gap-2.5">
@@ -97,31 +100,6 @@ export default function ApproverHomePage() {
             );
           })}
         </div>
-
-        {/* สถานะลายเซ็นและ PIN */}
-        <Link
-          href="/approver/settings"
-          className="jw-card p-4 flex items-center gap-3.5 hover:ring-1 hover:ring-brand transition"
-        >
-          <div className="w-10 h-10 rounded-full bg-brand-mint text-brand flex items-center justify-center shrink-0">
-            <Icon name="lock" className="w-5 h-5" />
-          </div>
-          <div className="flex-1">
-            <b className="block text-[15px] text-ink">ลายเซ็นและ PIN</b>
-            <span className="text-[13px] text-ink-mute">
-              {account?.signature && account?.hasPin
-                ? 'ตั้งค่าแล้ว (วาดลายมือชื่อเรียบร้อย · PIN 6 หลัก)'
-                : 'แตะเพื่อตั้งค่าลายเซ็นและรหัส PIN 6 หลัก'}
-            </span>
-          </div>
-          {account?.signature && account?.hasPin ? (
-            <Chip tone="green">
-              <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} /> พร้อมใช้
-            </Chip>
-          ) : (
-            <Chip tone="amber">ตั้งค่า</Chip>
-          )}
-        </Link>
       </div>
     </AppShell>
   );

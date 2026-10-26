@@ -45,7 +45,7 @@ export default function RequestHistoryPage() {
     if (!account) return;
     setLoading(true);
     api
-      .listRequests(account.role === 'USER' ? { mine: true } : undefined)
+      .listRequests({ mine: true })
       .then(setRequests)
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -83,11 +83,13 @@ export default function RequestHistoryPage() {
         {/* ส่วนหัวและสรุปจำนวน */}
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
-            <h1 className="text-[22px] sm:text-[26px] font-bold text-ink">ประวัติคำขอและการดำเนินการ</h1>
+            <h1 className="text-[22px] sm:text-[26px] font-bold text-ink">
+              {account?.role === 'USER' ? 'ประวัติคำขอของฉัน' : 'ประวัติคำขอและงานในความรับผิดชอบ'}
+            </h1>
             <p className="text-[13.5px] text-ink-mute">
               {account?.role === 'USER'
-                ? `รายการคำขอทั้งหมดของ ${account.name}`
-                : `รายการคำขอในระบบ (${ROLE_META[account?.role || 'USER']?.shortLabel})`}
+                ? `รายการคำขอทั้งหมดของ ${account.name} (${account.position})`
+                : `รายการคำขอที่ ${account?.name} (${account?.position}) เป็นผู้ยื่น หรือได้รับมอบหมายและลงนาม`}
             </p>
           </div>
           <Chip tone="green">ทั้งหมด {requests.length} รายการ</Chip>
@@ -228,6 +230,17 @@ export default function RequestHistoryPage() {
                         {REQUEST_TYPE_LABEL[req.type]}
                       </span>
                       <b className="text-[14px] text-ink">{req.code}</b>
+                      {req.type !== 'repair' &&
+                        req.signatures.some((s) => s.signerId === account?.id) && (
+                          <span className="text-[11px] font-semibold text-[#085041] bg-[#dcfce7] px-2 py-0.5 rounded-full">
+                            ✓ คุณลงนามแล้ว
+                          </span>
+                        )}
+                      {req.requesterId === account?.id && (
+                        <span className="text-[11px] font-semibold text-[#1e40af] bg-[#dbeafe] px-2 py-0.5 rounded-full">
+                          คำขอที่คุณยื่นเอง
+                        </span>
+                      )}
                       <span className="text-[12px] text-ink-mute">
                         อัปเดต {formatThaiDateTime(req.updatedAt)}
                       </span>

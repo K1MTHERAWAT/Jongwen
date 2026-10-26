@@ -277,43 +277,20 @@ export function AppShell({
             </div>
           )}
 
-          {/* เมนูบัญชีผู้ใช้ + แสดงสิทธิ์ที่ได้รับอย่างชัดเจน */}
+          {/* เมนูบัญชีผู้ใช้ */}
           {showUserMenu && account && (
-            <div className="absolute right-0 top-12 w-80 bg-white text-ink rounded-hard shadow-high border border-line p-3.5 z-50 flex flex-col gap-2.5">
+            <div className="absolute right-0 top-12 w-64 bg-white text-ink rounded-hard shadow-high border border-line p-3 z-50 flex flex-col gap-2">
               <div className="flex items-start justify-between gap-2 pb-2 border-b border-line">
-                <div>
-                  <b className="block text-[14px]">{account.name}</b>
-                  <span className="text-[12px] text-ink-mute">
+                <div className="min-w-0 flex-1">
+                  <b className="block text-[14px] truncate">{account.name}</b>
+                  <span className="text-[12px] text-ink-mute truncate block">
                     {account.position} · {account.department}
                   </span>
                 </div>
                 <Chip tone={ROLE_TONE[account.role]}>{ROLE_META[account.role]?.shortLabel}</Chip>
               </div>
 
-              <div className="bg-soft rounded-sq p-2.5 flex flex-col gap-1.5">
-                <span className="text-[11px] font-bold text-ink-mute uppercase tracking-wide">
-                  ขอบเขตสิทธิ์ของบัญชีนี้
-                </span>
-                <p className="text-[12px] text-ink leading-snug">{ROLE_META[account.role]?.summary}</p>
-                {grantedPerms.length > 0 ? (
-                  <div className="flex flex-wrap gap-1 pt-1">
-                    {grantedPerms.map((p) => (
-                      <span
-                        key={p}
-                        className="px-2 py-0.5 rounded-full bg-brand-mint text-brand text-[11px] font-semibold"
-                      >
-                        ✓ {PERMISSION_LABEL[p]}
-                      </span>
-                    ))}
-                  </div>
-                ) : (
-                  <span className="text-[11px] text-ink-mute">
-                    สิทธิ์มาตรฐานประชาชน: จองสถานที่ · ยืม–คืน · แจ้งซ่อม · ติดตามคำขอของตนเอง
-                  </span>
-                )}
-              </div>
-
-              <div className="flex flex-col gap-1 text-[13px]">
+              <div className="flex flex-col gap-1 text-[13px] pt-0.5">
                 <Link
                   href={roleHomePath(account.role)}
                   onClick={() => setShowUserMenu(false)}
