@@ -111,3 +111,162 @@ pnpm dev
    - `/admin/permissions` — จัดการสิทธิ์และบทบาทผู้ใช้ (เปิด/ปิดสถานะบัญชี, กำหนดสิทธิ์ย่อย, ลำดับสายอนุมัติ)
    - `/admin/resources` — จัดการทรัพยากรและแบบฟอร์มราชการ (เปิด/ปิดให้จองทันที พร้อมพรีวิวแบบฟอร์มเปล่า/ตัวอย่าง)
    - `/admin/resources/new` — เพิ่มรายการสถานที่/อุปกรณ์ (จัดลำดับสายอนุมัติ 3 ระดับได้)
+
+---
+
+## ER Diagram (Mermaid)
+
+```mermaid
+erDiagram
+    accounts ||--o{ requests : "requester_id"
+    accounts ||--o{ requests : "created_by_staff_id"
+    accounts ||--o{ signature_records : "signer_id"
+    accounts ||--o{ handover_records : "staff_id"
+    accounts ||--o{ notifications : "user_id"
+
+    requests ||--o{ request_periods : "request_id"
+    requests ||--o{ request_items : "request_id"
+    requests ||--o{ signature_records : "request_id"
+    requests ||--o{ handover_records : "request_id"
+
+    venues ||--o{ request_periods : "venue_id"
+    equipments ||--o{ request_items : "equipment_id"
+
+    accounts {
+        string id PK
+        string username UK
+        string password
+        string name
+        string nickname
+        string role "USER, STAFF, APPROVER_L2, APPROVER_L1, ADMIN"
+        string position
+        string department
+        string phone
+        string line_user_id
+        text signature
+        string pin_hash
+        jsonb permissions
+        boolean active
+        timestamp created_at
+    }
+
+    venues {
+        string id PK
+        string name
+        string type "meeting, pavilion, field, yard, training"
+        string building
+        string floor
+        int capacity
+        string status "available, maintenance"
+        boolean enabled
+        text_array facilities
+        time open_time
+        time close_time
+        int_array open_days
+        int advance_days
+    }
+
+    equipments {
+        string id PK
+        string name
+        string category "audio, tent, it"
+        int stock
+        boolean enabled
+    }
+
+    requests {
+        string id PK
+        string code UK
+        string type "booking, borrow, repair"
+        string status "pending_staff, pending_l2, pending_l1, approved, rejected, etc"
+        string requester_id FK
+        string requester_name
+        string organization
+        text requester_signature
+        string written_at
+        string requester_position
+        string address_house_no
+        string address_moo
+        string address_subdistrict
+        string address_district
+        string address_province
+        jsonb purpose_items
+        text purpose
+        string activity
+        int attendees
+        text_array attachments
+        string repair_building
+        string repair_floor
+        string repair_location
+        int repair_photos_count
+        text repair_resolution
+        text repair_staff_sig
+        text repair_accept_sig
+        string created_by_staff_id FK
+        text created_by_staff_sig
+        text reject_reason
+        timestamp created_at
+        timestamp updated_at
+    }
+
+    request_periods {
+        serial id PK
+        string request_id FK
+        string venue_id FK
+        timestamptz start_time
+        timestamptz end_time
+    }
+
+    request_items {
+        serial id PK
+        string request_id FK
+        string equipment_id FK
+        int qty
+        date pickup_date
+        date return_date
+    }
+
+    signature_records {
+        serial id PK
+        string request_id FK
+        string level "staff, l2, l1"
+        string signer_id FK
+        string signer_name
+        string signer_title
+        string decision "approve, reject"
+        text signature
+        text note
+        timestamp signed_at
+    }
+
+    handover_records {
+        serial id PK
+        string request_id FK
+        string phase "before, after"
+        jsonb checklist
+        text note
+        string staff_id FK
+        text citizen_signature
+        text staff_signature
+        timestamp created_at
+    }
+
+    notifications {
+        string id PK
+        string user_id FK
+        string title
+        string body
+        boolean read
+        string link
+        timestamp created_at
+    }
+
+    activity_logs {
+        string id PK
+        string kind "user, role, resource, request"
+        string title
+        string detail
+        timestamp created_at
+    }
+```
+
