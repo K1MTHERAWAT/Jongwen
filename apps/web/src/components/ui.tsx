@@ -825,7 +825,7 @@ function parseThaiDateParts(iso?: string): { day: string; month: string; year: s
   };
 }
 
-// ===== เอกสารราชการ: แบบขอใช้สถานที่ราชการ / แบบคำขอยืมครุภัณฑ์ราชการ (ตามแบบฟอร์ม อบต.น้ำชำ) =====
+// ===== เอกสารราชการ: แบบขอใช้สถานที่ราชการ / แบบคำขอยืมครุภัณฑ์ราชการ =====
 export function OfficialGovFormDocument({
   req,
   blankMode = false,
@@ -834,7 +834,7 @@ export function OfficialGovFormDocument({
 }: {
   req?: RequestWithTimeline | null;
   blankMode?: boolean;
-  /** แสดงข้อมูลตัวอย่างตามไฟล์ แบบขอใช้สถานที่ราชการ.doc (นายสุข แสนสบาย · อบต.น้ำชำ) */
+  /** แสดงข้อมูลตัวอย่าง */
   sampleDocMode?: boolean;
   customFields?: {
     formTitle?: string;
@@ -867,7 +867,7 @@ export function OfficialGovFormDocument({
   const subject =
     customFields?.subject ||
     (isBorrow ? 'ขออนุญาตใช้อุปกรณ์ของทางราชการ' : 'ขออนุญาตใช้สถานที่ราชการ');
-  const toWhom = customFields?.toWhom || 'นายกองค์การบริหารส่วนตำบลน้ำชำ';
+  const toWhom = customFields?.toWhom || 'ผู้มีอำนาจอนุมัติ';
   const desireLabel =
     customFields?.desireLabel ||
     (isBorrow ? 'มีความประสงค์ขอใช้อุปกรณ์ราชการ ดังนี้' : 'มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้');
@@ -879,52 +879,36 @@ export function OfficialGovFormDocument({
   const writtenAt = blankMode
     ? ''
     : sampleDocMode
-    ? 'อบต. น้ำชำ'
-    : customFields?.writtenAt ?? req?.writtenAt ?? 'อบต. น้ำชำ';
-  const day = blankMode ? '' : sampleDocMode ? '20' : customFields?.day ?? dateParts.day;
-  const month = blankMode ? '' : sampleDocMode ? 'พฤศจิกายน' : customFields?.month ?? dateParts.month;
-  const year = blankMode ? '' : sampleDocMode ? '2566' : customFields?.year ?? dateParts.year;
+    ? 'ที่ทำการ'
+    : customFields?.writtenAt ?? req?.writtenAt ?? '';
+  const day = blankMode ? '' : customFields?.day ?? dateParts.day;
+  const month = blankMode ? '' : customFields?.month ?? dateParts.month;
+  const year = blankMode ? '' : customFields?.year ?? dateParts.year;
 
   const requesterName = blankMode
     ? ''
-    : sampleDocMode
-    ? 'นายสุข แสนสบาย'
-    : customFields?.requesterName ?? req?.requesterName ?? 'นายสมชาย ใจดี';
+    : customFields?.requesterName ?? req?.requesterName ?? '';
   const requesterPosition = blankMode
     ? ''
-    : sampleDocMode
-    ? 'ประธานกองทุนหมู่บ้าน ม.1'
-    : customFields?.requesterPosition ?? req?.requesterPosition ?? 'ผู้ประสานงานชุมชน / ประชาชน';
+    : customFields?.requesterPosition ?? req?.requesterPosition ?? '';
   const addressHouseNo = blankMode
     ? ''
-    : sampleDocMode
-    ? '111'
-    : customFields?.addressHouseNo ?? req?.addressHouseNo ?? '111';
+    : customFields?.addressHouseNo ?? req?.addressHouseNo ?? '';
   const addressMoo = blankMode
     ? ''
-    : sampleDocMode
-    ? '1'
-    : customFields?.addressMoo ?? req?.addressMoo ?? '1';
+    : customFields?.addressMoo ?? req?.addressMoo ?? '';
   const addressSubdistrict = blankMode
     ? ''
-    : sampleDocMode
-    ? 'น้ำชำ'
-    : customFields?.addressSubdistrict ?? req?.addressSubdistrict ?? 'น้ำชำ';
+    : customFields?.addressSubdistrict ?? req?.addressSubdistrict ?? '';
   const addressDistrict = blankMode
     ? ''
-    : sampleDocMode
-    ? 'สูงเม่น'
-    : customFields?.addressDistrict ?? req?.addressDistrict ?? 'สูงเม่น';
+    : customFields?.addressDistrict ?? req?.addressDistrict ?? '';
   const addressProvince = blankMode
-    ? 'แพร่'
-    : sampleDocMode
-    ? 'แพร่'
-    : customFields?.addressProvince ?? req?.addressProvince ?? 'แพร่';
+    ? ''
+    : customFields?.addressProvince ?? req?.addressProvince ?? '';
   const organization = blankMode
     ? ''
-    : sampleDocMode
-    ? 'กองทุนหมู่บ้าน หมู่ที่ 1 ตำบลน้ำชำ'
-    : customFields?.organization ?? req?.organization ?? 'กลุ่มแม่บ้านบ้านหนองบัว';
+    : customFields?.organization ?? req?.organization ?? '';
 
   // รายการข้อ 1..3 เพื่อ...
   let items: OfficialFormPurposeItem[] = [];
@@ -936,8 +920,8 @@ export function OfficialGovFormDocument({
     ];
   } else if (sampleDocMode) {
     items = [
-      { item: 'อาคารหอประชุมสภา อบต.น้ำชำ', forWhat: 'ประชุมคณะกรรมการกองทุนหมู่บ้าน' },
-      { item: 'เครื่องเสียงพร้อมไมโครโฟน 1 ชุด', forWhat: 'ใช้ประกอบการประชุมคณะกรรมการฯ' },
+      { item: 'อาคารหอประชุม', forWhat: 'จัดประชุมและสัมมนา' },
+      { item: 'เครื่องเสียงพร้อมไมโครโฟน 1 ชุด', forWhat: 'ใช้ประกอบการประชุม' },
       { item: '', forWhat: '' },
     ];
   } else if (customFields?.purposeItems && customFields.purposeItems.length > 0) {
@@ -947,7 +931,7 @@ export function OfficialGovFormDocument({
     items = [...req.purposeItems];
     while (items.length < 3) items.push({ item: '', forWhat: '' });
   } else if (req) {
-    const line1Item = req.title || 'อาคารหอประชุมสภา อบต.น้ำชำ';
+    const line1Item = req.title || 'อาคารสถานที่';
     const line1For =
       req.type === 'booking'
         ? `${req.activity || req.purpose}${req.attendees ? ` (ผู้เข้าร่วม ${req.attendees} คน)` : ''}`
@@ -974,7 +958,7 @@ export function OfficialGovFormDocument({
     ];
   } else {
     items = [
-      { item: 'อาคารหอประชุมสภา อบต.น้ำชำ', forWhat: 'ประชุมคณะกรรมการกองทุนหมู่บ้าน' },
+      { item: '', forWhat: '' },
       { item: '', forWhat: '' },
       { item: '', forWhat: '' },
     ];
@@ -985,12 +969,8 @@ export function OfficialGovFormDocument({
   const sigL2 = !blankMode && req && req.type !== 'repair' ? req.signatures.find((s) => s.level === 'l2') : undefined;
   const sigL1 = !blankMode && req && req.type !== 'repair' ? req.signatures.find((s) => s.level === 'l1') : undefined;
 
-  const staffName = sampleDocMode
-    ? 'นางรินรดา เวียงนาค'
-    : sigStaff?.signerName || 'นางสาวสุดา รอบคอบ (นางรินรดา เวียงนาค)';
-  const staffRoleTitle = sampleDocMode
-    ? 'รองปลัดองค์การบริหารส่วนตำบลน้ำชำ'
-    : 'เจ้าหน้าที่ผู้ตรวจสอบ / รองปลัด อบต.น้ำชำ';
+  const staffName = sigStaff?.signerName || 'เจ้าหน้าที่ผู้รับเรื่อง/ตรวจสอบ';
+  const staffRoleTitle = 'เจ้าหน้าที่ผู้ตรวจสอบ / หัวหน้าส่วนงาน';
   const staffComment = blankMode
     ? ''
     : sigStaff
@@ -999,10 +979,8 @@ export function OfficialGovFormDocument({
       : `ไม่เห็นควรอนุญาต (${sigStaff.note || ''})`
     : '';
 
-  const l2Name = sampleDocMode
-    ? 'นายอภิมุข เวียงนาค'
-    : sigL2?.signerName || 'นายวิชัย บริหาร (นายอภิมุข เวียงนาค)';
-  const l2RoleTitle = 'ปลัด อบต. น้ำชำ';
+  const l2Name = sigL2?.signerName || 'ปลัด / ผู้กลั่นกรอง';
+  const l2RoleTitle = 'ปลัด / ผู้พิจารณากลั่นกรอง';
   const l2Comment = blankMode
     ? ''
     : sigL2
@@ -1011,10 +989,8 @@ export function OfficialGovFormDocument({
       : `ไม่เห็นควรอนุญาต (${sigL2.note || ''})`
     : '';
 
-  const l1Name = sampleDocMode
-    ? 'นายนิรันดร์ นิทัศนโยธิน'
-    : sigL1?.signerName || 'นายประเสริฐ ศรีนคร (นายนิรันดร์ นิทัศนโยธิน)';
-  const l1RoleTitle = 'ตำแหน่ง นายกองค์การบริหารส่วนตำบลน้ำชำ';
+  const l1Name = sigL1?.signerName || 'ผู้มีอำนาจอนุมัติ';
+  const l1RoleTitle = 'ผู้มีอำนาจอนุมัติ';
   const l1Command = blankMode
     ? ''
     : sigL1
@@ -1083,11 +1059,13 @@ export function OfficialGovFormDocument({
             <span>หมู่ที่</span>
             <DottedSpan minW="min-w-[38px]">{addressMoo}</DottedSpan>
             <span>ตำบล</span>
-            <DottedSpan minW="min-w-[80px]">{addressSubdistrict}</DottedSpan>
+            <DottedSpan minW="min-w-[70px]">{addressSubdistrict}</DottedSpan>
             <span>อำเภอ</span>
-            <DottedSpan minW="min-w-[80px]">{addressDistrict}</DottedSpan>
-            <span>จ.{addressProvince}&nbsp;&nbsp;หน่วยงาน</span>
-            <DottedSpan minW="min-w-[150px] flex-1">{organization}</DottedSpan>
+            <DottedSpan minW="min-w-[70px]">{addressDistrict}</DottedSpan>
+            <span>จังหวัด</span>
+            <DottedSpan minW="min-w-[80px]">{addressProvince}</DottedSpan>
+            <span>หน่วยงาน</span>
+            <DottedSpan minW="min-w-[140px] flex-1">{organization}</DottedSpan>
           </div>
           <div>{desireLabel}</div>
         </div>
@@ -1174,7 +1152,7 @@ export function OfficialGovFormDocument({
               <div className="text-[12.5px]">{staffRoleTitle}</div>
             </div>
 
-            {/* ขวา: ฝ่ายที่ 3 (ระดับ 2 · ปลัด อบต. น้ำชำ) */}
+            {/* ขวา: ฝ่ายที่ 3 (ระดับ 2 · ปลัด) */}
             <div className="flex flex-col items-center text-center gap-0.5">
               <div className="w-full mb-0.5">
                 <DottedSpan minW="w-full">{l2Comment}</DottedSpan>
@@ -1198,10 +1176,10 @@ export function OfficialGovFormDocument({
           </div>
         </div>
 
-        {/* คำสั่งของนายกองค์การบริหารส่วนตำบลน้ำชำ (ฝ่ายที่ 4 · ระดับ 3) */}
+        {/* คำสั่งของผู้มีอำนาจอนุมัติ (ฝ่ายที่ 4 · ระดับ 3) */}
         <div>
           <b className="block text-[14px] underline underline-offset-4 mb-1.5">
-            คำสั่งของนายกองค์การบริหารส่วนตำบลน้ำชำ
+            คำสั่ง / การพิจารณาของผู้มีอำนาจอนุมัติ
           </b>
           <div className="max-w-[340px] mx-auto flex flex-col items-center text-center gap-0.5">
             <div className="w-full mb-0.5">

@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { REQUEST_TYPE_LABEL, RequestWithTimeline, SIGN_LEVEL_TITLE } from '@jongwen/shared';
+import { Equipment, REQUEST_TYPE_LABEL, RequestWithTimeline, SIGN_LEVEL_TITLE } from '@jongwen/shared';
 import { useAuth } from '@/components/auth-context';
 import { AppShell, roleHomePath } from '@/components/shell';
 import { OfficialGovFormDocument, SignaturePreviewCard, StatusChip, Timeline } from '@/components/ui';
@@ -13,6 +13,7 @@ export default function RequestDetailPage() {
   const params = useParams<{ id: string }>();
   const { account } = useAuth();
   const [req, setReq] = useState<RequestWithTimeline | null>(null);
+  const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
   const [showOfficialForm, setShowOfficialForm] = useState(true);
 
   const load = useCallback(() => {
@@ -25,6 +26,7 @@ export default function RequestDetailPage() {
 
   useEffect(() => {
     load();
+    api.equipment().then(setEquipmentList).catch(() => {});
   }, [load]);
 
   const backHref = roleHomePath(account?.role);
@@ -122,6 +124,24 @@ export default function RequestDetailPage() {
               </div>
             </div>
           )}
+          {req.type === 'booking' && req.extraItems && req.extraItems.length > 0 && (
+            <div className="flex gap-2 items-start">
+              <b className="w-24 shrink-0 text-ink-mute">อุปกรณ์เสริม</b>
+              <div className="flex flex-wrap gap-1.5">
+                {req.extraItems.map((it, i) => {
+                  const eq = equipmentList.find((e) => e.id === it.equipmentId);
+                  return (
+                    <span
+                      key={i}
+                      className="inline-flex items-center gap-1 bg-soft px-2.5 py-0.5 rounded-full text-[13px] font-medium"
+                    >
+                      {eq?.name || it.equipmentId} <b className="text-brand font-bold">x{it.qty}</b>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
           {req.type === 'borrow' && (
             <div className="flex gap-2">
               <b className="w-24 shrink-0 text-ink-mute">ช่วงขอใช้</b>
@@ -162,8 +182,8 @@ export default function RequestDetailPage() {
             <div className="flex items-center justify-between">
               <b className="text-[16px] text-ink">
                 {req.type === 'booking'
-                  ? 'เอกสารราชการ: แบบขอใช้สถานที่ราชการ (อบต.น้ำชำ)'
-                  : 'เอกสารราชการ: แบบคำขอใช้อุปกรณ์ราชการ (อบต.น้ำชำ)'}
+                  ? 'เอกสารราชการ: แบบขอใช้สถานที่ราชการ'
+                  : 'เอกสารราชการ: แบบคำขอใช้อุปกรณ์ราชการ'}
               </b>
               <button
                 type="button"

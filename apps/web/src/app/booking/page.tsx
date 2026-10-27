@@ -5,6 +5,9 @@ import { useRouter } from 'next/navigation';
 import {
   ConflictInfo,
   DayAvailability,
+  EQUIPMENT_CATEGORY_LABEL,
+  Equipment,
+  EquipmentCategory,
   OfficialFormPurposeItem,
   Period,
   VENUE_TYPE_LABEL,
@@ -15,10 +18,18 @@ import {
 import { useAuth } from '@/components/auth-context';
 import { AppShell } from '@/components/shell';
 import { Icon } from '@/components/icons';
-import { CalendarC4, Chip, OfficialGovFormDocument, SignatureBox, Stepper, venueIconName } from '@/components/ui';
+import {
+  CalendarC4,
+  Chip,
+  OfficialGovFormDocument,
+  SignatureBox,
+  Stepper,
+  equipmentIconName,
+  venueIconName,
+} from '@/components/ui';
 import { api, formatPeriodRange, formatThaiDateTime } from '@/lib/api';
 
-const STEPS = ['เลือกสถานที่', 'วัน-เวลา', 'กรอกคำขอ', 'ลงนามและส่ง'];
+const STEPS = ['เลือกสถานที่', 'วัน-เวลา', 'อุปกรณ์เสริม', 'กรอกคำขอ', 'ลงนามและส่ง'];
 
 export default function BookingWizardPage() {
   const router = useRouter();
@@ -44,33 +55,39 @@ export default function BookingWizardPage() {
   const [conflicts, setConflicts] = useState<ConflictInfo[]>([]);
   const [simulateOverlap, setSimulateOverlap] = useState(false);
 
-  // Step 3 state (ตามแบบขอใช้สถานที่ราชการ อบต.น้ำชำ)
-  const [writtenAt, setWrittenAt] = useState('อบต. น้ำชำ');
-  const [requesterName, setRequesterName] = useState(account?.name || 'นายสุข แสนสบาย');
+  // Step 3 state (เลือกอุปกรณ์เสริม)
+  const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
+  const [equipmentQuantities, setEquipmentQuantities] = useState<Record<string, number>>({});
+  const [equipmentCat, setEquipmentCat] = useState<'all' | EquipmentCategory>('all');
+  const [equipmentSearch, setEquipmentSearch] = useState('');
+
+  // Step 4 state (ตามแบบขอใช้สถานที่ราชการ)
+  const [writtenAt, setWrittenAt] = useState('');
+  const [requesterName, setRequesterName] = useState(account?.name || '');
   const [requesterPosition, setRequesterPosition] = useState(
     account?.position && account.position !== 'ประชาชน'
       ? account.position
-      : 'ประธานกองทุนหมู่บ้าน ม.1',
+      : '',
   );
-  const [addressHouseNo, setAddressHouseNo] = useState('111');
-  const [addressMoo, setAddressMoo] = useState('1');
-  const [addressSubdistrict, setAddressSubdistrict] = useState('น้ำชำ');
-  const [addressDistrict, setAddressDistrict] = useState('สูงเม่น');
-  const [addressProvince, setAddressProvince] = useState('แพร่');
+  const [addressHouseNo, setAddressHouseNo] = useState('');
+  const [addressMoo, setAddressMoo] = useState('');
+  const [addressSubdistrict, setAddressSubdistrict] = useState('');
+  const [addressDistrict, setAddressDistrict] = useState('');
+  const [addressProvince, setAddressProvince] = useState('');
   const [organization, setOrganization] = useState(
-    account?.department || 'กองทุนหมู่บ้าน หมู่ที่ 1 ตำบลน้ำชำ',
+    account?.department || '',
   );
-  const [attendees, setAttendees] = useState(80);
-  const [activity, setActivity] = useState('ประชุมคณะกรรมการกองทุนหมู่บ้าน');
-  const [purpose, setPurpose] = useState('ประชุมคณะกรรมการกองทุนหมู่บ้าน และจัดอบรมอาสาสมัครประจำหมู่บ้าน');
+  const [attendees, setAttendees] = useState(30);
+  const [activity, setActivity] = useState('');
+  const [purpose, setPurpose] = useState('');
   const [purposeItems, setPurposeItems] = useState<OfficialFormPurposeItem[]>([
-    { item: '', forWhat: 'ประชุมคณะกรรมการกองทุนหมู่บ้าน' },
+    { item: '', forWhat: '' },
     { item: '', forWhat: '' },
     { item: '', forWhat: '' },
   ]);
-  const [attachmentName, setAttachmentName] = useState('โครงการอบรม_ไตรมาส4.pdf');
+  const [attachmentName, setAttachmentName] = useState('');
 
-  // Step 4 state (ต้องวาดลายเซ็นบนหน้าจอ ไม่ใช้การพิมพ์)
+  // Step 5 state (ต้องวาดลายเซ็นบนหน้าจอ ไม่ใช้การพิมพ์)
   const [signature, setSignature] = useState('');
   const [draftSaved, setDraftSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -84,6 +101,7 @@ export default function BookingWizardPage() {
 
   useEffect(() => {
     api.venues().then(setVenues).catch(() => {});
+    api.equipment().then(setEquipmentList).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -121,8 +139,27 @@ export default function BookingWizardPage() {
   const selectedVenues = venues.filter((v) => selectedIds.includes(v.id));
   const buildings = Array.from(new Set(venues.map((v) => v.building)));
 
-  // ดึงชื่อสถานที่ที่เลือกมาใส่ในแบบฟอร์ม (ข้อ 1–3) อัตโนมัติ
-  const autoFillSelectedVenues = (venueList = selectedVenues) => {
+  // การจัดการจำนวนอุปกรณ์เสริม
+  const setEquipmentQty = (id: string, max: number, next: number) => {
+    const clamped = Math.max(0, Math.min(max, next));
+    setEquipmentQuantities((prev) => ({ ...prev, [id]: clamped }));
+  };
+
+  const selectedExtraItems = equipmentList
+    .map((eq) => ({ eq, qty: equipmentQuantities[eq.id] ?? 0 }))
+    .filter((x) => x.qty > 0);
+
+  const filteredEquipment = equipmentList.filter((e) => {
+    if (equipmentCat !== 'all' && e.category !== equipmentCat) return false;
+    if (equipmentSearch.trim() && !e.name.toLowerCase().includes(equipmentSearch.toLowerCase())) return false;
+    return true;
+  });
+
+  // ซิงค์ชื่อสถานที่และอุปกรณ์เสริมที่เลือกมาใส่ในแบบฟอร์ม (ข้อ 1–3) อัตโนมัติ
+  const syncFormPurposeItems = (
+    venueList = selectedVenues,
+    extraList = selectedExtraItems,
+  ) => {
     if (!venueList.length) return;
     setPurposeItems((prev) => {
       const next: OfficialFormPurposeItem[] = [
@@ -130,29 +167,56 @@ export default function BookingWizardPage() {
         { item: '', forWhat: '' },
         { item: '', forWhat: '' },
       ];
+
+      // ข้อ 1: สถานที่หลัก
+      next[0] = {
+        item: venueList[0].name,
+        forWhat: prev[0]?.forWhat || activity || purpose || 'ใช้จัดกิจกรรมและประชุม',
+      };
+
       if (venueList.length === 1) {
-        next[0] = {
-          item: venueList[0].name,
-          forWhat: prev[0]?.forWhat || activity || purpose || 'ใช้จัดกิจกรรมและประชุม',
-        };
-        next[1] = prev[1]?.item && prev[1].item !== venueList[0].name ? prev[1] : { item: '', forWhat: '' };
-        next[2] = prev[2]?.item && prev[2].item !== venueList[0].name ? prev[2] : { item: '', forWhat: '' };
+        // หากเลือก 1 สถานที่: นำอุปกรณ์เสริมมารองรับข้อ 2 และ 3
+        if (extraList.length > 0) {
+          next[1] = {
+            item: `${extraList[0].eq.name} จำนวน ${extraList[0].qty} ชุด/รายการ`,
+            forWhat: prev[1]?.forWhat || 'ใช้ประกอบการจัดกิจกรรมและประชุม',
+          };
+        } else if (prev[1]?.item && prev[1].item !== venueList[0].name) {
+          next[1] = prev[1];
+        }
+
+        if (extraList.length > 1) {
+          next[2] = {
+            item: `${extraList[1].eq.name} จำนวน ${extraList[1].qty} ชุด/รายการ`,
+            forWhat: prev[2]?.forWhat || 'ใช้ประกอบการจัดกิจกรรมและประชุม',
+          };
+        } else if (prev[2]?.item && prev[2].item !== venueList[0].name) {
+          next[2] = prev[2];
+        }
       } else {
+        // กรณีเลือกหลายสถานที่
         venueList.slice(0, 3).forEach((v, idx) => {
           next[idx] = {
             item: v.name,
             forWhat: prev[idx]?.forWhat || activity || purpose || 'ใช้จัดกิจกรรมและประชุม',
           };
         });
+        if (venueList.length === 2 && extraList.length > 0) {
+          next[2] = {
+            item: `${extraList[0].eq.name} จำนวน ${extraList[0].qty} ชุด/รายการ`,
+            forWhat: prev[2]?.forWhat || 'ใช้ประกอบการจัดกิจกรรมและประชุม',
+          };
+        }
       }
+
       return next;
     });
   };
 
-  // ซิงค์ชื่อสถานที่ลงข้อ 1-3 อัตโนมัติทุกครั้งที่รายการสถานที่ที่เลือกเปลี่ยน
+  // ซิงค์รายการลงข้อ 1-3 อัตโนมัติทุกครั้งที่สถานที่เปลี่ยน
   useEffect(() => {
     if (selectedVenues.length > 0) {
-      autoFillSelectedVenues(selectedVenues);
+      syncFormPurposeItems(selectedVenues, selectedExtraItems);
     }
   }, [selectedIds, venues]);
 
@@ -226,6 +290,7 @@ export default function BookingWizardPage() {
         purpose,
         organization,
         attachments: attachmentName ? [attachmentName] : [],
+        extraItems: selectedExtraItems.map((s) => ({ equipmentId: s.eq.id, qty: s.qty })),
         requesterName,
         requesterSignature: signature,
         writtenAt,
@@ -251,6 +316,8 @@ export default function BookingWizardPage() {
           : step === 2
           ? 'เลือกวัน-เวลา'
           : step === 3
+          ? 'เลือกอุปกรณ์เสริม'
+          : step === 4
           ? 'แบบคำขอใช้สถานที่'
           : 'ลงนามและส่งคำขอ'
       }
@@ -275,13 +342,10 @@ export default function BookingWizardPage() {
             <button
               type="button"
               disabled={effectiveConflicts.length > 0 || periods.length === 0}
-              onClick={() => {
-                autoFillSelectedVenues(selectedVenues);
-                setStep(3);
-              }}
+              onClick={() => setStep(3)}
               className="jw-btn flex-[1.5] sm:w-56"
             >
-              ถัดไป · กรอกคำขอ
+              ถัดไป · เลือกอุปกรณ์เสริม
             </button>
           </div>
         ) : step === 3 ? (
@@ -289,13 +353,31 @@ export default function BookingWizardPage() {
             <button type="button" onClick={() => setStep(2)} className="jw-btn-sec flex-1 sm:w-36">
               ย้อนกลับ
             </button>
-            <button type="button" onClick={() => setStep(4)} className="jw-btn flex-[1.5] sm:w-56">
+            <button
+              type="button"
+              onClick={() => {
+                syncFormPurposeItems(selectedVenues, selectedExtraItems);
+                setStep(4);
+              }}
+              className="jw-btn flex-[1.5] sm:w-56"
+            >
+              {selectedExtraItems.length > 0
+                ? `ถัดไป · กรอกคำขอ (${selectedExtraItems.length} รายการ)`
+                : 'ถัดไป · กรอกคำขอ'}
+            </button>
+          </div>
+        ) : step === 4 ? (
+          <div className="flex w-full sm:w-auto gap-2.5">
+            <button type="button" onClick={() => setStep(3)} className="jw-btn-sec flex-1 sm:w-36">
+              ย้อนกลับ
+            </button>
+            <button type="button" onClick={() => setStep(5)} className="jw-btn flex-[1.5] sm:w-56">
               ถัดไป · ลงนามและส่ง
             </button>
           </div>
         ) : (
           <div className="flex w-full sm:w-auto gap-2.5">
-            <button type="button" onClick={() => setStep(3)} className="jw-btn-sec flex-1 sm:w-28">
+            <button type="button" onClick={() => setStep(4)} className="jw-btn-sec flex-1 sm:w-28">
               ย้อนกลับ
             </button>
             <button
@@ -693,41 +775,162 @@ export default function BookingWizardPage() {
         </div>
       )}
 
-      {/* ================= STEP 3: กรอกคำขอ (แบบขอใช้สถานที่ราชการ) ================= */}
+      {/* ================= STEP 3: เลือกอุปกรณ์เสริม ================= */}
       {step === 3 && (
-        <div className="max-w-[760px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
-          <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-line">
-            <div>
-              <b className="text-[17px] text-ink block">แบบขอใช้สถานที่ราชการ (อบต.น้ำชำ)</b>
-              <span className="text-[12.5px] text-ink-mute">
-                เรื่อง ขออนุญาตใช้สถานที่ราชการ · เรียน นายกองค์การบริหารส่วนตำบลน้ำชำ
-              </span>
+        <div className="max-w-[720px] mx-auto flex flex-col gap-4">
+          <div className="jw-card p-4 sm:p-5 flex flex-col gap-2 bg-gradient-to-r from-soft to-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <b className="text-[16px] text-ink block">อุปกรณ์เสริมและสิ่งอำนวยความสะดวก</b>
+                <span className="text-[13px] text-ink-mute">
+                  เลือกอุปกรณ์ที่ต้องการใช้ร่วมกับสถานที่ เช่น เครื่องเสียง ไมโครโฟน โปรเจกเตอร์ เต็นท์ หรือโต๊ะ-เก้าอี้
+                </span>
+              </div>
+              {selectedExtraItems.length > 0 && (
+                <span className="px-3 py-1 rounded-full text-[12px] font-bold bg-brand text-white shrink-0">
+                  เลือก {selectedExtraItems.reduce((acc, x) => acc + x.qty, 0)} ชิ้น
+                </span>
+              )}
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                setWrittenAt('อบต. น้ำชำ');
-                setRequesterName('นายสุข แสนสบาย');
-                setRequesterPosition('ประธานกองทุนหมู่บ้าน ม.1');
-                setAddressHouseNo('111');
-                setAddressMoo('1');
-                setAddressSubdistrict('น้ำชำ');
-                setAddressDistrict('สูงเม่น');
-                setAddressProvince('แพร่');
-                setOrganization('กองทุนหมู่บ้าน หมู่ที่ 1 ตำบลน้ำชำ');
-                setAttendees(80);
-                setActivity('ประชุมคณะกรรมการกองทุนหมู่บ้าน');
-                setPurpose('ประชุมคณะกรรมการกองทุนหมู่บ้าน หมู่ที่ 1 ตำบลน้ำชำ');
-                setPurposeItems([
-                  { item: selectedVenues.map((v) => v.name).join(', ') || 'ห้องประชุมใหญ่ อบต.', forWhat: 'ประชุมคณะกรรมการกองทุนหมู่บ้าน' },
-                  { item: '', forWhat: '' },
-                  { item: '', forWhat: '' },
-                ]);
-              }}
-              className="px-3 py-1.5 rounded-full text-[12px] font-semibold bg-brand-mint text-brand hover:bg-brand hover:text-white transition"
-            >
-              กรอกข้อมูลตัวอย่างตามไฟล์ .doc (นายสุข แสนสบาย)
-            </button>
+
+            {selectedVenues.length > 0 && (
+              <div className="pt-2 border-t border-line/60 flex flex-wrap items-center gap-2 text-[12.5px] text-ink-mute">
+                <span>สำหรับสถานที่:</span>
+                {selectedVenues.map((v) => (
+                  <span key={v.id} className="font-semibold text-brand bg-brand-mint px-2 py-0.5 rounded-full">
+                    {v.name}
+                  </span>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* ค้นหาและตัวกรอง */}
+          <div className="flex flex-col sm:flex-row gap-3">
+            <input
+              type="text"
+              value={equipmentSearch}
+              onChange={(e) => setEquipmentSearch(e.target.value)}
+              placeholder="ค้นหาอุปกรณ์เสริม..."
+              className="jw-in flex-1"
+            />
+            <div className="flex flex-wrap gap-1.5 shrink-0">
+              {(
+                [
+                  ['all', 'ทั้งหมด'],
+                  ['audio', 'เครื่องเสียง'],
+                  ['tent', 'เต็นท์ / โต๊ะ-เก้าอี้'],
+                  ['it', 'อุปกรณ์ IT'],
+                ] as const
+              ).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setEquipmentCat(val)}
+                  className={`h-[38px] px-3.5 rounded-full border-[1.5px] text-[13px] font-semibold transition ${
+                    equipmentCat === val
+                      ? 'bg-brand border-brand text-white'
+                      : 'bg-white border-line text-ink hover:border-brand'
+                  }`}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* รายการอุปกรณ์ */}
+          <div className="flex flex-col gap-2.5">
+            {filteredEquipment.length === 0 ? (
+              <div className="jw-card p-8 text-center text-ink-mute text-[14px]">
+                ไม่พบอุปกรณ์ในหมวดหมู่นี้
+              </div>
+            ) : (
+              filteredEquipment.map((eq) => {
+                const qty = equipmentQuantities[eq.id] ?? 0;
+                const isSelected = qty > 0;
+                return (
+                  <div
+                    key={eq.id}
+                    className={`jw-card p-3.5 sm:p-4 flex items-center gap-3.5 transition ${
+                      isSelected ? 'ring-2 ring-brand bg-brand-mint/10' : ''
+                    }`}
+                  >
+                    <div
+                      className={`w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 ${
+                        isSelected ? 'bg-brand text-white' : 'bg-brand-mint text-brand'
+                      }`}
+                    >
+                      <Icon name={equipmentIconName(eq.category)} className="w-6 h-6" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <b className="block text-[15px] text-ink truncate">{eq.name}</b>
+                      <span className="text-[12.5px] text-ink-mute">
+                        {EQUIPMENT_CATEGORY_LABEL[eq.category]} · พร้อมให้บริการ {eq.stock} รายการ
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2.5 shrink-0">
+                      <button
+                        type="button"
+                        disabled={qty <= 0}
+                        onClick={() => setEquipmentQty(eq.id, eq.stock, qty - 1)}
+                        className="w-[34px] h-[34px] rounded-full border-[1.5px] border-line hover:border-ink flex items-center justify-center disabled:opacity-30 disabled:pointer-events-none transition"
+                      >
+                        <Icon name="minus" className="w-4 h-4" />
+                      </button>
+                      <b className={`min-w-[24px] text-center text-[15px] ${isSelected ? 'text-brand font-bold' : ''}`}>
+                        {qty}
+                      </b>
+                      <button
+                        type="button"
+                        disabled={qty >= eq.stock}
+                        onClick={() => setEquipmentQty(eq.id, eq.stock, qty + 1)}
+                        className="w-[34px] h-[34px] rounded-full bg-brand text-white flex items-center justify-center hover:bg-brand-deep disabled:opacity-30 disabled:pointer-events-none transition"
+                      >
+                        <Icon name="plus" className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </div>
+
+          {/* สรุปรายการอุปกรณ์ที่เลือก (ถ้ามี) */}
+          {selectedExtraItems.length > 0 && (
+            <div className="rounded-[12px] bg-brand-mint/30 border border-brand/20 p-3.5 flex flex-col gap-2">
+              <b className="text-[13px] text-brand block">รายการอุปกรณ์เสริมที่เลือกไว้:</b>
+              <div className="flex flex-wrap gap-2">
+                {selectedExtraItems.map((item) => (
+                  <span
+                    key={item.eq.id}
+                    className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-line text-[12.5px] font-medium text-ink shadow-sm"
+                  >
+                    <span>{item.eq.name}</span>
+                    <b className="text-brand font-bold">x{item.qty}</b>
+                    <button
+                      type="button"
+                      onClick={() => setEquipmentQty(item.eq.id, item.eq.stock, 0)}
+                      className="ml-1 text-ink-mute hover:text-ink font-bold"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* ================= STEP 4: กรอกคำขอ (แบบขอใช้สถานที่ราชการ) ================= */}
+      {step === 4 && (
+        <div className="max-w-[760px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
+          <div className="pb-3 border-b border-line">
+            <b className="text-[17px] text-ink block">แบบขอใช้สถานที่ราชการ</b>
+            <span className="text-[12.5px] text-ink-mute">
+              เรื่อง ขออนุญาตใช้สถานที่ราชการ
+            </span>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
@@ -738,7 +941,7 @@ export default function BookingWizardPage() {
                 value={writtenAt}
                 onChange={(e) => setWrittenAt(e.target.value)}
                 className="jw-in"
-                placeholder="เช่น อบต. น้ำชำ"
+                placeholder="ระบุสถานที่เขียนคำขอ"
               />
             </div>
             <div>
@@ -748,6 +951,7 @@ export default function BookingWizardPage() {
                 value={requesterName}
                 onChange={(e) => setRequesterName(e.target.value)}
                 className="jw-in"
+                placeholder="ระบุชื่อ-นามสกุล"
               />
             </div>
             <div>
@@ -757,7 +961,7 @@ export default function BookingWizardPage() {
                 value={requesterPosition}
                 onChange={(e) => setRequesterPosition(e.target.value)}
                 className="jw-in"
-                placeholder="เช่น ประธานกองทุนหมู่บ้าน ม.1"
+                placeholder="เช่น ประชาชน / ประธานชุมชน"
               />
             </div>
           </div>
@@ -770,6 +974,7 @@ export default function BookingWizardPage() {
                 value={addressHouseNo}
                 onChange={(e) => setAddressHouseNo(e.target.value)}
                 className="jw-in"
+                placeholder="เลขที่"
               />
             </div>
             <div>
@@ -779,24 +984,27 @@ export default function BookingWizardPage() {
                 value={addressMoo}
                 onChange={(e) => setAddressMoo(e.target.value)}
                 className="jw-in"
+                placeholder="หมู่ที่"
               />
             </div>
             <div>
-              <label className="jw-lbl">ตำบล</label>
+              <label className="jw-lbl">ตำบล / แขวง</label>
               <input
                 type="text"
                 value={addressSubdistrict}
                 onChange={(e) => setAddressSubdistrict(e.target.value)}
                 className="jw-in"
+                placeholder="ตำบล / แขวง"
               />
             </div>
             <div>
-              <label className="jw-lbl">อำเภอ</label>
+              <label className="jw-lbl">อำเภอ / เขต</label>
               <input
                 type="text"
                 value={addressDistrict}
                 onChange={(e) => setAddressDistrict(e.target.value)}
                 className="jw-in"
+                placeholder="อำเภอ / เขต"
               />
             </div>
             <div className="col-span-2 sm:col-span-1">
@@ -806,18 +1014,20 @@ export default function BookingWizardPage() {
                 value={addressProvince}
                 onChange={(e) => setAddressProvince(e.target.value)}
                 className="jw-in"
+                placeholder="ระบุจังหวัด"
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="jw-lbl">หน่วยงาน</label>
+              <label className="jw-lbl">หน่วยงาน / ชุมชน</label>
               <input
                 type="text"
                 value={organization}
                 onChange={(e) => setOrganization(e.target.value)}
                 className="jw-in"
+                placeholder="ระบุหน่วยงานหรือกลุ่มชุมชน"
               />
             </div>
             <div>
@@ -833,21 +1043,7 @@ export default function BookingWizardPage() {
 
           {/* มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ (ข้อ 1..3 เพื่อ...) */}
           <div className="rounded-[12px] bg-soft/60 border border-line p-4 flex flex-col gap-3">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <div className="flex items-center gap-2">
-                <b className="text-[14px] text-ink">มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ (ข้อ 1–3)</b>
-                <span className="text-[11.5px] font-semibold text-brand bg-brand-mint px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
-                  <Icon name="check" className="w-3 h-3" strokeWidth={3} /> ดึงจากสถานที่ที่เลือกอัตโนมัติ
-                </span>
-              </div>
-              <button
-                type="button"
-                onClick={() => autoFillSelectedVenues(selectedVenues)}
-                className="text-[12px] font-semibold text-brand hover:underline"
-              >
-                ดึงข้อมูลสถานที่ที่เลือกใหม่อีกครั้ง
-              </button>
-            </div>
+            <b className="text-[14px] text-ink">มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ (ข้อ 1–3)</b>
             {[0, 1, 2].map((idx) => (
               <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1.1fr_1fr] gap-2.5 items-center">
                 <div className="flex items-center gap-2">
@@ -861,7 +1057,7 @@ export default function BookingWizardPage() {
                         prev.map((row, i) => (i === idx ? { ...row, item: val } : row)),
                       );
                     }}
-                    placeholder={idx === 0 ? 'เช่น อาคารหอประชุมสภา อบต.น้ำชำ' : 'ระบุสถานที่/อุปกรณ์เพิ่มเติม (ถ้ามี)'}
+                    placeholder={idx === 0 ? 'เช่น อาคารหอประชุม หรือ สนาม' : 'ระบุสถานที่/อุปกรณ์เพิ่มเติม (ถ้ามี)'}
                     className="jw-in h-10 text-[13.5px]"
                   />
                 </div>
@@ -877,7 +1073,7 @@ export default function BookingWizardPage() {
                       );
                       if (idx === 0 && val) setActivity(val);
                     }}
-                    placeholder={idx === 0 ? 'เช่น ประชุมคณะกรรมการกองทุนหมู่บ้าน' : 'ระบุวัตถุประสงค์'}
+                    placeholder={idx === 0 ? 'เช่น จัดประชุม สัมมนา หรือกิจกรรมชุมชน' : 'ระบุวัตถุประสงค์'}
                     className="jw-in h-10 text-[13.5px]"
                   />
                 </div>
@@ -915,8 +1111,8 @@ export default function BookingWizardPage() {
         </div>
       )}
 
-      {/* ================= STEP 4: ลงนามและส่ง ================= */}
-      {step === 4 && (
+      {/* ================= STEP 5: ลงนามและส่ง ================= */}
+      {step === 5 && (
         <div className="max-w-[760px] mx-auto flex flex-col gap-4">
           {/* แสดงเอกสารจริงตามแบบขอใช้สถานที่ราชการ */}
           <OfficialGovFormDocument
@@ -946,7 +1142,7 @@ export default function BookingWizardPage() {
               signerLabel={`${requesterName} · ผู้ขออนุญาตใช้สถานที่ราชการ`}
             />
             <p className="text-[13px] text-ink-mute mt-1">
-              ต้องลงนามทุกฝ่าย (4 ฝ่าย): (1) ผู้ขออนุญาตใช้สถานที่ราชการ → (2) ความเห็นของเจ้าหน้าที่ / รองปลัด อบต. → (3) ปลัด อบต. น้ำชำ → (4) คำสั่งของนายกองค์การบริหารส่วนตำบลน้ำชำ
+              ต้องลงนามทุกฝ่าย (4 ฝ่าย): (1) ผู้ขออนุญาตใช้สถานที่ราชการ → (2) ความเห็นของเจ้าหน้าที่ → (3) ความเห็นของปลัด → (4) คำสั่งของผู้มีอำนาจอนุมัติ
             </p>
             {draftSaved && (
               <div className="rounded-[10px] bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold">
