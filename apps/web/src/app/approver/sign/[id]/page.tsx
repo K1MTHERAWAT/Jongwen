@@ -87,10 +87,10 @@ export default function ApproverSignDocumentPage() {
   const currentStepNum = Math.min(3, signedCount + 1);
   const stepDesc =
     currentStepNum === 1
-      ? 'ลงนามฝ่ายที่ 2 จาก 4 · เจ้าหน้าที่ตรวจสอบ (ระดับ 1)'
+      ? 'ลงนามฝ่ายที่ 2 จาก 4 · เจ้าหน้าที่ผู้ตรวจสอบ'
       : currentStepNum === 2
-      ? 'ลงนามฝ่ายที่ 3 จาก 4 · ปลัด อบต. เห็นชอบ (ระดับ 2)'
-      : 'ลงนามฝ่ายที่ 4 จาก 4 · นายก อบต. อนุมัติ (ระดับ 3)';
+      ? 'ลงนามฝ่ายที่ 3 จาก 4 · ผู้พิจารณา'
+      : 'ลงนามฝ่ายที่ 4 จาก 4 · ผู้มีอำนาจอนุมัติ';
 
   const sigStaff = req.type !== 'repair' ? req.signatures.find((s) => s.level === 'staff') : undefined;
   const sigL2 = req.type !== 'repair' ? req.signatures.find((s) => s.level === 'l2') : undefined;
@@ -214,22 +214,22 @@ export default function ApproverSignDocumentPage() {
                 status="signed"
               />
               <SignaturePreviewCard
-                roleLabel="2. เจ้าหน้าที่ (ระดับ 1)"
-                signerName={sigStaff?.signerName || 'นางสาวสุดา รอบคอบ'}
+                roleLabel="2. เจ้าหน้าที่ผู้ตรวจสอบ"
+                signerName={sigStaff?.signerName}
                 signature={sigStaff?.signature}
                 signedAt={sigStaff ? formatThaiDateTime(sigStaff.at) : undefined}
                 status={sigStaff ? (sigStaff.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}
               />
               <SignaturePreviewCard
-                roleLabel="3. ปลัด อบต. (ระดับ 2)"
-                signerName={sigL2?.signerName || 'นายวิชัย บริหาร'}
+                roleLabel="3. ผู้พิจารณา"
+                signerName={sigL2?.signerName}
                 signature={sigL2?.signature}
                 signedAt={sigL2 ? formatThaiDateTime(sigL2.at) : undefined}
                 status={sigL2 ? (sigL2.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}
               />
               <SignaturePreviewCard
-                roleLabel="4. นายก อบต. (ระดับ 3)"
-                signerName={sigL1?.signerName || 'นายประเสริฐ ศรีนคร'}
+                roleLabel="4. ผู้มีอำนาจอนุมัติ"
+                signerName={sigL1?.signerName}
                 signature={sigL1?.signature}
                 signedAt={sigL1 ? formatThaiDateTime(sigL1.at) : undefined}
                 status={sigL1 ? (sigL1.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}

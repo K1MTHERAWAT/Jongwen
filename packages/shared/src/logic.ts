@@ -45,9 +45,9 @@ function approvalTimeline(req: Extract<AnyRequest, { signatures: unknown }>): Ti
     { key: 'submit', label: 'ผู้ขอลงนามและส่งคำขอ', at: req.createdAt, state: 'done' },
   ];
   const labels: Record<SignLevel, string> = {
-    staff: 'เจ้าหน้าที่ตรวจสอบและลงนาม',
-    l2: 'ผู้อนุมัติระดับ 2',
-    l1: 'ผู้อนุมัติระดับ 1',
+    staff: 'เจ้าหน้าที่ผู้ตรวจสอบ',
+    l2: 'ผู้พิจารณา',
+    l1: 'ผู้มีอำนาจอนุมัติ',
   };
   let blocked = false;
   let currentAssigned = false;

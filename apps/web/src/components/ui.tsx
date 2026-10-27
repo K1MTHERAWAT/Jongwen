@@ -926,10 +926,8 @@ export function OfficialGovFormDocument({
     ];
   } else if (customFields?.purposeItems && customFields.purposeItems.length > 0) {
     items = [...customFields.purposeItems];
-    while (items.length < 3) items.push({ item: '', forWhat: '' });
   } else if (req?.purposeItems && req.purposeItems.length > 0) {
     items = [...req.purposeItems];
-    while (items.length < 3) items.push({ item: '', forWhat: '' });
   } else if (req) {
     const line1Item = req.title || 'อาคารสถานที่';
     const line1For =
@@ -969,8 +967,6 @@ export function OfficialGovFormDocument({
   const sigL2 = !blankMode && req && req.type !== 'repair' ? req.signatures.find((s) => s.level === 'l2') : undefined;
   const sigL1 = !blankMode && req && req.type !== 'repair' ? req.signatures.find((s) => s.level === 'l1') : undefined;
 
-  const staffName = sigStaff?.signerName || 'เจ้าหน้าที่ผู้รับเรื่อง/ตรวจสอบ';
-  const staffRoleTitle = 'เจ้าหน้าที่ผู้ตรวจสอบ / หัวหน้าส่วนงาน';
   const staffComment = blankMode
     ? ''
     : sigStaff
@@ -979,8 +975,6 @@ export function OfficialGovFormDocument({
       : `ไม่เห็นควรอนุญาต (${sigStaff.note || ''})`
     : '';
 
-  const l2Name = sigL2?.signerName || 'ปลัด / ผู้กลั่นกรอง';
-  const l2RoleTitle = 'ปลัด / ผู้พิจารณากลั่นกรอง';
   const l2Comment = blankMode
     ? ''
     : sigL2
@@ -989,8 +983,6 @@ export function OfficialGovFormDocument({
       : `ไม่เห็นควรอนุญาต (${sigL2.note || ''})`
     : '';
 
-  const l1Name = sigL1?.signerName || 'ผู้มีอำนาจอนุมัติ';
-  const l1RoleTitle = 'ผู้มีอำนาจอนุมัติ';
   const l1Command = blankMode
     ? ''
     : sigL1
@@ -1070,30 +1062,27 @@ export function OfficialGovFormDocument({
           <div>{desireLabel}</div>
         </div>
 
-        {/* รายการ 1..3 เพื่อ... */}
+        {/* รายการ 1..N เพื่อ... */}
         <div className="flex flex-col gap-1 pl-5 sm:pl-10 mb-2.5">
-          {[0, 1, 2].map((idx) => {
-            const row = items[idx] || { item: '', forWhat: '' };
-            return (
-              <div
-                key={idx}
-                className="grid grid-cols-[1.15fr_1fr] gap-2 sm:gap-3 items-baseline"
-              >
-                <div className="flex items-baseline gap-1.5">
-                  <span className="font-semibold shrink-0">{idx + 1}.</span>
-                  <DottedSpan minW="w-full" className="text-left">
-                    {row.item}
-                  </DottedSpan>
-                </div>
-                <div className="flex items-baseline gap-1.5">
-                  <span className="shrink-0">เพื่อ</span>
-                  <DottedSpan minW="w-full" className="text-left">
-                    {row.forWhat}
-                  </DottedSpan>
-                </div>
+          {items.map((row, idx) => (
+            <div
+              key={idx}
+              className="grid grid-cols-[1.15fr_1fr] gap-2 sm:gap-3 items-baseline"
+            >
+              <div className="flex items-baseline gap-1.5">
+                <span className="font-semibold shrink-0">{idx + 1}.</span>
+                <DottedSpan minW="w-full" className="text-left">
+                  {row.item}
+                </DottedSpan>
               </div>
-            );
-          })}
+              <div className="flex items-baseline gap-1.5">
+                <span className="shrink-0">เพื่อ</span>
+                <DottedSpan minW="w-full" className="text-left">
+                  {row.forWhat}
+                </DottedSpan>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* จึงเรียนมาเพื่อพิจารณาอนุญาต */}
@@ -1128,9 +1117,11 @@ export function OfficialGovFormDocument({
       <div>
         {/* ความเห็นของเจ้าหน้าที่ (2 คอลัมน์ซ้าย-ขวา ตามแบบฟอร์มราชการ) */}
         <div className="mb-3">
-          <b className="block text-[14px] underline underline-offset-4 mb-1.5">ความเห็นของเจ้าหน้าที่</b>
+          <b className="block text-[14px] underline underline-offset-4 mb-1.5">
+            ความเห็นของเจ้าหน้าที่ผู้ตรวจสอบและผู้พิจารณา
+          </b>
           <div className="grid grid-cols-2 gap-5 sm:gap-8">
-            {/* ซ้าย: ฝ่ายที่ 2 (ระดับ 1 · รองปลัด / เจ้าหน้าที่) */}
+            {/* ซ้าย: เจ้าหน้าที่ผู้ตรวจสอบ */}
             <div className="flex flex-col items-center text-center gap-0.5">
               <div className="w-full mb-0.5">
                 <DottedSpan minW="w-full">{staffComment}</DottedSpan>
@@ -1142,17 +1133,19 @@ export function OfficialGovFormDocument({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={sigStaff.signature}
-                      alt="ลายเซ็นเจ้าหน้าที่"
+                      alt="ลายเซ็นเจ้าหน้าที่ผู้ตรวจสอบ"
                       className="max-h-8 max-w-full object-contain"
                     />
                   ) : null}
                 </div>
               </div>
-              <div>({staffName})</div>
-              <div className="text-[12.5px]">{staffRoleTitle}</div>
+              <div>
+                (<DottedSpan minW="min-w-[160px]">{sigStaff?.signerName}</DottedSpan>)
+              </div>
+              <div className="text-[12.5px]">เจ้าหน้าที่ผู้ตรวจสอบ</div>
             </div>
 
-            {/* ขวา: ฝ่ายที่ 3 (ระดับ 2 · ปลัด) */}
+            {/* ขวา: ผู้พิจารณา */}
             <div className="flex flex-col items-center text-center gap-0.5">
               <div className="w-full mb-0.5">
                 <DottedSpan minW="w-full">{l2Comment}</DottedSpan>
@@ -1164,19 +1157,21 @@ export function OfficialGovFormDocument({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={sigL2.signature}
-                      alt="ลายเซ็นปลัด อบต."
+                      alt="ลายเซ็นผู้พิจารณา"
                       className="max-h-8 max-w-full object-contain"
                     />
                   ) : null}
                 </div>
               </div>
-              <div>({l2Name})</div>
-              <div className="text-[12.5px]">{l2RoleTitle}</div>
+              <div>
+                (<DottedSpan minW="min-w-[160px]">{sigL2?.signerName}</DottedSpan>)
+              </div>
+              <div className="text-[12.5px]">ผู้พิจารณา</div>
             </div>
           </div>
         </div>
 
-        {/* คำสั่งของผู้มีอำนาจอนุมัติ (ฝ่ายที่ 4 · ระดับ 3) */}
+        {/* คำสั่งของผู้มีอำนาจอนุมัติ */}
         <div>
           <b className="block text-[14px] underline underline-offset-4 mb-1.5">
             คำสั่ง / การพิจารณาของผู้มีอำนาจอนุมัติ
@@ -1192,14 +1187,16 @@ export function OfficialGovFormDocument({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={sigL1.signature}
-                    alt="ลายเซ็นนายก อบต."
+                    alt="ลายเซ็นผู้มีอำนาจอนุมัติ"
                     className="max-h-8 max-w-full object-contain"
                   />
                 ) : null}
               </div>
             </div>
-            <div>({l1Name})</div>
-            <div className="text-[12.5px]">{l1RoleTitle}</div>
+            <div>
+              (<DottedSpan minW="min-w-[160px]">{sigL1?.signerName}</DottedSpan>)
+            </div>
+            <div className="text-[12.5px]">ผู้มีอำนาจอนุมัติ</div>
           </div>
         </div>
       </div>

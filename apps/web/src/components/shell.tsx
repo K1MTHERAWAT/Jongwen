@@ -355,8 +355,9 @@ export function AppShell({
         )}
 
         {loading ? (
-          <div className="jw-card p-8 max-w-[480px] mx-auto my-8 text-center text-[14px] text-ink-mute">
-            กำลังตรวจสอบสถานะการเข้าสู่ระบบ...
+          <div className="jw-card p-8 max-w-[480px] mx-auto my-8 text-center text-[14px] text-ink-mute flex flex-col items-center justify-center gap-3">
+            <div className="w-6 h-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
+            <span>กำลังตรวจสอบสถานะการเข้าสู่ระบบ...</span>
           </div>
         ) : !account ? (
           <div className="jw-card p-6 max-w-[520px] mx-auto my-6 flex flex-col items-center text-center gap-4">

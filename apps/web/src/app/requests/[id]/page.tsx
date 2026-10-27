@@ -246,22 +246,22 @@ export default function RequestDetailPage() {
                 status="signed"
               />
               <SignaturePreviewCard
-                roleLabel={`2. ${SIGN_LEVEL_TITLE.staff} (ระดับ 1)`}
-                signerName={sigStaff?.signerName || 'นางสาวสุดา รอบคอบ'}
+                roleLabel={`2. ${SIGN_LEVEL_TITLE.staff}`}
+                signerName={sigStaff?.signerName}
                 signature={sigStaff?.signature}
                 signedAt={sigStaff ? formatThaiDateTime(sigStaff.at) : undefined}
                 status={sigStaff ? (sigStaff.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}
               />
               <SignaturePreviewCard
-                roleLabel={`3. ${SIGN_LEVEL_TITLE.l2} (ระดับ 2)`}
-                signerName={sigL2?.signerName || 'นายวิชัย บริหาร'}
+                roleLabel={`3. ${SIGN_LEVEL_TITLE.l2}`}
+                signerName={sigL2?.signerName}
                 signature={sigL2?.signature}
                 signedAt={sigL2 ? formatThaiDateTime(sigL2.at) : undefined}
                 status={sigL2 ? (sigL2.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}
               />
               <SignaturePreviewCard
-                roleLabel={`4. ${SIGN_LEVEL_TITLE.l1} (ระดับ 3)`}
-                signerName={sigL1?.signerName || 'นายประเสริฐ ศรีนคร'}
+                roleLabel={`4. ${SIGN_LEVEL_TITLE.l1}`}
+                signerName={sigL1?.signerName}
                 signature={sigL1?.signature}
                 signedAt={sigL1 ? formatThaiDateTime(sigL1.at) : undefined}
                 status={sigL1 ? (sigL1.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}

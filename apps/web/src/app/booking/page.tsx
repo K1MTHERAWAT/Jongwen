@@ -82,8 +82,6 @@ export default function BookingWizardPage() {
   const [purpose, setPurpose] = useState('');
   const [purposeItems, setPurposeItems] = useState<OfficialFormPurposeItem[]>([
     { item: '', forWhat: '' },
-    { item: '', forWhat: '' },
-    { item: '', forWhat: '' },
   ]);
   const [attachmentName, setAttachmentName] = useState('');
 
@@ -155,65 +153,46 @@ export default function BookingWizardPage() {
     return true;
   });
 
-  // ซิงค์ชื่อสถานที่และอุปกรณ์เสริมที่เลือกมาใส่ในแบบฟอร์ม (ข้อ 1–3) อัตโนมัติ
+  // ซิงค์ชื่อสถานที่และอุปกรณ์เสริมที่เลือกมาใส่ในแบบฟอร์ม
   const syncFormPurposeItems = (
     venueList = selectedVenues,
     extraList = selectedExtraItems,
   ) => {
     if (!venueList.length) return;
     setPurposeItems((prev) => {
-      const next: OfficialFormPurposeItem[] = [
-        { item: '', forWhat: '' },
-        { item: '', forWhat: '' },
-        { item: '', forWhat: '' },
-      ];
+      const generated: OfficialFormPurposeItem[] = [];
 
-      // ข้อ 1: สถานที่หลัก
-      next[0] = {
-        item: venueList[0].name,
-        forWhat: prev[0]?.forWhat || activity || purpose || 'ใช้จัดกิจกรรมและประชุม',
-      };
-
-      if (venueList.length === 1) {
-        // หากเลือก 1 สถานที่: นำอุปกรณ์เสริมมารองรับข้อ 2 และ 3
-        if (extraList.length > 0) {
-          next[1] = {
-            item: `${extraList[0].eq.name} จำนวน ${extraList[0].qty} ชุด/รายการ`,
-            forWhat: prev[1]?.forWhat || 'ใช้ประกอบการจัดกิจกรรมและประชุม',
-          };
-        } else if (prev[1]?.item && prev[1].item !== venueList[0].name) {
-          next[1] = prev[1];
-        }
-
-        if (extraList.length > 1) {
-          next[2] = {
-            item: `${extraList[1].eq.name} จำนวน ${extraList[1].qty} ชุด/รายการ`,
-            forWhat: prev[2]?.forWhat || 'ใช้ประกอบการจัดกิจกรรมและประชุม',
-          };
-        } else if (prev[2]?.item && prev[2].item !== venueList[0].name) {
-          next[2] = prev[2];
-        }
-      } else {
-        // กรณีเลือกหลายสถานที่
-        venueList.slice(0, 3).forEach((v, idx) => {
-          next[idx] = {
-            item: v.name,
-            forWhat: prev[idx]?.forWhat || activity || purpose || 'ใช้จัดกิจกรรมและประชุม',
-          };
+      // ใส่สถานที่ทั้งหมดที่เลือก
+      venueList.forEach((v, idx) => {
+        generated.push({
+          item: v.name,
+          forWhat: prev[idx]?.forWhat || activity || purpose || 'ใช้จัดกิจกรรมและประชุม',
         });
-        if (venueList.length === 2 && extraList.length > 0) {
-          next[2] = {
-            item: `${extraList[0].eq.name} จำนวน ${extraList[0].qty} ชุด/รายการ`,
-            forWhat: prev[2]?.forWhat || 'ใช้ประกอบการจัดกิจกรรมและประชุม',
-          };
+      });
+
+      // ใส่อุปกรณ์เสริมทั้งหมดที่เลือก
+      extraList.forEach((ex, idx) => {
+        const offset = venueList.length + idx;
+        generated.push({
+          item: `${ex.eq.name} จำนวน ${ex.qty} ชุด/รายการ`,
+          forWhat: prev[offset]?.forWhat || 'ใช้ประกอบการจัดกิจกรรมและประชุม',
+        });
+      });
+
+      // หากผู้ใช้เคยพิมพ์ข้อเพิ่มเติมไว้เองเกินจำนวน ให้คงไว้
+      if (prev.length > generated.length) {
+        for (let i = generated.length; i < prev.length; i++) {
+          if (prev[i].item.trim() || prev[i].forWhat.trim()) {
+            generated.push(prev[i]);
+          }
         }
       }
 
-      return next;
+      return generated.length > 0 ? generated : [{ item: '', forWhat: '' }];
     });
   };
 
-  // ซิงค์รายการลงข้อ 1-3 อัตโนมัติทุกครั้งที่สถานที่เปลี่ยน
+  // ซิงค์รายการลงแบบฟอร์มอัตโนมัติทุกครั้งที่สถานที่เปลี่ยน
   useEffect(() => {
     if (selectedVenues.length > 0) {
       syncFormPurposeItems(selectedVenues, selectedExtraItems);
@@ -300,7 +279,7 @@ export default function BookingWizardPage() {
         addressSubdistrict,
         addressDistrict,
         addressProvince,
-        purposeItems,
+        purposeItems: purposeItems.filter((pi) => pi.item.trim() || pi.forWhat.trim()),
       });
       router.push(`/requests/${created.id}`);
     } finally {
@@ -1041,20 +1020,30 @@ export default function BookingWizardPage() {
             </div>
           </div>
 
-          {/* มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ (ข้อ 1..3 เพื่อ...) */}
+          {/* มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ */}
           <div className="rounded-[12px] bg-soft/60 border border-line p-4 flex flex-col gap-3">
-            <b className="text-[14px] text-ink">มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ (ข้อ 1–3)</b>
-            {[0, 1, 2].map((idx) => (
-              <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1.1fr_1fr] gap-2.5 items-center">
+            <div className="flex items-center justify-between gap-2">
+              <b className="text-[14px] text-ink">มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้</b>
+              <button
+                type="button"
+                onClick={() => setPurposeItems((prev) => [...prev, { item: '', forWhat: '' }])}
+                className="text-[12.5px] text-brand font-semibold hover:underline flex items-center gap-1 cursor-pointer bg-brand/10 hover:bg-brand/15 px-2.5 py-1 rounded-[6px] transition"
+              >
+                <Icon name="plus" className="w-3.5 h-3.5" />
+                เพิ่มข้อ
+              </button>
+            </div>
+            {purposeItems.map((row, idx) => (
+              <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1.1fr_1fr_auto] gap-2.5 items-center">
                 <div className="flex items-center gap-2">
                   <b className="text-[14px] text-ink shrink-0 w-5">{idx + 1}.</b>
                   <input
                     type="text"
-                    value={purposeItems[idx]?.item || ''}
+                    value={row.item}
                     onChange={(e) => {
                       const val = e.target.value;
                       setPurposeItems((prev) =>
-                        prev.map((row, i) => (i === idx ? { ...row, item: val } : row)),
+                        prev.map((r, i) => (i === idx ? { ...r, item: val } : r)),
                       );
                     }}
                     placeholder={idx === 0 ? 'เช่น อาคารหอประชุม หรือ สนาม' : 'ระบุสถานที่/อุปกรณ์เพิ่มเติม (ถ้ามี)'}
@@ -1065,11 +1054,11 @@ export default function BookingWizardPage() {
                   <span className="text-[13.5px] font-semibold text-ink-mute shrink-0">เพื่อ</span>
                   <input
                     type="text"
-                    value={purposeItems[idx]?.forWhat || ''}
+                    value={row.forWhat}
                     onChange={(e) => {
                       const val = e.target.value;
                       setPurposeItems((prev) =>
-                        prev.map((row, i) => (i === idx ? { ...row, forWhat: val } : row)),
+                        prev.map((r, i) => (i === idx ? { ...r, forWhat: val } : r)),
                       );
                       if (idx === 0 && val) setActivity(val);
                     }}
@@ -1077,6 +1066,20 @@ export default function BookingWizardPage() {
                     className="jw-in h-10 text-[13.5px]"
                   />
                 </div>
+                {purposeItems.length > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setPurposeItems((prev) => prev.filter((_, i) => i !== idx))
+                    }
+                    className="w-8 h-8 rounded-full flex items-center justify-center text-ink-mute hover:text-red-600 hover:bg-red-50 transition shrink-0 cursor-pointer"
+                    title="ลบข้อนี้"
+                  >
+                    <Icon name="x" className="w-4 h-4" />
+                  </button>
+                ) : (
+                  <div className="w-8 shrink-0 hidden sm:block" />
+                )}
               </div>
             ))}
           </div>

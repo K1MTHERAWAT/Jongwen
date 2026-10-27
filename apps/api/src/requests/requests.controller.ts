@@ -229,7 +229,7 @@ export class RequestsController {
       addressDistrict: body.addressDistrict ? String(body.addressDistrict).slice(0, 80) : '',
       addressProvince: body.addressProvince ? String(body.addressProvince).slice(0, 80) : '',
       purposeItems: Array.isArray(body.purposeItems)
-        ? body.purposeItems.slice(0, 5).map((pi) => ({
+        ? body.purposeItems.slice(0, 20).map((pi) => ({
             item: String(pi?.item ?? '').slice(0, 200),
             forWhat: String(pi?.forWhat ?? '').slice(0, 300),
           }))

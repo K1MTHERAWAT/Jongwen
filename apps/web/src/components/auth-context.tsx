@@ -70,30 +70,50 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true;
+
+    // โหลด mock accounts ในพื้นหลัง ไม่บล็อกการตรวจสิทธิ์
+    api
+      .listMockAccounts()
+      .then((list) => {
+        if (active) setAccounts(list);
+      })
+      .catch(() => {});
+
+    const existing = getStoredToken();
+    if (!existing) {
+      if (active) {
+        setAccount(null);
+        setLoading(false);
+      }
+      return;
+    }
+
+    // มี token ค้างอยู่ -> ตรวจสอบว่าใช้ได้หรือไม่
     (async () => {
       try {
-        const list = await api.listMockAccounts();
-        if (active) setAccounts(list);
-      } catch {
-        // use fallbackAccounts
-      }
-      const existing = getStoredToken();
-      if (existing) {
-        try {
-          const me = await api.me();
-          if (active) setAccount(me);
-          await refreshNotifications();
-        } catch {
-          clearStoredAuth();
-          if (active) setAccount(null);
+        const me = await api.me();
+        if (active) {
+          setAccount(me);
+          setLoading(false);
         }
-      } else {
-        if (active) setAccount(null);
+        refreshNotifications();
+      } catch {
+        clearStoredAuth();
+        if (active) {
+          setAccount(null);
+          setLoading(false);
+        }
       }
-      if (active) setLoading(false);
     })();
+
+    // Safety timeout: ป้องกันการค้างหน้าจอนานเกิน 1.5 วินาที
+    const timer = setTimeout(() => {
+      if (active) setLoading(false);
+    }, 1500);
+
     return () => {
       active = false;
+      clearTimeout(timer);
     };
   }, [refreshNotifications]);
 

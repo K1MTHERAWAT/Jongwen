@@ -134,8 +134,9 @@ export default function LoginPage() {
           </div>
 
           {error && (
-            <div className="rounded-[10px] bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2.5 text-[13px] text-[#7a1010]">
-              {error}
+            <div className="rounded-[10px] bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2.5 text-[13px] text-[#7a1010] flex items-center gap-2">
+              <Icon name="x" className="w-4 h-4 text-status-crit shrink-0" />
+              <span>{error}</span>
             </div>
           )}
 

@@ -264,9 +264,9 @@ export const REPAIR_CATEGORIES = ['ไฟฟ้า', 'ประปา', 'เค�
 export const FACILITIES = ['เครื่องเสียง', 'โปรเจกเตอร์', 'เครื่องปรับอากาศ', 'Wi-Fi', 'ที่จอดรถ'];
 
 export const SIGN_LEVEL_TITLE = {
-  staff: 'เจ้าหน้าที่',
-  l2: 'ปลัด อบต. เห็นชอบ',
-  l1: 'นายก อบต. อนุมัติ',
+  staff: 'เจ้าหน้าที่ผู้ตรวจสอบ',
+  l2: 'ผู้พิจารณา',
+  l1: 'ผู้มีอำนาจอนุมัติ',
 } as const;
 
 export const ACTIVE_BOOKING_STATUSES: RequestStatus[] = ['pending_staff', 'pending_l2', 'pending_l1', 'approved'];

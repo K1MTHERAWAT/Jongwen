@@ -44,18 +44,33 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(`/api${path}`, { ...init, headers, cache: 'no-store' });
-  if (!res.ok) {
-    let msg = `HTTP ${res.status}`;
-    try {
-      const data = await res.json();
-      msg = Array.isArray(data.message) ? data.message.join(', ') : data.message || msg;
-    } catch {
-      // ignore
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+
+  try {
+    const res = await fetch(`/api${path}`, {
+      ...init,
+      headers,
+      cache: 'no-store',
+      signal: init.signal || controller.signal,
+    });
+    clearTimeout(timeoutId);
+
+    if (!res.ok) {
+      let msg = `HTTP ${res.status}`;
+      try {
+        const data = await res.json();
+        msg = Array.isArray(data.message) ? data.message.join(', ') : data.message || msg;
+      } catch {
+        // ignore
+      }
+      throw new Error(msg);
     }
-    throw new Error(msg);
+    return res.json();
+  } catch (err) {
+    clearTimeout(timeoutId);
+    throw err;
   }
-  return res.json();
 }
 
 export type MockAccountHint = PublicAccount;
