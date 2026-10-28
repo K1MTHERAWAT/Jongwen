@@ -1,17 +1,17 @@
-# Jongwen · ระบบขอใช้สถานที่ ขอใช้อุปกรณ์ และแจ้งซ่อม ผ่าน LINE OA (Monorepo)
+# Jongwen · ระบบขอใช้สถานที่ ขอใช้อุปกรณ์ และแจ้งซ่อม (Monorepo)
 
-แปลงจากต้นฉบับ `booking-uiux_jongwen_17 (5).html` เป็น **Web Monorepo** ระดับ Production-ready ด้วย **Next.js + NestJS + Tailwind CSS + PostgreSQL (Prisma ORM) + Docker Compose**
-*(ไม่รวมส่วน **Design Tokens**, **ตั้งค่าการแสดงผล** และตัดส่วน **รายงาน (`/reports`)** ออกตามข้อกำหนด)*
+ระบบบริหารจัดการคำขอใช้สถานที่ราชการ ขอยืม–คืนครุภัณฑ์ และแจ้งซ่อมบำรุง ผ่านเว็บแอปพลิเคชันระดับ Production-ready พัฒนาด้วยสถาปัตยกรรม Monorepo โดยใช้ **Next.js 15 + NestJS 11 + Tailwind CSS + PostgreSQL (Prisma ORM) + Docker Compose** ตามมาตรฐาน **GovCenter Design Tokens**
 
 ---
 
 ## สถาปัตยกรรมระบบ (Architecture)
 
-* **Frontend**: Next.js 15 (App Router) + Tailwind CSS (Responsive Desktop / Tablet / Mobile)
-* **Backend API**: NestJS 11 + Express + RESTful API
+* **Frontend**: Next.js 15 (App Router) + Tailwind CSS + GovCenter Tokens (Responsive Desktop / Tablet / Mobile)
+* **Backend API**: NestJS 11 + Express + RESTful API + ValidationPipe (`class-validator`)
 * **Database**: PostgreSQL 16 (Alpine) ผ่าน Docker Compose
 * **ORM & Migrations**: Prisma ORM v6
-* **Shared Package**: `@jongwen/shared` (TypeScript Types, Labels, Mock Data, RBAC Logic, Date Helpers)
+* **Shared Package**: `@jongwen/shared` (TypeScript Types, Labels, RBAC Logic, Date Helpers, Period Conflict Checks)
+* **Testing & CI/CD**: Vitest (Unit Tests 100% Pass) + GitHub Actions CI Pipeline + Multi-stage Dockerfile
 
 ---
 
@@ -19,44 +19,48 @@
 
 ```text
 BookingV1/
+├── .github/
+│   └── workflows/
+│       └── ci.yml              # CI Pipeline: Lint, Typecheck, Test (Vitest) & Build All
 ├── docker-compose.yml          # PostgreSQL 16 Service (Port 5433:5432, Healthcheck, Volume)
-├── .env.example                # ตัวอย่าง Environment Variables สำหรับ Root
+├── Dockerfile                  # Multi-stage Dockerfile สำหรับ Production Deployment
+├── .dockerignore               # กำหนดไฟล์ที่ไม่ต้องส่งเข้า Docker build context
+├── LICENSE                     # MIT License
+├── vitest.config.mts           # กำหนดค่า Unit Testing สำหรับ Monorepo
 ├── packages/
-│   └── shared/                 # @jongwen/shared — Types, Labels, RBAC Logic (ปลอดภัย: ไม่มี Mock Data ปน)
+│   └── shared/                 # @jongwen/shared — Types, Labels, RBAC Logic, Business Logic
 │       └── src/
-│           ├── types.ts          # Shared Models, Request Types, OfficialFormPurposeItem
+│           ├── types.ts          # Shared Models, PublicAccount, Enums, Request Types
 │           ├── labels.ts         # ข้อความ/ป้ายกำกับภาษาไทยสำหรับบทบาท สถานะ และประเภทคำขอ
-│           ├── logic.ts          # RBAC (canAccessRoute), สายอนุมัติ 3 ระดับ, ตรวจสอบช่วงเวลา
+│           ├── logic.ts          # RBAC (canAccessRoute), ตรวจจองซ้อน (Conflict Checks), SoD
+│           ├── logic.test.ts     # Unit Tests ทดสอบเงื่อนไขทางธุรกิจ
 │           └── index.ts
 ├── apps/
 │   ├── api/                    # @jongwen/api — NestJS REST API (:4000/api)
 │   │   ├── prisma/
-│   │   │   ├── schema.prisma     # Prisma Data Model (11 ตาราง รวม otp_codes + Enums)
+│   │   │   ├── schema.prisma     # Prisma Data Model (13 ตาราง รวม sessions, sequences, otp_codes)
 │   │   │   ├── migrations/       # SQL Migration Files (Prisma Migrate)
-│   │   │   ├── seed.ts           # Standalone Seed Script (รองรับ argon2 hash)
-│   │   │   └── hash-existing-accounts.ts # สคริปต์ One-time แปลงข้อมูลเดิมเป็น argon2
-│   │   ├── .env.example          # ตัวอย่าง DATABASE_URL และตัวแปรระบบ
+│   │   │   └── seed.ts           # Standalone Seed Script (รองรับ argon2 hash)
 │   │   └── src/
-│   │       ├── demo-data/        # ข้อมูลสำหรับทดสอบ แยกไว้เฉพาะ API (accounts, resources, requests)
-│   │       ├── auth/             # Login, Register, Request-OTP, Signature, PIN, Session, argon2 (secret.ts)
-│   │       ├── resources/        # Venues, Equipment, Monthly Availability, Conflict Check
+│   │       ├── auth/             # Login, Register, Request-OTP, Signature, PIN, Session, argon2
+│   │       ├── resources/        # Venues, Equipment, Monthly Availability, Conflict & Stock Check
 │   │       ├── requests/         # Booking, Borrow, Repair, 3-Level Sign, Handover, Reschedule
-│   │       ├── admin/            # Users & Permissions, Overview, Notifications, Dev Reset
-│   │       └── db/               # Prisma Database Service (Auto-seed demo หรือ Admin แรกเข้า)
-│   └── web/                    # @jongwen/web — Next.js (App Router) + Tailwind CSS (:3000)
-│       ├── public/               # Static Assets (โลโก้, ไอคอน)
+│   │       ├── admin/            # Users & Permissions, Overview, Notifications, Activity Logs
+│   │       └── db/               # Prisma Database Service (Persistent DB Sessions & Sequences)
+│   └── web/                    # @jongwen/web — Next.js 15 (App Router) + Tailwind CSS (:3000)
+│       ├── public/               # Static Assets (โลโก้, ไอคอน, รูปภาพ Avatar)
 │       └── src/
 │           ├── app/              # หน้าจอทั้งหมดตามบทบาท (Responsive Phone/Tablet/Desktop)
 │           │   ├── (auth)/       # /login, /register
-│           │   ├── booking/      # สถานที่ (5 ขั้นตอน: เลือกสถานที่, วัน-เวลา, อุปกรณ์เสริม, แบบฟอร์ม, ลงนาม)
+│           │   ├── booking/      # สถานที่ (5 ขั้นตอน: เลือกสถานที่, วัน-เวลา, อุปกรณ์เสริม, ฟอร์ม, ลงนาม)
 │           │   ├── borrow/       # อุปกรณ์ และ /borrow/my (รายการอุปกรณ์ของฉัน)
-│           │   ├── repair/       # แจ้งซ่อมบำรุงและติดตามสถานะ
+│           │   ├── repair/       # แจ้งซ่อมบำรุงและติดตามสถานะ (ไม่ต้องลงนาม)
 │           │   ├── requests/     # รายละเอียดคำขอและขอเลื่อนวัน/ยกเลิก
 │           │   ├── history/      # ประวัติคำขอและการดำเนินการ (แยกตามบทบาทและฟิลเตอร์ครบชุด)
 │           │   ├── staff/        # เจ้าหน้าที่ (ตรวจคำขอ, รับมอบ-คืน, Walk-in)
 │           │   ├── approver/     # ผู้อนุมัติ L2/L1 (ลงนาม PIN 6 หลัก, ใบอนุญาต PDF)
 │           │   └── admin/        # แอดมิน (จัดการทรัพยากร/แบบฟอร์ม, จัดการสิทธิ์)
-│           ├── components/       # AppShell, CalendarC4, OfficialGovFormDocument, SignatureBox, PinKeypad
+│           ├── components/       # AppShell (GovCenter Navbar & Left Sidebar), UI Components
 │           └── lib/api.ts        # Client API SDK (มี Timeout และ Error handling)
 ├── package.json
 └── pnpm-workspace.yaml
@@ -66,7 +70,7 @@ BookingV1/
 
 ## การเชื่อมต่อฐานข้อมูล (PostgreSQL & Docker)
 
-ระบบใช้งาน PostgreSQL 16 บน Docker โดย Map พอร์ตภายนอกเป็น **`5433`** *(เพื่อไม่ให้ชนกับ PostgreSQL ของเครื่องเดิมที่รันอยู่บนพอร์ต 5432)*
+ระบบใช้งาน PostgreSQL 16 บน Docker โดย Map พอร์ตภายนอกเป็น **`5433`** *(เพื่อไม่ให้ชนกับ PostgreSQL เดิมของเครื่องที่รันบนพอร์ต 5432)*
 
 | รายการ | ค่าการเชื่อมต่อ |
 | :--- | :--- |
@@ -79,10 +83,14 @@ BookingV1/
 
 ---
 
-## คำสั่งจัดการฐานข้อมูล (Database Commands)
+## คำสั่งสำหรับพัฒนาและจัดการระบบ (NPM Scripts)
 
 | คำสั่ง | คำอธิบาย |
 | :--- | :--- |
+| `pnpm dev` | สตาร์ททั้ง Shared, Web (:3000) และ API (:4000) พร้อมกัน |
+| `pnpm test` | รัน Unit Tests ด้วย **Vitest** ทั้งหมดใน Monorepo |
+| `pnpm typecheck` | ตรวจสอบความถูกต้องของ Type ด้วย TypeScript (`tsc --noEmit`) ทุกแพ็กเกจ |
+| `pnpm build` | คอมไพล์และสร้าง Production Bundle ของทั้ง Shared, API และ Web |
 | `pnpm db:up` | เริ่มรัน PostgreSQL container ในแบ็กกราวด์ (`docker compose up -d`) |
 | `pnpm db:down` | หยุดและปิด container (`docker compose down`) |
 | `pnpm db:logs` | ดู Logs แบบ Real-time ของ PostgreSQL |
@@ -106,7 +114,7 @@ pnpm install
 pnpm db:up
 ```
 
-### 3. รัน Migration และ Seed ข้อมูล (ถ้าต้องการรีเซ็ตข้อมูลใหม่)
+### 3. รัน Migration และ Seed ข้อมูลเริ่มต้น
 ```powershell
 pnpm db:seed
 ```
@@ -117,13 +125,13 @@ pnpm dev
 ```
 - **Web App (Next.js)**: http://localhost:3000
 - **API Server (NestJS)**: http://localhost:4000/api
-- **Prisma Studio (Optional)**: รัน `pnpm db:studio` เปิดที่ http://localhost:5555
+- **Prisma Studio**: รัน `pnpm db:studio` เปิดที่ http://localhost:5555
 
 ---
 
 ## บัญชีทดสอบในระบบ
 
-สามารถคลิกสลับบทบาทได้ทันทีจากแผง **`ข้อมูลบัญชีในระบบ`** ที่หน้า `/login`:
+สามารถคลิกสลับบทบาทได้ทันทีจากแผงเลือกบทบาทที่หน้า `/login`:
 
 | ชื่อผู้ใช้ (`username`) | ชื่อ-นามสกุล | บทบาท (`role`) | รหัสผ่าน | PIN ลงนาม | หน้าเริ่มต้น |
 | :--- | :--- | :--- | :--- | :--- | :--- |
@@ -136,38 +144,47 @@ pnpm dev
 
 ---
 
-## รายการหน้าจอในระบบ
+## เลย์เอาต์และดีไซน์ (GovCenter Layout & Sidebar)
 
-1. **เข้าสู่ระบบและหน้าแรก**
-   - `/login` — เข้าสู่ระบบ LINE Login + บัญชีผู้ใช้ + ยินยอม PDPA + คลิกการ์ดบทบาทเข้าได้ทันที (พร้อมระบบแสดง Error ชัดเจนและ Brute-force Lockout)
-   - `/register` — ลงทะเบียนผู้ใช้ใหม่ + หน่วยงาน + ยืนยันรหัส OTP 6 หลัก + PDPA
-   - `/` — หน้าแรกประชาชน (3 บริการหลัก: สถานที่, แจ้งซ่อม, อุปกรณ์ / คำขอของฉัน / รายการอุปกรณ์ของฉัน / แจ้งเตือนล่าสุด)
-2. **สถานที่ (5 ขั้นตอน)**
-   - `/booking` — `1/5` เลือกสถานที่ (พร้อมตัวกรอง) → `2/5` เลือกวัน-เวลา (ปฏิทิน C4 + ตรวจจับช่วงเวลาซ้อนทับ) → `3/5` เลือกอุปกรณ์เสริม (คำนวณจำนวนคงเหลือ และซิงค์ลงรายการแบบฟอร์มอัตโนมัติ) → `4/5` กรอกแบบขอใช้สถานที่ราชการ (ระบุที่อยู่ละเอียดพร้อมจังหวัด + เพิ่ม/ลดรายการความประสงค์ได้อิสระ) → `5/5` แสดงหน้ากระดาษแบบฟอร์มจริงพร้อมลงลายมือชื่อ
-3. **อุปกรณ์ (3 ขั้นตอน + รายการอุปกรณ์ของฉัน)**
-   - `/borrow` — `1/3` เลือกอุปกรณ์ → `2/3` กรอกแบบคำขอใช้อุปกรณ์ → `3/3` ลงนามและส่ง
-   - `/borrow/my` — รายการอุปกรณ์ของฉัน (กำลังใช้งาน, รอตรวจสภาพ, ประวัติ) + ปุ่มแจ้งคืน
-4. **แจ้งซ่อม และติดตามคำขอ**
-   - `/repair` — แจ้งปัญหา/ซ่อมบำรุง (แนบรูป) + ติดตามแจ้งซ่อม & ตรวจรับงาน
-   - `/requests/[id]` — รายละเอียดคำขอและไทม์ไลน์ความคืบหน้า + แสดงแบบฟอร์มราชการเต็มใบ
-   - `/requests/[id]/reschedule` — ขอเลื่อนวัน / ยกเลิกคำขอ
-5. **ประวัติคำขอและการดำเนินการ**
-   - `/history` — หน้ารวมประวัติคำขอ แยกตามประเภทคำขอ (สถานที่, อุปกรณ์, แจ้งซ่อม) และสถานะ (เข้าถึงได้จากเมนูบัญชีมุมขวาบน หรือกด "ดูทั้งหมด" จากแดชบอร์ด)
-6. **เจ้าหน้าที่ (`STAFF`)**
-   - `/staff` — หน้าหลักเจ้าหน้าที่ (ตัวนับงานรอตรวจ และทางลัดการทำงาน)
-   - `/staff/review` — ตรวจและลงนามคำขอ (ระดับ 1: เจ้าหน้าที่ผู้ตรวจสอบ) ยืนยันด้วยลายเซ็นและรหัส PIN 6 หลัก เหมือนผู้อนุมัติ L2/L1
-   - `/staff/handover` — รับมอบ-คืน (เช็คลิสต์ ก่อนใช้ / หลังใช้ พร้อมระบุหมายเหตุเมื่อตรวจพบรายการผิดปกติ)
-   - `/staff/walk-in` — กรอกคำขอแทนผู้มาติดต่อที่เคาน์เตอร์ (รองรับทั้งสถานที่, อุปกรณ์, แจ้งซ่อม และบันทึกร่างได้)
-7. **ลงนามเอกสาร 3 ระดับ (`เจ้าหน้าที่ผู้ตรวจสอบ` → `ผู้พิจารณา` → `ผู้มีอำนาจอนุมัติ`)**
-   - `/approver` — หน้าหลักผู้มีอำนาจลงนาม
-   - `/approver/settings` — ตั้งค่าลายเซ็นดิจิทัล + ตั้งรหัส PIN 6 หลัก
-   - `/approver/sign/[id]` — แสดงแบบฟอร์มราชการเต็มใบ + ลงนามเอกสาร 3 ระดับ + ยืนยันด้วย PIN 6 หลัก
-   - `/approver/permit/[id]` — ลงนามครบ 4 ฝ่าย + แสดงและพิมพ์ใบอนุญาตราชการขนาด 1 หน้า A4 (`window.print()`)
-8. **ผู้ดูแลระบบ (`ADMIN`)**
-   - `/admin` — หน้าแรกผู้ดูแลระบบ (สถิติรวมและรายการคำขอล่าสุด)
-   - `/admin/permissions` — จัดการสิทธิ์และบทบาทผู้ใช้ (เปิด/ปิดสถานะบัญชี, กำหนดสิทธิ์ย่อย, ลำดับสายอนุมัติ)
-   - `/admin/resources` — จัดการทรัพยากรและแบบฟอร์มราชการ (เปิด/ปิดให้จองทันที พร้อมพรีวิวแบบฟอร์มเปล่า/ตัวอย่าง)
-   - `/admin/resources/new` — เพิ่มรายการสถานที่/อุปกรณ์ (จัดลำดับสายอนุมัติ 3 ระดับได้)
+แอปพลิเคชันได้รับการออกแบบตาม **GovCenter Design Tokens** (`library.govcenter.co`):
+
+1. **แถบส่วนหัวด้านบน (UserNavbar):**
+   - แถบสีเขียวเข้มแบบ Gradient (`#175C4C` ถึง `#2B7D66`)
+   - ด้านซ้าย: รูป Avatar วงกลม + ข้อความทักทาย `สวัสดี, {ชื่อผู้ใช้}` + บทบาทผู้ใช้
+   - ด้านขวา: กระดิ่งแจ้งเตือนพร้อมตัวเลขนับ (Badge สีแดง) + ปุ่มแฮมเบอร์เกอร์ `≡`
+2. **แถบเมนูด้านข้าง (UserSidebar Drawer):**
+   - สไลด์เปิดออกมาจาก **ฝั่งซ้ายของหน้าจอ** เมื่อกดปุ่ม `≡` หรือกดที่ส่วนหัว
+   - **เมนูการใช้งานจริง:**
+     - หน้าแรก
+     - ขอใช้สถานที่
+     - ขอยืมอุปกรณ์
+     - แจ้งซ่อม (แจ้งปัญหาได้ทันที ไม่บังคับลงลายมือชื่อ)
+     - ประวัติคำขอ
+     - *(เมนูเฉพาะตามบทบาท: งานเจ้าหน้าที่ / งานพิจารณาอนุมัติ / การจัดการระบบ)*
+   - **ส่วนล่าง:** ข้อมูลส่วนตัว (ป๊อปอัปดูโปรไฟล์และสิทธิ์), ตั้งค่าระบบ (ลายเซ็น/PIN), และปุ่ม `ออกจากระบบ` สีแดง
+
+---
+
+## คุณสมบัติความมั่นคงปลอดภัยและสถาปัตยกรรมองค์กร (Enterprise Features)
+
+1. **Persistent Sessions ในฐานข้อมูล:**
+   - ย้ายการเก็บ Session Token จากหน่วยความจำ In-memory มาบันทึกลงตาราง `sessions` ใน PostgreSQL
+   - รองรับการรีสตาร์ทเซิร์ฟเวอร์หรือรันแบบ Multi-instance ได้โดยเซสชันไม่หลุด
+2. **Atomic Sequence Generator:**
+   - ใช้ตาราง `sequences` ในฐานข้อมูลเพื่อออกเลขที่คำขอ (เช่น `REQ-2569-0001`) และไอดีแบบ Atomic ป้องกันเลขซ้ำในการใช้งานพร้อมกัน (Concurrency Safe)
+3. **หลักฐานการลงนามแบบไม่สูญหาย (Immutable Signature Audit):**
+   - ลายมือชื่อดิจิทัลและบันทึกการลงนาม (`signature_records`) จะถูกบันทึกอย่างถาวร ไม่มีการสั่งลบทิ้ง
+   - บันทึกประวัติกิจกรรม (`activity_logs`) เก็บข้อมูลผู้กระทำ (`actorId`, `actorName`, `actorRole`) และหมายเลข `ip` อย่างครบถ้วน
+4. **การแบ่งแยกหน้าที่อย่างโปร่งใส (Separation of Duties - SoD):**
+   - ผู้ขอใช้บริการไม่สามารถลงนามอนุมัติคำขอของตนเองได้ (Prevent Self-Approval)
+   - ผู้อนุมัติคนเดียวกันไม่สามารถลงนามซ้ำข้ามระดับได้ (L2 และ L1 ต้องเป็นคนละท่าน)
+   - เจ้าหน้าที่ไม่สามารถรับมอบ-คืนสิ่งของให้ตนเองได้
+5. **แจ้งซ่อมบำรุงโดยไม่ต้องลงนาม:**
+   - ปรับลดขั้นตอนของคำขอแจ้งซ่อม (`repair`) ให้ผู้แจ้งสามารถส่งเรื่องได้ทันทีโดยไม่ต้องลงลายมือชื่อดิจิทัล เพื่อความสะดวกรวดเร็ว
+6. **การเข้ารหัสระดับสูงด้วย Argon2id:**
+   - ทั้งรหัสผ่านบัญชีและรหัส PIN 6 หลัก ได้รับการแฮชด้วยอัลกอริทึม **`argon2id`**
+7. **Input Validation:**
+   - ฝั่ง NestJS API ใช้งาน `ValidationPipe` พร้อม `class-validator` และ `class-transformer` ป้องกัน Injection และรับส่งเฉพาะฟิลด์ที่กำหนด (Whitelist)
 
 ---
 
@@ -180,6 +197,8 @@ erDiagram
     accounts ||--o{ signature_records : "signer_id"
     accounts ||--o{ handover_records : "staff_id"
     accounts ||--o{ notifications : "user_id"
+    accounts ||--o{ sessions : "account_id"
+    accounts ||--o{ activity_logs : "actor_id"
 
     requests ||--o{ request_venues : "request_id"
     requests ||--o{ request_periods : "request_id"
@@ -193,7 +212,7 @@ erDiagram
     accounts {
         string id PK
         string username UK
-        string password
+        string password "argon2id"
         string name
         string nickname
         string initial
@@ -202,12 +221,24 @@ erDiagram
         string department
         string phone
         string line_name
-        string line_user_id
         text signature
-        string pin
+        string pin "argon2id"
         jsonb permissions
         boolean active
         timestamptz created_at
+    }
+
+    sessions {
+        string token PK
+        string account_id FK
+        timestamptz expires_at
+        timestamptz created_at
+    }
+
+    sequences {
+        string key PK
+        int value
+        timestamptz updated_at
     }
 
     venues {
@@ -249,35 +280,13 @@ erDiagram
         text requester_signature
         string written_at
         string requester_position
-        string address_house_no
-        string address_moo
-        string address_subdistrict
-        string address_district
-        string address_province
         jsonb purpose_items
         text purpose
         string activity
         int attendees
-        text_array attachments
         date pickup_date
         date return_date
-        timestamptz return_requested_at
-        timestamptz returned_at
-        string repair_building
-        string repair_floor
-        string repair_location
-        string repair_category
         text repair_detail
-        int repair_photos
-        text repair_resolution
-        text repair_staff_signature
-        string repair_staff_signer_name
-        text repair_accept_signature
-        timestamptz repair_accepted_at
-        timestamptz repair_started_at
-        timestamptz repair_finished_at
-        timestamptz repair_accepted_by_requester_at
-        string created_by_staff_id FK
         text created_by_staff_signature
         text reject_reason
         timestamptz created_at
@@ -346,84 +355,20 @@ erDiagram
         string kind "user, role, resource, request"
         string title
         string detail
+        string actor_id FK
+        string actor_name
+        string actor_role
+        string ip
         timestamptz created_at
     }
 
     otp_codes {
         string id PK
         string phone
-        string code_hash
+        string code_hash "argon2id"
         int attempts
         timestamptz expires_at
         timestamptz consumed_at
         timestamptz created_at
     }
 ```
-
----
-
-## การจัดการโหมดเดโม (Demo Mode Architecture)
-
-หลักการ: **เดโมกับ Production เป็นคนละ deployment และคนละฐานข้อมูล** ควบคุมด้วย Flag เดียว
-
-### 1. ฝั่ง Backend API (`DEMO_MODE=true`)
-* **เพิ่มฟิลด์ `accounts.is_demo`**: เฉพาะบัญชีที่ระบุ `is_demo = true` เท่านั้นที่ทำ One-Click Demo Login ได้
-* **`GET /auth/demo-accounts`**: ส่งกลับเฉพาะข้อมูลปลอดภัยสำหรับการแสดงผลบทบาท (ID, ชื่อ, ตำแหน่ง, บทบาท, หน่วยงาน) — **ไม่มีเบอร์โทรศัพท์และไม่มีรหัสผ่าน**
-* **`POST /auth/demo-login`**: รับ `{ accountId }` และออก Session Token ให้โดยตรง — รหัสผ่านไม่ปรากฏใน Bundle หน้าเว็บ
-* **OTP ในโหมดเดโม**: ใช้รหัสคงที่ `000000` และปิดการเชื่อมต่อ SMS/LINE Gateway จริง
-* **Dev Reset & Nightly Cron (Bangkok Time UTC+7)**: `POST /dev/reset` เปิดเฉพาะเมื่อ `DEMO_MODE=true` มี Rate Limit และตั้งระบบ Cron อัตโนมัติรีเซ็ตข้อมูลทุกคืนเวลา 03:00 น. เวลาไทย (`20:00:00 UTC`) พร้อมกลไกตรวจจับกรณี instance หลับ (Free tier/Serverless) แล้วตื่นขึ้นมาหลังเวลาตีสาม จะรีเซ็ตย้อนหลังให้อัตโนมัติ
-* **Production Guard**: เมื่อใช้งานบน Production และไม่ได้เปิด `DEMO_MODE=true` จุดเชื่อมต่อเหล่านี้จะตอบกลับ 404 ทันที และระบบจะไม่ Seed ข้อมูลตัวอย่าง
-
-### 2. ฝั่ง Frontend Web (`NEXT_PUBLIC_DEMO=true`)
-* **แถบแจ้งเตือนด้านบน**: แสดงแถบเด่นชัด `⚠️ โหมดสาธิต · ข้อมูลสมมติ ห้ามกรอกข้อมูลจริง` ด้านบนสุดของหน้าจอ
-* **หน้า Login แบบ One-Click**: แสดงการ์ดเลือกบทบาท (ประชาชน, เจ้าหน้าที่, ปลัด, นายก, แอดมิน) ดึงรายชื่อจาก `/auth/demo-accounts` และคลิกเข้าใช้งานได้ทันที
-* **กำจัด Hardcode บัญชีตัวอย่าง**: ลบ `suggestedAccountId` ออกจากโค้ด shared ทั้งหมด เพื่อให้หน้าเว็บดึงข้อมูลบัญชีผ่าน API อย่างปลอดภัย
-
----
-
-## สรุปการยกระดับความปลอดภัย (Security Hardening ที่ทำแล้ว)
-
-1. **การเข้ารหัสรหัสผ่านและ PIN**:
-   - เข้ารหัสด้วย **`argon2id`** ทั้งรหัสผ่านและรหัส PIN 6 หลัก (`hashSecret` / `verifySecret`)
-   - นำ Plaintext fallback ออกจาก `verifySecret` อย่างสมบูรณ์ รองรับเฉพาะแฮช `argon2id` เท่านั้น
-   - มีสคริปต์ One-time Migration (`pnpm --filter @jongwen/api exec tsx prisma/hash-existing-accounts.ts`) แปลงข้อมูลใน DB อัตโนมัติ
-2. **การแยกข้อมูลทดสอบ (Mock Data Isolation)**:
-   - ย้าย Mock Data ออกจาก `@jongwen/shared` ไปเก็บเฉพาะฝั่ง Backend API ที่ `apps/api/src/demo-data/` ป้องกันไม่ให้ build ออกไฟล์ผิดโฟลเดอร์ใน `dist/`
-   - ฝั่ง Frontend Bundle ใน `.next` ปราศจากข้อมูล credentials และ PIN ตัวอย่าง
-   - ระบบ Auto-seed ข้อมูลเดโมจะทำงานเฉพาะเมื่อตั้งค่า `DEMO_MODE=true` หรือ `SEED_DEMO=true`
-   - ในโหมด Production บังคับต้องระบุตัวแปร **`ADMIN_INITIAL_PASSWORD`** เท่านั้น หากไม่ระบุเซิร์ฟเวอร์จะปฏิเสธการเริ่มระบบ (Fail-safe) เพื่อป้องกันการใช้รหัสผ่านคาดเดาได้
-3. **การป้องกันจุดเชื่อมต่อ API (API Hardening & Deployment)**:
-   - ติดตั้ง **`helmet`** ป้องกัน HTTP Header ช่องโหว่ความปลอดภัย
-   - ติดตั้ง **`@nestjs/throttler`** ควบคุม Rate Limit (Global 100 ครั้ง/นาที และเข้มงวด 5–10 ครั้ง/นาที สำหรับหมวด Auth/PIN)
-   - เปิดใช้งาน **`trust proxy: 1`** ใน NestJS/Express เพื่อให้อ่าน IP จริงของผู้ใช้ผ่าน Reverse Proxy/PaaS (Cloud Run, Railway, Nginx) ได้ถูกต้อง
-   - ปรับ `verify-pin` ให้ตรวจเฉพาะผู้ใช้ที่กำลังเข้าสู่ระบบ และไม่ส่งภาพลายเซ็นกลับ
-   - ปิดกั้น Endpoint พิเศษ `dev/reset` และ `dev/clear-requests` ให้ใช้งานได้เฉพาะในโหมดเดโมเท่านั้น
-   - กำหนดขนาด Payload Body เป็น **2MB** ให้สอดคล้องกับภาพลายเซ็น Canvas Base64
-4. **นโยบายการลงทะเบียนและระบบ OTP**:
-   - **ปิดรับสมัครสมาชิกเป็นค่าเริ่มต้นใน Production**: ต้องเปิดผ่าน `REGISTRATION_OPEN=true` อย่างเจาะจงเท่านั้น
-   - **ตาราง `otp_codes`**: มี Endpoint `POST /auth/request-otp` สุ่มรหัส 6 หลัก แฮชด้วย `argon2id` มีอายุ 5 นาที และจำกัดจำนวนครั้งการลองผิดไม่เกิน 5 ครั้ง โดยในขั้นตอนสมัครสมาชิกจะตรวจรหัสจริงจากตารางนี้
-
----
-
-## สิ่งที่ต้องพัฒนาเพิ่มเติมสำหรับ Production (สิ่งที่ยังขาด)
-
-1. **เชื่อมต่อระบบ LINE OA จริง (LIFF & LINE Messaging API)**
-   - ปัจจุบันระบบ Login และการแจ้งเตือนยังเป็น In-App Mock
-   - ต้องเพิ่ม LIFF SDK ดึง LINE User ID จริง และต่อ LINE Messaging API Webhook ยิงข้อความแจ้งเตือนเข้า LINE อัตโนมัติ
-
-2. **ระบบอัปโหลดและจัดเก็บไฟล์จริง (File & Image Storage)**
-   - การแนบเอกสารคำขอและรูปถ่ายแจ้งซ่อม ปัจจุบันเก็บเฉพาะชื่อไฟล์จำลอง
-   - ต้องเพิ่มการรับไฟล์แบบ Multipart (Multer) และต่อ Object Storage (เช่น S3 / MinIO / Local Storage)
-
-3. **ระบบ Token บน HTTP-only Cookie**
-   - รหัสผ่านและ PIN ถูกเข้ารหัสด้วย `argon2id` เรียบร้อยแล้ว
-   - ขั้นต่อไปคือการปรับระบบ Session Token ให้จัดเก็บบน **HTTP-only Cookie** พร้อมระบบ Refresh Token
-
-4. **ระบบส่งออกเอกสารเป็นไฟล์ PDF (PDF Export & Download)**
-   - ปัจจุบันใช้การสั่งพิมพ์ผ่านเบราว์เซอร์ (`window.print()`)
-   - ควรมีปุ่มสร้างไฟล์ `.pdf` สำเร็จรูปสำหรับดาวน์โหลดและแนบส่งต่อเอกสารราชการ
-
-5. **ระบบตั้งค่าข้อมูลหน่วยงานกลาง (Organization Profile Settings)**
-   - ปัจจุบันหัวกระดาษและชื่อหน่วยงานใช้ค่ากลางในระบบ
-   - ควรเพิ่มหน้า Admin ตั้งค่าชื่อหน่วยงาน, ที่อยู่สำนักงาน และอัปโหลดตราครุฑ/โลโก้เองแบบ Dynamic
-
