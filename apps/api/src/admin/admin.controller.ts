@@ -122,6 +122,9 @@ export class AdminController {
   @Permissions('manageUsers')
   @Post('dev/clear-requests')
   async clearRequests() {
+    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ENDPOINTS !== 'true') {
+      throw new NotFoundException('Endpoint not available');
+    }
     await this.db.clearTransactions();
     return { ok: true };
   }
@@ -129,6 +132,9 @@ export class AdminController {
   @Permissions('manageUsers')
   @Post('dev/reset')
   async reset() {
+    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ENDPOINTS !== 'true') {
+      throw new NotFoundException('Endpoint not available');
+    }
     await this.db.reset();
     return { ok: true };
   }

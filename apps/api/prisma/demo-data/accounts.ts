@@ -1,9 +1,8 @@
-import { DEFAULT_PERMISSIONS } from '../labels';
-import type { Account } from '../types';
+import { Account, DEFAULT_PERMISSIONS } from '@jongwen/shared';
 
 /**
- * Mock data accounts — ใช้สำหรับทดสอบทุกบทบาท
- * รหัสผ่านทุกบัญชี: 1234   ·   PIN ลงนาม (ผู้อนุมัติ/เจ้าหน้าที่): 123456
+ * Demo data accounts — ใช้สำหรับทดสอบทุกบทบาทในโหมดเดโม
+ * รหัสผ่านทุกบัญชี: 1234   ·   PIN ลงนาม: 123456
  */
 export const MOCK_PASSWORD = '1234';
 export const MOCK_PIN = '123456';

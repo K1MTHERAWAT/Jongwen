@@ -88,10 +88,10 @@ export const api = {
     request<PublicAccount>('/auth/signature', { method: 'POST', body: JSON.stringify({ signature }) }),
   savePin: (pin: string) =>
     request<PublicAccount>('/auth/pin', { method: 'POST', body: JSON.stringify({ pin }) }),
-  verifyPin: (pin: string, accountId?: string) =>
-    request<{ ok: boolean; signature?: string | null }>('/auth/verify-pin', {
+  verifyPin: (pin: string) =>
+    request<{ ok: boolean }>('/auth/verify-pin', {
       method: 'POST',
-      body: JSON.stringify({ pin, accountId }),
+      body: JSON.stringify({ pin }),
     }),
 
   // Resources

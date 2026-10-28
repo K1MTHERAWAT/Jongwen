@@ -10,15 +10,16 @@ import { Chip } from '@/components/ui';
 export default function RegisterPage() {
   const router = useRouter();
   const { registerAccount } = useAuth();
-  const [name, setName] = useState('สมชาย ใจดี');
-  const [department, setDepartment] = useState('กลุ่มแม่บ้านบ้านหนองบัว');
-  const [phone, setPhone] = useState('081-234-5678');
-  const [otp, setOtp] = useState(['4', '8', '2', '', '', '']);
-  const [password, setPassword] = useState('jongwen1234');
+  const [name, setName] = useState('');
+  const [department, setDepartment] = useState('');
+  const [phone, setPhone] = useState('');
+  const [otp, setOtp] = useState(['', '', '', '', '', '']);
+  const [password, setPassword] = useState('');
   const [pdpa, setPdpa] = useState(true);
-  const [timer, setTimer] = useState(45);
+  const [timer, setTimer] = useState(0);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const isRegistrationOpen = process.env.NEXT_PUBLIC_REGISTRATION_OPEN !== 'false';
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -39,6 +40,10 @@ export default function RegisterPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isRegistrationOpen) {
+      setError('ปิดรับการลงทะเบียนด้วยตนเองชั่วคราว กรุณาติดต่อเจ้าหน้าที่เพื่อสร้างบัญชี (Walk-in)');
+      return;
+    }
     if (!pdpa) {
       setError('กรุณายินยอมนโยบาย PDPA');
       return;
@@ -84,6 +89,18 @@ export default function RegisterPage() {
             </div>
           </div>
 
+          {!isRegistrationOpen && (
+            <div className="rounded-[10px] bg-amber-50 border border-amber-200 px-3.5 py-3 text-[13px] text-amber-900 flex items-start gap-2">
+              <Icon name="shield-check" className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+              <div>
+                <b>ปิดรับการลงทะเบียนด้วยตนเองชั่วคราว</b>
+                <p className="text-[12px] text-amber-800 mt-0.5">
+                  กรุณาติดต่อเจ้าหน้าที่เพื่อสร้างบัญชีผ่านจุดบริการ (Walk-in)
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="border border-line rounded-[12px] p-3 flex items-center gap-3 bg-white">
             <div className="w-10 h-10 rounded-full bg-brand-mint text-brand font-bold flex items-center justify-center shrink-0">
               {name.trim().charAt(0) || 'ส'}
@@ -124,13 +141,13 @@ export default function RegisterPage() {
               />
               <button
                 type="button"
+                disabled={!phone.trim() || timer > 0}
                 onClick={() => {
-                  setOtp(['4', '8', '2', '9', '1', '5']);
-                  setTimer(45);
+                  setTimer(60);
                 }}
-                className="jw-btn jw-btn-sm shrink-0"
+                className="jw-btn jw-btn-sm shrink-0 disabled:opacity-50"
               >
-                ขอรหัส OTP
+                {timer > 0 ? `รอ ${timer} วิ` : 'ขอรหัส OTP'}
               </button>
             </div>
           </div>

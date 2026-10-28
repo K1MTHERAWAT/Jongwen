@@ -32,8 +32,8 @@ import {
   clearFailures,
   recordFailure,
   requireDrawnSignature,
-  safeEqual,
 } from '../auth/auth.guard';
+import { verifySecret } from '../auth/secret';
 import { DbService } from '../db/db.service';
 
 @Controller('requests')
@@ -393,7 +393,7 @@ export class RequestsController {
       if (!user.pin) throw new BadRequestException('กรุณาตั้งค่า PIN 6 หลักก่อนลงนาม');
       const key = `pin:${user.id}`;
       assertNotLocked(key);
-      if (!safeEqual(user.pin, String(body.pin ?? ''))) {
+      if (!(await verifySecret(user.pin, String(body.pin ?? '')))) {
         recordFailure(key);
         throw new UnauthorizedException('รหัส PIN ไม่ถูกต้อง');
       }
@@ -577,7 +577,7 @@ export class RequestsController {
       if (!user.pin) throw new BadRequestException('กรุณาตั้งค่า PIN 6 หลักก่อนลงนาม');
       const key = `pin:${user.id}`;
       assertNotLocked(key);
-      if (!safeEqual(user.pin, String(body.pin ?? ''))) {
+      if (!(await verifySecret(user.pin, String(body.pin ?? '')))) {
         recordFailure(key);
         throw new UnauthorizedException('รหัส PIN ไม่ถูกต้อง');
       }

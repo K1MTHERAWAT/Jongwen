@@ -1,4 +1,5 @@
-import { BadRequestException, Body, ConflictException, Controller, Get, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import { DEFAULT_PERMISSIONS, Account } from '@jongwen/shared';
 import { DbService } from '../db/db.service';
 import {
@@ -10,23 +11,17 @@ import {
   recordFailure,
   requireDrawnSignature,
   revokeSession,
-  safeEqual,
 } from './auth.guard';
+import { hashSecret, verifySecret } from './secret';
 
 @Controller('auth')
 export class AuthController {
   constructor(private readonly db: DbService) {}
 
-  /** รายชื่อบัญชีสำหรับอ้างอิงในหน้าเข้าสู่ระบบ — เปิดเผยเฉพาะข้อมูลสาธารณะ (ไม่มีรหัสผ่าน / PIN) */
-  @Public()
-  @Get('mock-accounts')
-  listMockAccounts() {
-    return this.db.accounts.map((a) => this.db.toPublic(a));
-  }
-
+  @Throttle({ auth: { limit: 10, ttl: 60000 } })
   @Public()
   @Post('login')
-  login(@Body() body: { username?: string; password?: string }) {
+  async login(@Body() body: { username?: string; password?: string }) {
     const username = String(body.username ?? '').trim().toLowerCase();
     const password = String(body.password ?? '');
     if (!username || !password) throw new UnauthorizedException('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
@@ -38,7 +33,7 @@ export class AuthController {
     const user = this.db.accounts.find(
       (a) => a.username.toLowerCase() === username || (digits.length >= 9 && a.phone.replace(/\D/g, '') === digits),
     );
-    if (!user || !safeEqual(user.password, password)) {
+    if (!user || !(await verifySecret(user.password, password))) {
       recordFailure(lockKey);
       throw new UnauthorizedException('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
     }
@@ -55,6 +50,7 @@ export class AuthController {
     return { ok: true };
   }
 
+  @Throttle({ auth: { limit: 5, ttl: 60000 } })
   @Public()
   @Post('register')
   async register(
@@ -68,6 +64,10 @@ export class AuthController {
       department?: string;
     },
   ) {
+    if (process.env.REGISTRATION_OPEN === 'false') {
+      throw new ForbiddenException('ปิดรับการลงทะเบียนด้วยตนเองชั่วคราว กรุณาติดต่อเจ้าหน้าที่เพื่อสร้างบัญชี');
+    }
+
     const name = String(body.name ?? '').trim().slice(0, 100);
     const phone = String(body.phone ?? '').trim();
     const password = String(body.password ?? '');
@@ -82,11 +82,12 @@ export class AuthController {
       throw new ConflictException('เบอร์โทรศัพท์นี้ลงทะเบียนแล้ว');
     }
 
+    const hashedPassword = await hashSecret(password);
     const id = this.db.nextId('u');
     const account: Account = {
       id,
       username: digits,
-      password,
+      password: hashedPassword,
       name,
       nickname: name.split(' ')[0] || name,
       initial: name.charAt(0) || 'ผ',
@@ -118,30 +119,30 @@ export class AuthController {
     return this.db.toPublic(user);
   }
 
+  @Throttle({ auth: { limit: 10, ttl: 60000 } })
   @Post('pin')
   async savePin(@CurrentUser() user: Account, @Body() body: { pin: string }) {
     if (!/^\d{6}$/.test(body.pin ?? '')) throw new BadRequestException('PIN ต้องเป็นตัวเลข 6 หลัก');
     if (!user.signature) {
       throw new BadRequestException('กรุณาเขียนและบันทึกลายเซ็นก่อนตั้งรหัส PIN');
     }
-    user.pin = body.pin;
+    user.pin = await hashSecret(body.pin);
     clearFailures(`pin:${user.id}`);
     await this.db.persistAccount(user);
     return this.db.toPublic(user);
   }
 
+  @Throttle({ auth: { limit: 10, ttl: 60000 } })
   @Post('verify-pin')
-  verifyPin(@CurrentUser() user: Account, @Body() body: { pin: string; accountId?: string }) {
-    const target =
-      (body.accountId && this.db.accounts.find((a) => a.id === body.accountId)) || user;
-    if (!target.pin) throw new BadRequestException('บัญชีนี้ยังไม่ได้ตั้งค่า PIN');
-    const key = `pin:${target.id}`;
+  async verifyPin(@CurrentUser() user: Account, @Body() body: { pin: string }) {
+    if (!user.pin) throw new BadRequestException('บัญชีนี้ยังไม่ได้ตั้งค่า PIN');
+    const key = `pin:${user.id}`;
     assertNotLocked(key);
-    if (!safeEqual(target.pin, String(body.pin ?? ''))) {
+    if (!(await verifySecret(user.pin, String(body.pin ?? '')))) {
       recordFailure(key);
       throw new UnauthorizedException('รหัส PIN ไม่ถูกต้อง');
     }
     clearFailures(key);
-    return { ok: true, signature: target.signature };
+    return { ok: true };
   }
 }

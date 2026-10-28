@@ -357,3 +357,16 @@ model ActivityLog {
   @@index([createdAt])
   @@map("activity_logs")
 }
+
+model OtpCode {
+  id         String    @id @default(cuid())
+  phone      String    @map("phone")
+  codeHash   String    @map("code_hash")
+  attempts   Int       @default(0) @map("attempts")
+  expiresAt  DateTime  @map("expires_at") @db.Timestamptz(3)
+  consumedAt DateTime? @map("consumed_at") @db.Timestamptz(3)
+  createdAt  DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([phone])
+  @@map("otp_codes")
+}

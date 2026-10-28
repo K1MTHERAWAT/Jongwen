@@ -6,21 +6,25 @@ import {
   mockNotifications,
   mockRequests,
   mockVenues,
-} from '@jongwen/shared';
+} from './demo-data';
+import { hashSecret } from '../src/auth/secret';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting seed...');
 
-  // 1. Accounts
+  // 1. Accounts (Hash password & PIN ด้วย argon2)
   for (const a of mockAccounts) {
+    const hashedPassword = a.password.startsWith('$argon2') ? a.password : await hashSecret(a.password);
+    const hashedPin = a.pin ? (a.pin.startsWith('$argon2') ? a.pin : await hashSecret(a.pin)) : null;
+
     await prisma.account.upsert({
       where: { id: a.id },
       create: {
         id: a.id,
         username: a.username,
-        password: a.password,
+        password: hashedPassword,
         name: a.name,
         nickname: a.nickname,
         initial: a.initial,
@@ -31,13 +35,13 @@ async function main() {
         lineName: a.lineName ?? null,
         permissions: a.permissions as unknown as Prisma.InputJsonValue,
         signature: a.signature ?? null,
-        pin: a.pin ?? null,
+        pin: hashedPin,
         active: a.active ?? true,
         createdAt: new Date(a.createdAt),
       },
       update: {
         username: a.username,
-        password: a.password,
+        password: hashedPassword,
         name: a.name,
         nickname: a.nickname,
         initial: a.initial,
@@ -48,7 +52,7 @@ async function main() {
         lineName: a.lineName ?? null,
         permissions: a.permissions as unknown as Prisma.InputJsonValue,
         signature: a.signature ?? null,
-        pin: a.pin ?? null,
+        pin: hashedPin,
         active: a.active ?? true,
       },
     });

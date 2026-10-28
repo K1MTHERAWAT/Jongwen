@@ -1,13 +1,8 @@
 'use client';
 
 import React, { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { AppNotification, PublicAccount, mockAccounts } from '@jongwen/shared';
+import { AppNotification, PublicAccount } from '@jongwen/shared';
 import { MockAccountHint, api, clearStoredAuth, getStoredToken, setStoredAuth } from '@/lib/api';
-
-const fallbackAccounts: MockAccountHint[] = mockAccounts.map(({ password: _password, pin, ...rest }) => ({
-  ...rest,
-  hasPin: !!pin,
-}));
 
 interface AuthContextValue {
   account: PublicAccount | null;
@@ -33,7 +28,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [accounts, setAccounts] = useState<MockAccountHint[]>(fallbackAccounts);
+  const [accounts, setAccounts] = useState<MockAccountHint[]>([]);
   const [account, setAccount] = useState<PublicAccount | null>(null);
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,8 +48,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const refreshMe = useCallback(async () => {
     try {
-      const all = await api.listMockAccounts();
-      setAccounts(all);
       if (getStoredToken()) {
         const me = await api.me();
         setAccount(me);
@@ -70,14 +63,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     let active = true;
-
-    // โหลด mock accounts ในพื้นหลัง ไม่บล็อกการตรวจสิทธิ์
-    api
-      .listMockAccounts()
-      .then((list) => {
-        if (active) setAccounts(list);
-      })
-      .catch(() => {});
 
     const existing = getStoredToken();
     if (!existing) {

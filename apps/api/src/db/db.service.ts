@@ -15,13 +15,16 @@ import {
   PublicAccount,
   RepairRequest,
   Venue,
+} from '@jongwen/shared';
+import {
   mockAccounts,
   mockActivities,
   mockEquipment,
   mockNotifications,
   mockRequests,
   mockVenues,
-} from '@jongwen/shared';
+} from '../../prisma/demo-data';
+import { hashSecret } from '../auth/secret';
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
 
@@ -35,9 +38,9 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(DbService.name);
   readonly prisma = new PrismaClient();
 
-  accounts: Account[] = clone(mockAccounts);
-  venues: Venue[] = clone(mockVenues);
-  equipment: Equipment[] = clone(mockEquipment);
+  accounts: Account[] = [];
+  venues: Venue[] = [];
+  equipment: Equipment[] = [];
   requests: AnyRequest[] = [];
   notifications: AppNotification[] = [];
   activities: ActivityLog[] = [];
@@ -50,8 +53,13 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       await this.prisma.$connect();
       const count = await this.prisma.account.count();
       if (count === 0) {
-        this.logger.log('Database is empty — seeding initial data into PostgreSQL...');
-        await this.seedDatabase();
+        if (process.env.SEED_DEMO === 'true') {
+          this.logger.log('SEED_DEMO=true: Seeding demo data into PostgreSQL...');
+          await this.seedDatabase();
+        } else {
+          this.logger.log('Seeding initial production admin account into PostgreSQL...');
+          await this.seedProductionAdmin();
+        }
       }
       await this.loadFromDatabase();
       this.logger.log(
@@ -60,6 +68,29 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
     } catch (err) {
       this.logger.error('Failed to initialize PostgreSQL connection, falling back to in-memory cache', err);
     }
+  }
+
+  async seedProductionAdmin() {
+    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'AdminPass1234!';
+    const hashedPassword = await hashSecret(adminPassword);
+    const adminAccount: Account = {
+      id: 'ad-admin',
+      username: 'admin',
+      password: hashedPassword,
+      name: 'ผู้ดูแลระบบ',
+      nickname: 'แอดมิน',
+      initial: 'อ',
+      role: 'ADMIN',
+      position: 'ผู้ดูแลระบบ',
+      department: 'ฝ่ายเทคโนโลยีสารสนเทศ',
+      phone: '085-000-0000',
+      permissions: { ...DEFAULT_PERMISSIONS.ADMIN },
+      signature: null,
+      pin: null,
+      createdAt: new Date().toISOString(),
+    };
+    await this.persistAccount(adminAccount);
+    this.logger.log('Created initial admin account (username: admin) with password from ADMIN_INITIAL_PASSWORD');
   }
 
   async onModuleDestroy() {
@@ -447,7 +478,9 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
     }
 
     for (const a of mockAccounts) {
-      await this.persistAccount(a);
+      const hashedPassword = a.password.startsWith('$argon2') ? a.password : await hashSecret(a.password);
+      const hashedPin = a.pin ? (a.pin.startsWith('$argon2') ? a.pin : await hashSecret(a.pin)) : null;
+      await this.persistAccount({ ...a, password: hashedPassword, pin: hashedPin });
     }
     for (const v of mockVenues) {
       await this.persistVenue(v);

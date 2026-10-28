@@ -18,5 +18,8 @@
     "db:seed": "pnpm --filter @jongwen/api prisma:seed",
     "db:clear": "pnpm --filter @jongwen/api exec tsx prisma/clear.ts",
     "db:studio": "pnpm --filter @jongwen/api prisma:studio"
+  },
+  "devDependencies": {
+    "prisma": "6.19.3"
   }
 }

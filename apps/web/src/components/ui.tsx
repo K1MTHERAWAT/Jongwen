@@ -557,11 +557,10 @@ export function SignatureBox({
     if (!validSavedSig) return;
     setPinError('');
     try {
-      const res = await api.verifyPin(fullPin, pinAccountId);
-      const sigToUse = res.signature && res.signature.startsWith('data:image/') ? res.signature : validSavedSig;
+      await api.verifyPin(fullPin);
       internalValueRef.current = '';
       setUsedSavedWithPin(true);
-      onChange(sigToUse);
+      onChange(validSavedSig);
       setShowPinModal(false);
       setPin('');
     } catch (err) {
@@ -654,8 +653,8 @@ export function SignatureBox({
               onChange={setPin}
               subtitle={
                 signerLabel
-                  ? `กดรหัส PIN 6 หลักของ ${signerLabel} (ตัวอย่าง: 123456)`
-                  : 'กดรหัส PIN 6 หลักของคุณเพื่อดึงลายเซ็นที่บันทึกไว้ (ตัวอย่าง: 123456)'
+                  ? `กดรหัส PIN 6 หลักของ ${signerLabel}`
+                  : 'กดรหัส PIN 6 หลักของคุณเพื่อดึงลายเซ็นที่บันทึกไว้'
               }
               onComplete={handleVerifyPinForSignature}
             />

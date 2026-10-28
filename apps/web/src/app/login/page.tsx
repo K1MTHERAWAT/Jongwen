@@ -3,7 +3,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { MOCK_PASSWORD, ROLE_LABEL, ROLE_TONE } from '@jongwen/shared';
+import { ROLE_LABEL, ROLE_TONE } from '@jongwen/shared';
 import { useAuth } from '@/components/auth-context';
 import { roleHomePath } from '@/components/shell';
 import { Icon } from '@/components/icons';
@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [pdpa, setPdpa] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const isDemo = process.env.NEXT_PUBLIC_DEMO === 'true';
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -40,21 +41,17 @@ export default function LoginPage() {
     }
   };
 
-  const handleQuickRoleLogin = async (targetUsername: string) => {
+  const handleLineLogin = () => {
     if (!pdpa) {
       setError('กรุณายินยอมนโยบายคุ้มครองข้อมูลส่วนบุคคล (PDPA) ก่อนเข้าสู่ระบบ');
       return;
     }
-    setError('');
-    setSubmitting(true);
-    try {
-      const acc = await loginWithCredentials(targetUsername, MOCK_PASSWORD);
-      router.push(roleHomePath(acc.role));
-    } catch (err) {
-      setError((err as Error).message || 'เข้าสู่ระบบไม่สำเร็จ');
-    } finally {
-      setSubmitting(false);
-    }
+    setError('ระบบเชื่อมต่อ LINE Login กำลังอยู่ระหว่างการตั้งค่า กรุณาเข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่าน');
+  };
+
+  const handleSelectDemoUser = (targetUsername: string) => {
+    setUsername(targetUsername);
+    setPassword('');
   };
 
   return (
@@ -80,7 +77,7 @@ export default function LoginPage() {
           <button
             type="button"
             disabled={submitting}
-            onClick={() => handleQuickRoleLogin('somchai')}
+            onClick={handleLineLogin}
             className="h-[52px] rounded-full bg-[#06C755] hover:bg-[#05b34c] text-white font-semibold text-[16px] flex items-center justify-center gap-2.5 shadow-low transition disabled:opacity-50"
           >
             <Icon name="user-circle" className="w-5 h-5" />
@@ -153,49 +150,50 @@ export default function LoginPage() {
           </div>
         </form>
 
-        {/* ข้อมูลอ้างอิงบัญชีในระบบ (mockDataAccount) — กดที่การ์ดเพื่อเข้าสู่ระบบตาม Role ได้ทันที */}
-        <div className="jw-card p-6 sm:p-7 flex flex-col gap-3.5">
-          <div>
-            <div className="flex items-center justify-between">
-              <h2 className="text-[18px] font-bold text-ink">ข้อมูลบัญชีในระบบ (mockDataAccount)</h2>
-              <Chip tone="green">กดเลือกเพื่อเข้าใช้งาน</Chip>
+        {/* โหมดเดโม: แสดงเฉพาะเมื่อเปิด NEXT_PUBLIC_DEMO=true */}
+        {isDemo && accounts.length > 0 && (
+          <div className="jw-card p-6 sm:p-7 flex flex-col gap-3.5">
+            <div>
+              <div className="flex items-center justify-between">
+                <h2 className="text-[18px] font-bold text-ink">บัญชีสำหรับทดสอบ (Demo)</h2>
+                <Chip tone="green">โหมดทดสอบ</Chip>
+              </div>
+              <p className="text-[13px] text-ink-mute mt-1">
+                คลิกเลือกบัญชีเพื่อใส่ชื่อผู้ใช้อัตโนมัติ
+              </p>
             </div>
-            <p className="text-[13px] text-ink-mute mt-1">
-              คลิกที่บัญชีด้านล่างเพื่อเข้าสู่ระบบตามบทบาท (Role) ได้ทันที หรือกรอกชื่อผู้ใช้พร้อมรหัสผ่าน <b>{MOCK_PASSWORD}</b>
-            </p>
-          </div>
 
-          <div className="flex flex-col gap-2.5">
-            {accounts.map((acc) => (
-              <button
-                key={acc.id}
-                type="button"
-                disabled={submitting}
-                onClick={() => handleQuickRoleLogin(acc.username)}
-                className="w-full text-left border border-line hover:border-brand hover:bg-brand-mint/30 rounded-[12px] p-3 bg-white flex items-center justify-between gap-3 cursor-pointer transition group disabled:opacity-50"
-              >
-                <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-brand-mint text-brand font-bold flex items-center justify-center shrink-0">
-                    {acc.initial}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="flex items-center gap-2 flex-wrap">
-                      <b className="text-[14px] text-ink truncate">{acc.name}</b>
-                      <Chip tone={ROLE_TONE[acc.role]}>{ROLE_LABEL[acc.role]}</Chip>
+            <div className="flex flex-col gap-2.5">
+              {accounts.map((acc) => (
+                <button
+                  key={acc.id}
+                  type="button"
+                  disabled={submitting}
+                  onClick={() => handleSelectDemoUser(acc.username)}
+                  className="w-full text-left border border-line hover:border-brand hover:bg-brand-mint/30 rounded-[12px] p-3 bg-white flex items-center justify-between gap-3 cursor-pointer transition group disabled:opacity-50"
+                >
+                  <div className="flex items-center gap-3 flex-1 min-w-0">
+                    <div className="w-10 h-10 rounded-full bg-brand-mint text-brand font-bold flex items-center justify-center shrink-0">
+                      {acc.initial}
                     </div>
-                    <div className="text-[12px] text-ink-mute truncate">
-                      username: <code className="font-semibold text-ink">{acc.username}</code> · โทร: {acc.phone} · {acc.department}
-                      {acc.hasPin ? ' · PIN: 123456' : ''}
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <b className="text-[14px] text-ink truncate">{acc.name}</b>
+                        <Chip tone={ROLE_TONE[acc.role]}>{ROLE_LABEL[acc.role]}</Chip>
+                      </div>
+                      <div className="text-[12px] text-ink-mute truncate">
+                        username: <code className="font-semibold text-ink">{acc.username}</code> · {acc.department}
+                      </div>
                     </div>
                   </div>
-                </div>
-                <span className="shrink-0 text-[12.5px] font-semibold text-brand inline-flex items-center gap-1 group-hover:translate-x-0.5 transition">
-                  เข้าใช้งาน <Icon name="chevron-right" className="w-4 h-4" />
-                </span>
-              </button>
-            ))}
+                  <span className="shrink-0 text-[12.5px] font-semibold text-brand inline-flex items-center gap-1 group-hover:translate-x-0.5 transition">
+                    เลือก <Icon name="chevron-right" className="w-4 h-4" />
+                  </span>
+                </button>
+              ))}
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </div>
   );
