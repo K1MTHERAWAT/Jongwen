@@ -84,6 +84,11 @@ export const api = {
   login: (payload: { username: string; password: string }) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST', body: JSON.stringify({}) }),
+  requestOtp: (phone: string) =>
+    request<{ ok: boolean; message: string }>('/auth/request-otp', {
+      method: 'POST',
+      body: JSON.stringify({ phone }),
+    }),
   register: (payload: { name: string; phone: string; password: string; otp?: string; lineName?: string; department?: string }) =>
     request<LoginResponse>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   me: () => request<PublicAccount>('/auth/me'),

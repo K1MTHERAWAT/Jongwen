@@ -20,10 +20,11 @@ export class AuthController {
 
   @Public()
   @Get('demo-accounts')
-  demoAccounts(): DemoAccountSummary[] {
+  async demoAccounts(): Promise<DemoAccountSummary[]> {
     if (process.env.DEMO_MODE !== 'true') {
       throw new NotFoundException('Endpoint not available');
     }
+    await this.db.checkPendingDemoReset();
     return this.db.accounts
       .filter((a) => a.isDemo && a.active !== false)
       .map((a) => ({
@@ -44,6 +45,7 @@ export class AuthController {
     if (process.env.DEMO_MODE !== 'true') {
       throw new NotFoundException('Endpoint not available');
     }
+    await this.db.checkPendingDemoReset();
     const accountId = String(body.accountId ?? '').trim();
     if (!accountId) throw new BadRequestException('กรุณาระบุ accountId');
 
@@ -89,6 +91,42 @@ export class AuthController {
     return { ok: true };
   }
 
+  @Throttle({ auth: { limit: 3, ttl: 60000 } })
+  @Public()
+  @Post('request-otp')
+  async requestOtp(@Body() body: { phone?: string }) {
+    const isRegistrationOpen = process.env.DEMO_MODE === 'true' || process.env.REGISTRATION_OPEN === 'true';
+    if (!isRegistrationOpen) {
+      throw new ForbiddenException('ปิดรับการลงทะเบียนด้วยตนเองชั่วคราว');
+    }
+    const phone = String(body.phone ?? '').trim();
+    const digits = phone.replace(/\D/g, '');
+    if (!/^0\d{8,9}$/.test(digits)) {
+      throw new BadRequestException('เบอร์โทรศัพท์ไม่ถูกต้อง');
+    }
+
+    if (process.env.DEMO_MODE === 'true') {
+      return { ok: true, message: 'โหมดเดโม: ใช้รหัส OTP 000000' };
+    }
+
+    // สร้างรหัส OTP สุ่ม 6 หลัก บันทึกลงตาราง otp_codes (หมดอายุใน 5 นาที จำกัด 5 ครั้ง)
+    const otp = Math.floor(100000 + Math.random() * 900000).toString();
+    const codeHash = await hashSecret(otp);
+    const expiresAt = new Date(Date.now() + 5 * 60 * 1000);
+
+    await this.db.prisma.otpCode.create({
+      data: {
+        phone: digits,
+        codeHash,
+        attempts: 0,
+        expiresAt,
+      },
+    });
+
+    // ในการใช้งานจริงจะส่งผ่าน SMS Gateway หรือ LINE OA
+    return { ok: true, message: 'ส่งรหัส OTP เรียบร้อยแล้ว (หมดอายุใน 5 นาที)' };
+  }
+
   @Throttle({ auth: { limit: 5, ttl: 60000 } })
   @Public()
   @Post('register')
@@ -103,7 +141,8 @@ export class AuthController {
       department?: string;
     },
   ) {
-    if (process.env.REGISTRATION_OPEN === 'false') {
+    const isRegistrationOpen = process.env.DEMO_MODE === 'true' || process.env.REGISTRATION_OPEN === 'true';
+    if (!isRegistrationOpen) {
       throw new ForbiddenException('ปิดรับการลงทะเบียนด้วยตนเองชั่วคราว กรุณาติดต่อเจ้าหน้าที่เพื่อสร้างบัญชี');
     }
 
@@ -116,15 +155,42 @@ export class AuthController {
     if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
       throw new BadRequestException('รหัสผ่านต้องยาวอย่างน้อย 8 ตัว และมีทั้งตัวอักษรและตัวเลข');
     }
+
+    const rawOtp = String(body.otp ?? '').trim();
     if (process.env.DEMO_MODE === 'true') {
-      if (String(body.otp ?? '') !== '000000') {
+      if (rawOtp !== '000000') {
         throw new BadRequestException('รหัส OTP ในโหมดเดโมคือ 000000');
       }
     } else {
-      if (!/^\d{6}$/.test(String(body.otp ?? ''))) {
+      if (!/^\d{6}$/.test(rawOtp)) {
+        throw new BadRequestException('รหัส OTP ไม่ถูกต้อง (ต้องเป็นตัวเลข 6 หลัก)');
+      }
+      const otpRecord = await this.db.prisma.otpCode.findFirst({
+        where: {
+          phone: digits,
+          consumedAt: null,
+          expiresAt: { gt: new Date() },
+          attempts: { lt: 5 },
+        },
+        orderBy: { createdAt: 'desc' },
+      });
+      if (!otpRecord) {
+        throw new BadRequestException('ไม่พบรหัส OTP หรือรหัสหมดอายุแล้ว (กรุณาขอรหัสใหม่)');
+      }
+      await this.db.prisma.otpCode.update({
+        where: { id: otpRecord.id },
+        data: { attempts: { increment: 1 } },
+      });
+      const valid = await verifySecret(otpRecord.codeHash, rawOtp);
+      if (!valid) {
         throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
       }
+      await this.db.prisma.otpCode.update({
+        where: { id: otpRecord.id },
+        data: { consumedAt: new Date() },
+      });
     }
+
     if (this.db.accounts.some((a) => a.phone.replace(/\D/g, '') === digits || a.username === digits)) {
       throw new ConflictException('เบอร์โทรศัพท์นี้ลงทะเบียนแล้ว');
     }

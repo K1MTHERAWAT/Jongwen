@@ -97,7 +97,7 @@ enum ActivityKind {
 model Account {
   id          String   @id
   username    String   @unique
-  /// TODO: เก็บเป็น hash (bcrypt) เมื่อเปิดใช้งานจริง
+  /// รหัสผ่านเข้ารหัสด้วย argon2id
   password    String
   name        String
   nickname    String
@@ -112,7 +112,7 @@ model Account {
   permissions Json
   /// ภาพลายเซ็น (data URL)
   signature   String?
-  /// PIN 6 หลักสำหรับดึงลายเซ็น (TODO: hash)
+  /// PIN 6 หลักเข้ารหัสด้วย argon2id สำหรับยืนยันการลงนาม
   pin         String?
   /// บัญชีสำหรับโหมดเดโม (เฉพาะโหมดเดโมเท่านั้นที่ล็อกอิน one-click ได้)
   isDemo      Boolean  @default(false) @map("is_demo")

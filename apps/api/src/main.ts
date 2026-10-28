@@ -1,12 +1,16 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import * as express from 'express';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
   app.setGlobalPrefix('api');
+
+  // รองรับ Reverse Proxy / PaaS (เช่น Cloud Run, Nginx, Railway) ให้ throttler จับ IP จริงผ่าน X-Forwarded-For
+  app.set('trust proxy', 1);
 
   // Security headers ด้วย helmet
   app.use(helmet());
@@ -44,6 +48,8 @@ async function bootstrap() {
   const port = Number(process.env.PORT ?? 4000);
   await app.listen(port);
   // eslint-disable-next-line no-console
-  console.log(`🚀 Jongwen API (mock data) running at http://localhost:${port}/api`);
+  console.log(
+    `🚀 Jongwen API running at http://localhost:${port}/api (DEMO_MODE: ${process.env.DEMO_MODE === 'true'})`,
+  );
 }
 bootstrap();

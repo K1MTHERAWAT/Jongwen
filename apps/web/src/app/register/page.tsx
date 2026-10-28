@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/components/auth-context';
 import { Icon } from '@/components/icons';
 import { Chip } from '@/components/ui';
+import { api } from '@/lib/api';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -18,8 +19,22 @@ export default function RegisterPage() {
   const [pdpa, setPdpa] = useState(true);
   const [timer, setTimer] = useState(0);
   const [error, setError] = useState('');
+  const [otpMsg, setOtpMsg] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const isRegistrationOpen = process.env.NEXT_PUBLIC_REGISTRATION_OPEN !== 'false';
+
+  const handleRequestOtp = async () => {
+    if (!phone.trim()) return;
+    setError('');
+    setOtpMsg('');
+    try {
+      const res = await api.requestOtp(phone.trim());
+      setTimer(60);
+      if (res.message) setOtpMsg(res.message);
+    } catch (err) {
+      setError((err as Error).message || 'ไม่สามารถขอรหัส OTP ได้');
+    }
+  };
 
   useEffect(() => {
     if (timer <= 0) return;
@@ -142,14 +157,17 @@ export default function RegisterPage() {
               <button
                 type="button"
                 disabled={!phone.trim() || timer > 0}
-                onClick={() => {
-                  setTimer(60);
-                }}
+                onClick={handleRequestOtp}
                 className="jw-btn jw-btn-sm shrink-0 disabled:opacity-50"
               >
                 {timer > 0 ? `รอ ${timer} วิ` : 'ขอรหัส OTP'}
               </button>
             </div>
+            {otpMsg && (
+              <div className="text-[12px] text-brand font-medium mt-1">
+                {otpMsg}
+              </div>
+            )}
           </div>
 
           <div>

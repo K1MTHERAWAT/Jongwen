@@ -23,7 +23,7 @@ import {
   mockNotifications,
   mockRequests,
   mockVenues,
-} from '../../prisma/demo-data';
+} from '../demo-data';
 import { hashSecret } from '../auth/secret';
 
 const clone = <T>(v: T): T => JSON.parse(JSON.stringify(v));
@@ -48,6 +48,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
 
   private seq = { BK: 0, BR: 0, RP: 0, n: 0, l: 0, u: 100, v: 100, e: 100 };
   private resetCronTimer?: NodeJS.Timeout;
+  private lastDemoResetDateUtc?: string;
 
   async onModuleInit() {
     try {
@@ -64,6 +65,8 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       }
       await this.loadFromDatabase();
       if (process.env.DEMO_MODE === 'true') {
+        const bkkNow = this.getBangkokTime();
+        this.lastDemoResetDateUtc = new Date(bkkNow.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
         this.scheduleNightlyReset();
       }
       this.logger.log(
@@ -71,34 +74,59 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       );
     } catch (err) {
       this.logger.error('Failed to initialize PostgreSQL connection, falling back to in-memory cache', err);
+      throw err;
     }
+  }
+
+  getBangkokTime(date = new Date()): Date {
+    return new Date(date.getTime() + 7 * 60 * 60 * 1000);
   }
 
   scheduleNightlyReset() {
     const now = new Date();
-    const next3am = new Date(now);
-    next3am.setHours(3, 0, 0, 0);
-    if (next3am.getTime() <= now.getTime()) {
-      next3am.setDate(next3am.getDate() + 1);
+    // 03:00 น. กรุงเทพฯ (UTC+7) ตรงกับ 20:00:00 UTC
+    const nextResetUtc = new Date(now);
+    nextResetUtc.setUTCHours(20, 0, 0, 0);
+    if (nextResetUtc.getTime() <= now.getTime()) {
+      nextResetUtc.setUTCDate(nextResetUtc.getUTCDate() + 1);
     }
-    const msUntil3am = next3am.getTime() - now.getTime();
+    const msUntilReset = nextResetUtc.getTime() - now.getTime();
     this.logger.log(
-      `DEMO_MODE: Nightly reset scheduled in ${(msUntil3am / (1000 * 60)).toFixed(0)} minutes (03:00 AM)`,
+      `DEMO_MODE: Nightly reset scheduled in ${(msUntilReset / (1000 * 60)).toFixed(0)} minutes (03:00 AM Bangkok Time / 20:00 UTC)`,
     );
     this.resetCronTimer = setTimeout(async () => {
       try {
-        this.logger.log('DEMO_MODE: Running nightly automatic reset...');
+        this.logger.log('DEMO_MODE: Running nightly automatic reset (03:00 AM Bangkok)...');
         await this.reset();
+        const bkkNow = this.getBangkokTime();
+        this.lastDemoResetDateUtc = new Date(bkkNow.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
         this.logger.log('DEMO_MODE: Nightly reset completed.');
       } catch (err) {
         this.logger.error('DEMO_MODE: Failed to run nightly reset', err);
       }
       this.scheduleNightlyReset();
-    }, msUntil3am);
+    }, msUntilReset);
+  }
+
+  /** ตรวจสอบและรีเซ็ตกรณี instance ตื่นจากการหลับ (Serverless / Free tier) */
+  async checkPendingDemoReset() {
+    if (process.env.DEMO_MODE !== 'true') return;
+    const bkkNow = this.getBangkokTime();
+    const currentDemoDay = new Date(bkkNow.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+    if (this.lastDemoResetDateUtc && this.lastDemoResetDateUtc < currentDemoDay) {
+      this.logger.log(`DEMO_MODE: Woke up after reset deadline for ${currentDemoDay}. Triggering reset now...`);
+      await this.reset();
+      this.lastDemoResetDateUtc = currentDemoDay;
+    }
   }
 
   async seedProductionAdmin() {
-    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD || 'AdminPass1234!';
+    const adminPassword = process.env.ADMIN_INITIAL_PASSWORD;
+    if (!adminPassword || adminPassword.trim() === '') {
+      throw new Error(
+        'ADMIN_INITIAL_PASSWORD environment variable is required to bootstrap production admin account. Server startup aborted for security.',
+      );
+    }
     const hashedPassword = await hashSecret(adminPassword);
     const adminAccount: Account = {
       id: 'ad-admin',
@@ -114,6 +142,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       permissions: { ...DEFAULT_PERMISSIONS.ADMIN },
       signature: null,
       pin: null,
+      isDemo: false,
       createdAt: new Date().toISOString(),
     };
     await this.persistAccount(adminAccount);

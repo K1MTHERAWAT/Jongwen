@@ -6,7 +6,7 @@ import {
   mockNotifications,
   mockRequests,
   mockVenues,
-} from './demo-data';
+} from '../src/demo-data';
 import { hashSecret } from '../src/auth/secret';
 
 const prisma = new PrismaClient();
