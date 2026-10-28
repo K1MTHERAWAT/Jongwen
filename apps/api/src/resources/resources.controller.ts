@@ -1,6 +1,7 @@
 import { BadRequestException, Body, Controller, Get, NotFoundException, Param, Patch, Post, Query } from '@nestjs/common';
 import {
   ACTIVE_BOOKING_STATUSES,
+  Account,
   BookingRequest,
   ConflictInfo,
   DayAvailability,
@@ -11,7 +12,7 @@ import {
   VenueType,
   overlaps,
 } from '@jongwen/shared';
-import { Permissions, Public } from '../auth/auth.guard';
+import { CurrentUser, Permissions, Public } from '../auth/auth.guard';
 import { DbService } from '../db/db.service';
 
 const VALID_VENUE_TYPES: VenueType[] = ['meeting', 'pavilion', 'field', 'yard', 'training'];
@@ -35,12 +36,12 @@ export class ResourcesController {
 
   @Permissions('manageResources')
   @Post('venues')
-  async createVenue(@Body() body: Partial<Venue>) {
+  async createVenue(@CurrentUser() user: Account, @Body() body: Partial<Venue>) {
     if (!body.name?.trim()) throw new BadRequestException('กรุณาระบุชื่อสถานที่');
     const capacity = Math.max(1, Math.min(10000, Math.floor(Number(body.capacity ?? 50))));
     const advanceDays = Math.max(0, Math.min(365, Math.floor(Number(body.advanceDays ?? 3))));
     const venue: Venue = {
-      id: this.db.nextId('v'),
+      id: await this.db.nextId('v'),
       name: body.name.trim().slice(0, 120),
       type: body.type && VALID_VENUE_TYPES.includes(body.type) ? body.type : 'meeting',
       building: (body.building ?? 'อาคารสำนักงาน').trim().slice(0, 120),
@@ -62,13 +63,17 @@ export class ResourcesController {
     };
     this.db.venues.push(venue);
     await this.db.persistVenue(venue);
-    this.db.log('resource', `เพิ่มสถานที่ ${venue.name}`, `${venue.capacity} คน`);
+    await this.db.log('resource', `เพิ่มสถานที่ ${venue.name}`, `${venue.capacity} คน`, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return venue;
   }
 
   @Permissions('manageResources')
   @Patch('venues/:id')
-  async updateVenue(@Param('id') id: string, @Body() body: Partial<Venue>) {
+  async updateVenue(@CurrentUser() user: Account, @Param('id') id: string, @Body() body: Partial<Venue>) {
     const venue = this.db.venues.find((v) => v.id === id);
     if (!venue) throw new NotFoundException('ไม่พบสถานที่');
     if (typeof body.name === 'string' && body.name.trim()) venue.name = body.name.trim().slice(0, 120);
@@ -97,7 +102,11 @@ export class ResourcesController {
     if (typeof body.enabled === 'boolean') {
       venue.enabled = body.enabled;
       venue.status = body.enabled ? 'available' : 'maintenance';
-      this.db.log('resource', `${body.enabled ? 'เปิด' : 'ปิด'}ให้จอง ${venue.name}`, venue.status);
+      await this.db.log('resource', `${body.enabled ? 'เปิด' : 'ปิด'}ให้จอง ${venue.name}`, venue.status, {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+      });
     }
     await this.db.persistVenue(venue);
     return venue;
@@ -105,14 +114,14 @@ export class ResourcesController {
 
   @Permissions('manageResources')
   @Post('equipment')
-  async createEquipment(@Body() body: Partial<Equipment>) {
+  async createEquipment(@CurrentUser() user: Account, @Body() body: Partial<Equipment>) {
     if (!body.name?.trim()) throw new BadRequestException('กรุณาระบุชื่ออุปกรณ์');
     const stock = Math.floor(Number(body.stock ?? 1));
     if (!Number.isFinite(stock) || stock < 0 || stock > 10000) {
       throw new BadRequestException('จำนวนอุปกรณ์คงคลังต้องอยู่ระหว่าง 0 ถึง 10,000');
     }
     const eq: Equipment = {
-      id: this.db.nextId('e'),
+      id: await this.db.nextId('e'),
       name: body.name.trim().slice(0, 120),
       category:
         body.category && VALID_EQUIPMENT_CATEGORIES.includes(body.category)
@@ -123,7 +132,11 @@ export class ResourcesController {
     };
     this.db.equipment.push(eq);
     await this.db.persistEquipment(eq);
-    this.db.log('resource', `เพิ่มอุปกรณ์ ${eq.name}`, `คงเหลือ ${eq.stock}`);
+    await this.db.log('resource', `เพิ่มอุปกรณ์ ${eq.name}`, `คงเหลือ ${eq.stock}`, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return eq;
   }
 

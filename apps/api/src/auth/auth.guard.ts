@@ -36,28 +36,14 @@ export const CurrentUser = createParamDecorator((_: unknown, ctx: ExecutionConte
   return ctx.switchToHttp().getRequest().user;
 });
 
-// ===== Session store (token สุ่มแบบคาดเดาไม่ได้ แทน mock-<id>) =====
-const SESSION_TTL_MS = 8 * 60 * 60 * 1000;
-const sessions = new Map<string, { accountId: string; expiresAt: number }>();
-
-export function createSession(accountId: string): string {
-  const token = randomBytes(32).toString('hex');
-  sessions.set(token, { accountId, expiresAt: Date.now() + SESSION_TTL_MS });
-  return token;
-}
-
-export function revokeSession(token: string) {
-  sessions.delete(token);
-}
-
-export function extractToken(header: string | undefined): string {
-  return (header ?? '').replace(/^Bearer\s+/i, '').trim();
-}
-
 // ===== Rate limit / lockout (ป้องกันเดารหัสผ่าน และ PIN) =====
 const attempts = new Map<string, { count: number; lockedUntil: number }>();
 const MAX_ATTEMPTS = 5;
 const LOCK_MS = 5 * 60 * 1000;
+
+export function extractToken(header: string | undefined): string {
+  return (header ?? '').replace(/^Bearer\s+/i, '').trim();
+}
 
 export function assertNotLocked(key: string) {
   const a = attempts.get(key);
@@ -108,21 +94,23 @@ export function requireDrawnSignature(value: unknown, who: string): string {
 export class AuthGuard implements CanActivate {
   constructor(private readonly reflector: Reflector, private readonly db: DbService) {}
 
-  canActivate(ctx: ExecutionContext): boolean {
+  async canActivate(ctx: ExecutionContext): Promise<boolean> {
     const targets = [ctx.getHandler(), ctx.getClass()];
     if (this.reflector.getAllAndOverride<boolean>(IS_PUBLIC, targets)) return true;
 
     const req = ctx.switchToHttp().getRequest();
     const token = extractToken(req.headers['authorization']);
-    const session = token ? sessions.get(token) : undefined;
-    if (!session || session.expiresAt < Date.now()) {
-      if (token) sessions.delete(token);
+    if (!token) {
       throw new UnauthorizedException('กรุณาเข้าสู่ระบบ');
+    }
+    const session = await this.db.getSession(token);
+    if (!session) {
+      throw new UnauthorizedException('เซสชันหมดอายุ กรุณาเข้าสู่ระบบใหม่');
     }
     const user = this.db.accounts.find((a) => a.id === session.accountId);
     if (!user || user.active === false) {
-      sessions.delete(token);
-      throw new UnauthorizedException('กรุณาเข้าสู่ระบบ');
+      await this.db.revokeSession(token);
+      throw new UnauthorizedException('บัญชีผู้ใช้ถูกระงับหรือไม่มีอยู่ในระบบ');
     }
     req.user = user;
     req.token = token;

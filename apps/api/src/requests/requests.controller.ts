@@ -333,7 +333,7 @@ export class RequestsController {
     }
 
     const now = new Date().toISOString();
-    const code = this.db.nextCode('BK');
+    const code = await this.db.nextCode('BK');
     const req: BookingRequest = {
       id: `r-${code.toLowerCase()}`,
       code,
@@ -372,7 +372,11 @@ export class RequestsController {
     this.db.requests.unshift(req);
     await this.db.persistRequest(req);
     this.db.notifyRole('STAFF', 'มีคำขอจองสถานที่ใหม่', `${req.code} · ${req.requesterName}`, `/staff/review?id=${req.id}`);
-    this.db.log('request', `ส่งคำขอจอง ${req.code}`, req.requesterName);
+    await this.db.log('request', `ส่งคำขอจอง ${req.code}`, req.requesterName, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return this.enrich(req);
   }
 
@@ -412,7 +416,7 @@ export class RequestsController {
     const staffSig = isWalkIn ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
 
     const now = new Date().toISOString();
-    const code = this.db.nextCode('BR');
+    const code = await this.db.nextCode('BR');
     const req: BorrowRequest = {
       id: `r-${code.toLowerCase()}`,
       code,
@@ -436,7 +440,11 @@ export class RequestsController {
     this.db.requests.unshift(req);
     await this.db.persistRequest(req);
     this.db.notifyRole('STAFF', 'มีคำขอยืมครุภัณฑ์ใหม่', `${req.code} · ${req.requesterName}`, `/staff/review?id=${req.id}`);
-    this.db.log('request', `ส่งคำขอยืม ${req.code}`, req.requesterName);
+    await this.db.log('request', `ส่งคำขอยืม ${req.code}`, req.requesterName, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return this.enrich(req);
   }
 
@@ -473,7 +481,7 @@ export class RequestsController {
     const staffSig = isWalkIn ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
 
     const now = new Date().toISOString();
-    const code = this.db.nextCode('RP');
+    const code = await this.db.nextCode('RP');
     const req: RepairRequest = {
       id: `r-${code.toLowerCase()}`,
       code,
@@ -497,7 +505,11 @@ export class RequestsController {
     this.db.requests.unshift(req);
     await this.db.persistRequest(req);
     this.db.notifyRole('STAFF', 'แจ้งซ่อมใหม่', `${req.code} · ${req.location}`, `/staff/review?id=${req.id}`);
-    this.db.log('request', `แจ้งซ่อม ${req.code}`, req.location);
+    await this.db.log('request', `แจ้งซ่อม ${req.code}`, req.location, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return this.enrich(req);
   }
 
@@ -516,6 +528,16 @@ export class RequestsController {
     if (!check.allowed || !check.expectedLevel) {
       throw new ForbiddenException(check.reason || 'ไม่มีสิทธิ์ลงนามคำขอนี้ในระดับปัจจุบัน');
     }
+
+    // Separation of Duties (SoD): ห้ามตนเองอนุมัติคำขอของตนเอง
+    if (req.requesterId === user.id) {
+      throw new ForbiddenException('ไม่สามารถลงนามอนุมัติคำขอของตนเองได้ (หลักการ Separation of Duties)');
+    }
+    // Separation of Duties (SoD): ห้ามบุคคลเดิมลงนามซ้ำข้ามระดับในคำขอเดียวกัน
+    if (req.signatures.some((s) => s.signerId === user.id && s.decision === 'approve')) {
+      throw new ForbiddenException('คุณได้ลงนามอนุมัติคำขอนี้ในระดับก่อนหน้าไปแล้ว ไม่สามารถลงนามซ้ำในระดับนี้ได้ (Separation of Duties)');
+    }
+
     if (body.decision !== 'approve' && body.decision !== 'reject') {
       throw new BadRequestException('ผลการพิจารณาไม่ถูกต้อง');
     }
@@ -571,7 +593,11 @@ export class RequestsController {
     }
 
     await this.db.persistRequest(req);
-    this.db.log('request', `${body.decision === 'approve' ? 'ลงนาม' : 'ไม่ผ่าน'} ${req.code}`, `${user.name} (${SIGN_LEVEL_TITLE[level]})`);
+    await this.db.log('request', `${body.decision === 'approve' ? 'ลงนาม' : 'ไม่ผ่าน'} ${req.code}`, `${user.name} (${SIGN_LEVEL_TITLE[level]})`, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return this.enrich(req);
   }
 
@@ -593,7 +619,11 @@ export class RequestsController {
     req.signatures = [];
     req.updatedAt = new Date().toISOString();
     await this.db.persistRequest(req);
-    this.db.log('request', `ขอเลื่อนวัน ${req.code}`, user.name);
+    await this.db.log('request', `ขอเลื่อนวัน ${req.code}`, user.name, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return this.enrich(req);
   }
 
@@ -611,7 +641,11 @@ export class RequestsController {
     req.rejectReason = body.reason ? String(body.reason).slice(0, 1000) : undefined;
     req.updatedAt = new Date().toISOString();
     await this.db.persistRequest(req);
-    this.db.log('request', `ยกเลิกคำขอ ${req.code}`, user.name);
+    await this.db.log('request', `ยกเลิกคำขอ ${req.code}`, user.name, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return this.enrich(req);
   }
 
@@ -650,6 +684,12 @@ export class RequestsController {
   ) {
     const req = this.db.requests.find((r) => r.id === id || r.code === id);
     if (!req || req.type === 'repair') throw new NotFoundException('ไม่พบคำขอ');
+
+    // Separation of Duties (SoD): เจ้าหน้าที่ไม่สามารถทำหน้าที่เป็นทั้งผู้ส่งมอบและผู้รับมอบสำหรับคำขอของตนเองได้
+    if (req.requesterId === user.id) {
+      throw new ForbiddenException('เจ้าหน้าที่ไม่สามารถเป็นทั้งผู้ส่งมอบและผู้รับมอบสำหรับคำขอของตนเองได้ (Separation of Duties)');
+    }
+
     if (body.phase !== 'before' && body.phase !== 'after') throw new BadRequestException('ขั้นตอนไม่ถูกต้อง');
     const allowed =
       body.phase === 'before'
@@ -680,7 +720,11 @@ export class RequestsController {
     req.updatedAt = now;
     await this.db.persistHandover(handoverRecord);
     await this.db.persistRequest(req);
-    this.db.log('request', `${body.phase === 'before' ? 'ยืนยันรับมอบ' : 'ยืนยันรับคืน'} ${req.code}`, user.name);
+    await this.db.log('request', `${body.phase === 'before' ? 'ยืนยันรับมอบ' : 'ยืนยันรับคืน'} ${req.code}`, user.name, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return this.enrich(req);
   }
 
@@ -755,7 +799,11 @@ export class RequestsController {
     }
     req.updatedAt = now;
     await this.db.persistRequest(req);
-    this.db.log('request', `อัปเดตงานซ่อม ${req.code}`, user.name);
+    await this.db.log('request', `อัปเดตงานซ่อม ${req.code}`, user.name, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
     return this.enrich(req);
   }
 }

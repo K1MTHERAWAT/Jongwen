@@ -230,6 +230,10 @@ export interface ActivityLog {
   kind: 'user' | 'role' | 'resource' | 'request';
   title: string;
   detail: string;
+  actorId?: string;
+  actorName?: string;
+  actorRole?: Role;
+  ip?: string;
   at: string;
 }
 

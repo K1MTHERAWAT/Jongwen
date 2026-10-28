@@ -1,5 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Prisma, PrismaClient } from '@prisma/client';
+import { randomBytes } from 'crypto';
 import {
   ActivityLog,
   Account,
@@ -14,6 +15,7 @@ import {
   PermissionKey,
   PublicAccount,
   RepairRequest,
+  Role,
   Venue,
 } from '@jongwen/shared';
 import {
@@ -156,14 +158,88 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
     await this.prisma.$disconnect().catch(() => {});
   }
 
-  nextCode(prefix: 'BK' | 'BR' | 'RP') {
-    this.seq[prefix] += 1;
-    return `${prefix}-2569-${String(this.seq[prefix]).padStart(4, '0')}`;
+  // ===================== Session Management (PostgreSQL Backed) =====================
+
+  async createSession(accountId: string): Promise<string> {
+    const token = randomBytes(32).toString('hex');
+    const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
+    await this.prisma.session.create({
+      data: {
+        token,
+        accountId,
+        expiresAt,
+      },
+    });
+    return token;
   }
 
-  nextId(kind: 'n' | 'l' | 'u' | 'v' | 'e') {
-    this.seq[kind] += 1;
-    return `${kind}-${this.seq[kind]}`;
+  async revokeSession(token: string): Promise<void> {
+    await this.prisma.session.delete({ where: { token } }).catch(() => {});
+  }
+
+  async getSession(token: string): Promise<{ accountId: string; expiresAt: Date } | null> {
+    const session = await this.prisma.session.findUnique({ where: { token } });
+    if (!session) return null;
+    if (session.expiresAt.getTime() < Date.now()) {
+      await this.prisma.session.delete({ where: { token } }).catch(() => {});
+      return null;
+    }
+    return session;
+  }
+
+  async cleanExpiredSessions(): Promise<void> {
+    await this.prisma.session.deleteMany({
+      where: { expiresAt: { lt: new Date() } },
+    }).catch(() => {});
+  }
+
+  // ===================== Sequence Management (PostgreSQL Atomic) =====================
+
+  async nextCode(prefix: 'BK' | 'BR' | 'RP'): Promise<string> {
+    const buddhistYear = 2569;
+    const key = `${prefix}-${buddhistYear}`;
+    const seq = await this.prisma.sequence.upsert({
+      where: { key },
+      create: { key, value: 1 },
+      update: { value: { increment: 1 } },
+    });
+    this.seq[prefix] = seq.value;
+    return `${prefix}-${buddhistYear}-${String(seq.value).padStart(4, '0')}`;
+  }
+
+  async nextId(kind: 'n' | 'l' | 'u' | 'v' | 'e'): Promise<string> {
+    const key = `id-${kind}`;
+    const seq = await this.prisma.sequence.upsert({
+      where: { key },
+      create: { key, value: 101 },
+      update: { value: { increment: 1 } },
+    });
+    return `${kind}-${seq.value}`;
+  }
+
+  async syncSequences() {
+    const requests = await this.prisma.request.findMany({ select: { code: true } });
+    for (const prefix of ['BK', 'BR', 'RP'] as const) {
+      let maxVal = 0;
+      for (const r of requests) {
+        const m = new RegExp(`^${prefix}-2569-(\\d+)$`).exec(r.code);
+        if (m) {
+          const val = Number(m[1]);
+          if (val > maxVal) maxVal = val;
+        }
+      }
+      const key = `${prefix}-2569`;
+      await this.prisma.sequence.upsert({
+        where: { key },
+        create: { key, value: maxVal },
+        update: {},
+      });
+      const current = await this.prisma.sequence.findUnique({ where: { key } });
+      if (current && current.value < maxVal) {
+        await this.prisma.sequence.update({ where: { key }, data: { value: maxVal } });
+      }
+      this.seq[prefix] = Math.max(this.seq[prefix], maxVal);
+    }
   }
 
   /** ล้างข้อมูลใน PostgreSQL และ Seed ข้อมูลตัวอย่างเริ่มต้นใหม่ทั้งหมด */
@@ -179,9 +255,10 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
     await this.loadFromDatabase();
   }
 
-  /** ล้างเฉพาะข้อมูลคำขอและประวัติ (requests, handovers, notifications, activities) */
+  /** ล้างเฉพาะข้อมูลคำขอและประวัติ (requests, handovers, notifications, activities, sessions) */
   async clearTransactions() {
     await this.prisma.$transaction([
+      this.prisma.session.deleteMany(),
       this.prisma.handoverRecord.deleteMany(),
       this.prisma.signatureRecord.deleteMany(),
       this.prisma.requestItem.deleteMany(),
@@ -190,6 +267,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       this.prisma.request.deleteMany(),
       this.prisma.notification.deleteMany(),
       this.prisma.activityLog.deleteMany(),
+      this.prisma.sequence.deleteMany(),
     ]);
     this.requests = [];
     this.notifications = [];
@@ -204,9 +282,10 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
     return { ...rest, hasPin: !!pin };
   }
 
-  notify(userId: string, title: string, body: string, link?: string) {
+  async notify(userId: string, title: string, body: string, link?: string) {
+    const id = await this.nextId('n');
     const item: AppNotification = {
-      id: this.nextId('n'),
+      id,
       userId,
       title,
       body,
@@ -231,7 +310,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   notifyRole(role: Account['role'], title: string, body: string, link?: string) {
-    this.accounts.filter((a) => a.role === role).forEach((a) => this.notify(a.id, title, body, link));
+    this.accounts.filter((a) => a.role === role).forEach((a) => void this.notify(a.id, title, body, link));
   }
 
   markAllNotificationsRead(userId: string) {
@@ -244,12 +323,22 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       .catch((err) => this.logger.error('Failed to mark notifications read', err));
   }
 
-  log(kind: ActivityLog['kind'], title: string, detail: string) {
+  async log(
+    kind: ActivityLog['kind'],
+    title: string,
+    detail: string,
+    actor?: { id?: string; name?: string; role?: Role; ip?: string },
+  ) {
+    const id = await this.nextId('l');
     const entry: ActivityLog = {
-      id: this.nextId('l'),
+      id,
       kind,
       title,
       detail,
+      actorId: actor?.id,
+      actorName: actor?.name,
+      actorRole: actor?.role,
+      ip: actor?.ip,
       at: new Date().toISOString(),
     };
     this.activities.unshift(entry);
@@ -260,6 +349,10 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
           kind: entry.kind,
           title: entry.title,
           detail: entry.detail,
+          actorId: entry.actorId ?? null,
+          actorName: entry.actorName ?? null,
+          actorRole: entry.actorRole ?? null,
+          ip: entry.ip ?? null,
           createdAt: new Date(entry.at),
         },
       })
@@ -468,21 +561,38 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
           });
         }
 
-        await tx.signatureRecord.deleteMany({ where: { requestId: r.id } });
+        // รักษาร่องรอยและหลักฐานการลงนาม (Audit Trail) โดยไม่อนุญาตให้ deleteMany ทิ้ง
         if (r.signatures.length > 0) {
-          await tx.signatureRecord.createMany({
-            data: r.signatures.map((s) => ({
-              requestId: r.id,
-              level: s.level,
-              signerId: s.signerId,
-              signerName: s.signerName,
-              title: s.title,
-              decision: s.decision,
-              signature: s.signature ?? null,
-              note: s.note ?? null,
-              signedAt: new Date(s.at),
-            })),
-          });
+          for (const s of r.signatures) {
+            await tx.signatureRecord.upsert({
+              where: {
+                requestId_level: {
+                  requestId: r.id,
+                  level: s.level,
+                },
+              },
+              create: {
+                requestId: r.id,
+                level: s.level,
+                signerId: s.signerId,
+                signerName: s.signerName,
+                title: s.title,
+                decision: s.decision,
+                signature: s.signature ?? null,
+                note: s.note ?? null,
+                signedAt: new Date(s.at),
+              },
+              update: {
+                signerId: s.signerId,
+                signerName: s.signerName,
+                title: s.title,
+                decision: s.decision,
+                signature: s.signature ?? null,
+                note: s.note ?? null,
+                signedAt: new Date(s.at),
+              },
+            });
+          }
         }
       }
     });
@@ -773,6 +883,10 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       kind: a.kind,
       title: a.title,
       detail: a.detail,
+      actorId: a.actorId ?? undefined,
+      actorName: a.actorName ?? undefined,
+      actorRole: a.actorRole ?? undefined,
+      ip: a.ip ?? undefined,
       at: a.createdAt.toISOString(),
     }));
 
@@ -788,14 +902,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       staffSignature: h.staffSignature ?? undefined,
     }));
 
-    // อัปเดตตัวนับเลขรัน (seq) ไม่ให้ชนกับรายการที่มีอยู่ในฐานข้อมูล
-    for (const r of this.requests) {
-      const m = /^(BK|BR|RP)-\d+-(\d+)$/.exec(r.code);
-      if (m) {
-        const prefix = m[1] as 'BK' | 'BR' | 'RP';
-        const num = Number(m[2]);
-        if (num >= this.seq[prefix]) this.seq[prefix] = num;
-      }
-    }
+    await this.syncSequences();
+    await this.cleanExpiredSessions();
   }
 }

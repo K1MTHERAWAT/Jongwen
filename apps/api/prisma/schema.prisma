@@ -124,6 +124,8 @@ model Account {
   signatureRecords SignatureRecord[]
   handoverRecords  HandoverRecord[]
   notifications    Notification[]
+  sessions         Session[]
+  activityLogs     ActivityLog[]
 
   @@index([role])
   @@index([isDemo])
@@ -355,10 +357,38 @@ model ActivityLog {
   kind      ActivityKind
   title     String
   detail    String
+  actorId   String?      @map("actor_id")
+  actorName String?      @map("actor_name")
+  actorRole Role?        @map("actor_role")
+  ip        String?      @map("ip")
   createdAt DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
 
+  actor Account? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
   @@index([createdAt])
+  @@index([actorId])
   @@map("activity_logs")
+}
+
+model Session {
+  token     String   @id
+  accountId String   @map("account_id")
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  account Account @relation(fields: [accountId], references: [id], onDelete: Cascade)
+
+  @@index([accountId])
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+model Sequence {
+  key       String   @id
+  value     Int      @default(0)
+  updatedAt DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@map("sequences")
 }
 
 model OtpCode {

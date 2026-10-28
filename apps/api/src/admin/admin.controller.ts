@@ -68,12 +68,20 @@ export class AdminController {
     }
     if (typeof body.active === 'boolean' && body.active !== (target.active ?? true)) {
       target.active = body.active;
-      this.db.log('user', `${body.active ? 'เปิด' : 'ระงับ'}การใช้งานบัญชี`, target.name);
+      await this.db.log('user', `${body.active ? 'เปิด' : 'ระงับ'}การใช้งานบัญชี`, target.name, {
+        id: actor.id,
+        name: actor.name,
+        role: actor.role,
+      });
     }
     if (body.role && body.role !== target.role) {
       target.role = body.role;
       target.permissions = { ...DEFAULT_PERMISSIONS[body.role] };
-      this.db.log('role', `เปลี่ยนสิทธิ์เป็น${ROLE_LABEL[body.role]}`, target.name);
+      await this.db.log('role', `เปลี่ยนสิทธิ์เป็น${ROLE_LABEL[body.role]}`, target.name, {
+        id: actor.id,
+        name: actor.name,
+        role: actor.role,
+      });
     }
     if (body.permissions && typeof body.permissions === 'object') {
       const nextPerms: Record<PermissionKey, boolean> = { ...target.permissions };
@@ -83,7 +91,11 @@ export class AdminController {
         }
       }
       target.permissions = nextPerms;
-      this.db.log('role', `อัปเดตสิทธิ์การใช้งานรายย่อย`, target.name);
+      await this.db.log('role', `อัปเดตสิทธิ์การใช้งานรายย่อย`, target.name, {
+        id: actor.id,
+        name: actor.name,
+        role: actor.role,
+      });
     }
     await this.db.persistAccount(target);
     return this.db.toPublic(target);

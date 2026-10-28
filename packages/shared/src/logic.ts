@@ -170,11 +170,29 @@ export interface SignAccessCheck {
 }
 
 export function canSignRequest(
-  account: Pick<Account, 'role' | 'permissions'> | null | undefined,
-  req: Pick<AnyRequest, 'type' | 'status'>,
+  account: (Pick<Account, 'role' | 'permissions'> & { id?: string }) | null | undefined,
+  req: Pick<AnyRequest, 'type' | 'status'> & { requesterId?: string; signatures?: { signerId: string; decision: string }[] },
 ): SignAccessCheck {
   if (!account) {
     return { allowed: false, reason: 'กรุณาเข้าสู่ระบบก่อนลงนาม' };
+  }
+  // Separation of Duties: ห้ามตนเองอนุมัติคำขอตนเอง
+  if (account.id && req.requesterId && account.id === req.requesterId) {
+    return {
+      allowed: false,
+      reason: 'ไม่สามารถลงนามอนุมัติคำขอของตนเองได้ (Separation of Duties)',
+    };
+  }
+  // Separation of Duties: ห้ามบุคคลเดิมลงนามซ้ำข้ามระดับในคำขอเดียวกัน
+  if (
+    account.id &&
+    Array.isArray(req.signatures) &&
+    req.signatures.some((s) => s.signerId === account.id && s.decision === 'approve')
+  ) {
+    return {
+      allowed: false,
+      reason: 'คุณได้ลงนามอนุมัติคำขอนี้ในระดับก่อนหน้าไปแล้ว ไม่สามารถลงนามซ้ำในระดับนี้ได้ (Separation of Duties)',
+    };
   }
   if (req.type === 'repair') {
     return { allowed: false, reason: 'รายการแจ้งซ่อมไม่ต้องลงนาม 3 ระดับ' };

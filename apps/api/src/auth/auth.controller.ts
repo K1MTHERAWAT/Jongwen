@@ -7,10 +7,8 @@ import {
   Public,
   assertNotLocked,
   clearFailures,
-  createSession,
   recordFailure,
   requireDrawnSignature,
-  revokeSession,
 } from './auth.guard';
 import { hashSecret, verifySecret } from './secret';
 
@@ -56,7 +54,8 @@ export class AuthController {
     if (user.active === false) {
       throw new UnauthorizedException('บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ');
     }
-    return { token: createSession(user.id), account: this.db.toPublic(user) };
+    const token = await this.db.createSession(user.id);
+    return { token, account: this.db.toPublic(user) };
   }
 
   @Throttle({ auth: { limit: 10, ttl: 60000 } })
@@ -82,12 +81,13 @@ export class AuthController {
       throw new UnauthorizedException('บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ');
     }
     clearFailures(lockKey);
-    return { token: createSession(user.id), account: this.db.toPublic(user) };
+    const token = await this.db.createSession(user.id);
+    return { token, account: this.db.toPublic(user) };
   }
 
   @Post('logout')
-  logout(@Req() req: { token?: string }) {
-    if (req.token) revokeSession(req.token);
+  async logout(@Req() req: { token?: string }) {
+    if (req.token) await this.db.revokeSession(req.token);
     return { ok: true };
   }
 
@@ -196,7 +196,7 @@ export class AuthController {
     }
 
     const hashedPassword = await hashSecret(password);
-    const id = this.db.nextId('u');
+    const id = await this.db.nextId('u');
     const account: Account = {
       id,
       username: digits,
@@ -216,8 +216,13 @@ export class AuthController {
     };
     this.db.accounts.unshift(account);
     await this.db.persistAccount(account);
-    this.db.log('user', 'ผู้ใช้ใหม่ลงทะเบียน', account.name);
-    return { token: createSession(account.id), account: this.db.toPublic(account) };
+    await this.db.log('user', 'ผู้ใช้ใหม่ลงทะเบียน', account.name, {
+      id: account.id,
+      name: account.name,
+      role: account.role,
+    });
+    const token = await this.db.createSession(account.id);
+    return { token, account: this.db.toPublic(account) };
   }
 
   @Get('me')
