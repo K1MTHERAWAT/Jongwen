@@ -114,7 +114,7 @@ export function Tabs<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`flex-1 h-9 px-3 rounded-[8px] text-[13px] font-semibold transition ${
+            className={`flex-1 min-w-max h-9 px-3 rounded-[8px] text-[13px] font-semibold whitespace-nowrap transition ${
               active ? 'bg-white text-ink shadow-xs' : 'text-ink-mute hover:text-ink'
             }`}
           >
