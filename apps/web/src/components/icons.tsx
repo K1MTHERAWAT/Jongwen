@@ -8,6 +8,7 @@ export type IconName =
   | 'ball-football'
   | 'bell'
   | 'bookmark'
+  | 'building'
   | 'building-community'
   | 'building-pavilion'
   | 'calendar'
@@ -21,11 +22,13 @@ export type IconName =
   | 'eraser'
   | 'file-text'
   | 'filter'
+  | 'folder'
   | 'grip-vertical'
   | 'home'
   | 'layout-grid'
   | 'list-details'
   | 'lock'
+  | 'logout'
   | 'menu-2'
   | 'minus'
   | 'package'
@@ -33,10 +36,12 @@ export type IconName =
   | 'plus'
   | 'search'
   | 'settings'
+  | 'shield'
   | 'shield-check'
   | 'tent'
   | 'tool'
   | 'upload'
+  | 'user'
   | 'user-circle'
   | 'users'
   | 'volume'
@@ -85,6 +90,18 @@ const PATHS: Record<IconName, React.ReactNode> = {
     </>
   ),
   bookmark: <path d="M18 7v14l-6 -4l-6 4v-14a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4z" />,
+  building: (
+    <>
+      <path d="M3 21l18 0" />
+      <path d="M9 8l1 0" />
+      <path d="M9 12l1 0" />
+      <path d="M9 16l1 0" />
+      <path d="M14 8l1 0" />
+      <path d="M14 12l1 0" />
+      <path d="M14 16l1 0" />
+      <path d="M5 21v-16a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v16" />
+    </>
+  ),
   'building-community': (
     <>
       <path d="M8 9l5 5v7h-5v-4m0 4h-5v-7l5 -5m1 1v-6a1 1 0 0 1 1 -1h10a1 1 0 0 1 1 1v17h-8" />
@@ -157,6 +174,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
   filter: (
     <path d="M4 4h16v2.172a2 2 0 0 1 -.586 1.414l-4.414 4.414v7l-6 2v-8.5l-4.48 -4.928a2 2 0 0 1 -.52 -1.345v-2.227z" />
   ),
+  folder: (
+    <path d="M5 4h4l3 3h7a2 2 0 0 1 2 2v8a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-11a2 2 0 0 1 2 -2" />
+  ),
   'grip-vertical': (
     <>
       <path d="M9 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />
@@ -197,6 +217,13 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z" />
       <path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" />
       <path d="M8 11v-4a4 4 0 1 1 8 0v4" />
+    </>
+  ),
+  logout: (
+    <>
+      <path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2" />
+      <path d="M9 12h12l-3 -3" />
+      <path d="M18 15l3 -3" />
     </>
   ),
   'menu-2': (
@@ -242,6 +269,9 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M9 12a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" />
     </>
   ),
+  shield: (
+    <path d="M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3" />
+  ),
   'shield-check': (
     <>
       <path d="M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06" />
@@ -257,6 +287,12 @@ const PATHS: Record<IconName, React.ReactNode> = {
       <path d="M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2 -2v-2" />
       <path d="M7 9l5 -5l5 5" />
       <path d="M12 4l0 12" />
+    </>
+  ),
+  user: (
+    <>
+      <path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0" />
+      <path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2" />
     </>
   ),
   'user-circle': (
