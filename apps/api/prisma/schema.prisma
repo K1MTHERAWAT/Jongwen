@@ -114,6 +114,8 @@ model Account {
   signature   String?
   /// PIN 6 หลักสำหรับดึงลายเซ็น (TODO: hash)
   pin         String?
+  /// บัญชีสำหรับโหมดเดโม (เฉพาะโหมดเดโมเท่านั้นที่ล็อกอิน one-click ได้)
+  isDemo      Boolean  @default(false) @map("is_demo")
   active      Boolean  @default(true)
   createdAt   DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
 
@@ -124,6 +126,7 @@ model Account {
   notifications    Notification[]
 
   @@index([role])
+  @@index([isDemo])
   @@map("accounts")
 }
 

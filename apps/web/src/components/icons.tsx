@@ -1,6 +1,7 @@
 import React from 'react';
 
 export type IconName =
+  | 'alert-triangle'
   | 'armchair'
   | 'arrow-right'
   | 'backspace'
@@ -42,6 +43,13 @@ export type IconName =
   | 'x';
 
 const PATHS: Record<IconName, React.ReactNode> = {
+  'alert-triangle': (
+    <>
+      <path d="M12 9v4" />
+      <path d="M12 17h.01" />
+      <path d="M5 19h14a2 2 0 0 0 1.84 -2.75l-7.1 -12.25a2 2 0 0 0 -3.5 0l-7.1 12.25a2 2 0 0 0 1.75 2.75" />
+    </>
+  ),
   armchair: (
     <>
       <path d="M5 11a2 2 0 0 1 2 2v2h10v-2a2 2 0 1 1 4 0v4a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-4a2 2 0 0 1 2 -2z" />

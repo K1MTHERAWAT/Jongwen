@@ -3,6 +3,7 @@ import type {
   AppNotification,
   ConflictInfo,
   DayAvailability,
+  DemoAccountSummary,
   Equipment,
   HandoverRecord,
   ItemQty,
@@ -76,8 +77,10 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
 export type MockAccountHint = PublicAccount;
 
 export const api = {
-  // Auth & mockDataAccount
-  listMockAccounts: () => request<MockAccountHint[]>('/auth/mock-accounts'),
+  // Auth & Demo
+  demoAccounts: () => request<DemoAccountSummary[]>('/auth/demo-accounts'),
+  demoLogin: (accountId: string) =>
+    request<LoginResponse>('/auth/demo-login', { method: 'POST', body: JSON.stringify({ accountId }) }),
   login: (payload: { username: string; password: string }) =>
     request<LoginResponse>('/auth/login', { method: 'POST', body: JSON.stringify(payload) }),
   logout: () => request<{ ok: boolean }>('/auth/logout', { method: 'POST', body: JSON.stringify({}) }),

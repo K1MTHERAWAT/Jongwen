@@ -22,12 +22,8 @@ BookingV1/
 ├── docker-compose.yml          # PostgreSQL 16 Service (Port 5433:5432, Healthcheck, Volume)
 ├── .env.example                # ตัวอย่าง Environment Variables สำหรับ Root
 ├── packages/
-│   └── shared/                 # @jongwen/shared — Types, Labels, Logic และ Mock Data
+│   └── shared/                 # @jongwen/shared — Types, Labels, RBAC Logic (ปลอดภัย: ไม่มี Mock Data ปน)
 │       └── src/
-│           ├── mock/
-│           │   ├── accounts.ts   # mockAccounts (ข้อมูลบัญชีครบทุกบทบาท)
-│           │   ├── resources.ts  # mockVenues & mockEquipment
-│           │   └── requests.ts   # mockRequests, mockNotifications, mockActivities
 │           ├── types.ts          # Shared Models, Request Types, OfficialFormPurposeItem
 │           ├── labels.ts         # ข้อความ/ป้ายกำกับภาษาไทยสำหรับบทบาท สถานะ และประเภทคำขอ
 │           ├── logic.ts          # RBAC (canAccessRoute), สายอนุมัติ 3 ระดับ, ตรวจสอบช่วงเวลา
@@ -35,16 +31,18 @@ BookingV1/
 ├── apps/
 │   ├── api/                    # @jongwen/api — NestJS REST API (:4000/api)
 │   │   ├── prisma/
-│   │   │   ├── schema.prisma     # Prisma Data Model (10 ตาราง + Enums)
+│   │   │   ├── schema.prisma     # Prisma Data Model (11 ตาราง รวม otp_codes + Enums)
 │   │   │   ├── migrations/       # SQL Migration Files (Prisma Migrate)
-│   │   │   └── seed.ts           # Standalone Seed Script (tsx)
-│   │   ├── .env.example          # ตัวอย่าง DATABASE_URL สำหรับ NestJS
+│   │   │   ├── seed.ts           # Standalone Seed Script (รองรับ argon2 hash)
+│   │   │   ├── hash-existing-accounts.ts # สคริปต์ One-time แปลงข้อมูลเดิมเป็น argon2
+│   │   │   └── demo-data/        # ข้อมูลสำหรับทดสอบ แยกไว้เฉพาะ API (accounts, resources, requests)
+│   │   ├── .env.example          # ตัวอย่าง DATABASE_URL และตัวแปรระบบ
 │   │   └── src/
-│   │       ├── auth/             # Login, Register, Signature, PIN, Session Tokens, Brute-force Lock
+│   │       ├── auth/             # Login, Register, Signature, PIN, Session, argon2 (secret.ts)
 │   │       ├── resources/        # Venues, Equipment, Monthly Availability, Conflict Check
 │   │       ├── requests/         # Booking, Borrow, Repair, 3-Level Sign, Handover, Reschedule
 │   │       ├── admin/            # Users & Permissions, Overview, Notifications
-│   │       └── db/               # Prisma Database Service (Auto-seed & Hydration to PostgreSQL)
+│   │       └── db/               # Prisma Database Service (Auto-seed demo หรือ Admin แรกเข้า)
 │   └── web/                    # @jongwen/web — Next.js (App Router) + Tailwind CSS (:3000)
 │       ├── public/               # Static Assets (โลโก้, ไอคอน)
 │       └── src/
@@ -350,7 +348,54 @@ erDiagram
         string detail
         timestamptz created_at
     }
+
+    otp_codes {
+        string id PK
+        string phone
+        string code_hash
+        int attempts
+        timestamptz expires_at
+        timestamptz consumed_at
+        timestamptz created_at
+    }
 ```
+
+---
+
+## การจัดการโหมดเดโม (Demo Mode Architecture)
+
+หลักการ: **เดโมกับ Production เป็นคนละ deployment และคนละฐานข้อมูล** ควบคุมด้วย Flag เดียว
+
+### 1. ฝั่ง Backend API (`DEMO_MODE=true`)
+* **เพิ่มฟิลด์ `accounts.is_demo`**: เฉพาะบัญชีที่ระบุ `is_demo = true` เท่านั้นที่ทำ One-Click Demo Login ได้
+* **`GET /auth/demo-accounts`**: ส่งกลับเฉพาะข้อมูลปลอดภัยสำหรับการแสดงผลบทบาท (ID, ชื่อ, ตำแหน่ง, บทบาท, หน่วยงาน) — **ไม่มีเบอร์โทรศัพท์และไม่มีรหัสผ่าน**
+* **`POST /auth/demo-login`**: รับ `{ accountId }` และออก Session Token ให้โดยตรง — รหัสผ่านไม่ปรากฏใน Bundle หน้าเว็บ
+* **OTP ในโหมดเดโม**: ใช้รหัสคงที่ `000000` และปิดการเชื่อมต่อ SMS/LINE Gateway จริง
+* **Dev Reset & Nightly Cron**: `POST /dev/reset` เปิดเฉพาะเมื่อ `DEMO_MODE=true` มี Rate Limit และตั้งระบบ Cron อัตโนมัติรีเซ็ตข้อมูลทุกคืนเวลา 03:00 น.
+* **Production Guard**: เมื่อใช้งานบน Production และไม่ได้เปิด `DEMO_MODE=true` จุดเชื่อมต่อเหล่านี้จะตอบกลับ 404 ทันที และระบบจะไม่ Seed ข้อมูลตัวอย่าง
+
+### 2. ฝั่ง Frontend Web (`NEXT_PUBLIC_DEMO=true`)
+* **แถบแจ้งเตือนด้านบน**: แสดงแถบเด่นชัด `⚠️ โหมดสาธิต · ข้อมูลสมมติ ห้ามกรอกข้อมูลจริง` ด้านบนสุดของหน้าจอ
+* **หน้า Login แบบ One-Click**: แสดงการ์ดเลือกบทบาท (ประชาชน, เจ้าหน้าที่, ปลัด, นายก, แอดมิน) ดึงรายชื่อจาก `/auth/demo-accounts` และคลิกเข้าใช้งานได้ทันที
+* **กำจัด Hardcode บัญชีตัวอย่าง**: ลบ `suggestedAccountId` ออกจากโค้ด shared ทั้งหมด เพื่อให้หน้าเว็บดึงข้อมูลบัญชีผ่าน API อย่างปลอดภัย
+
+---
+
+## สรุปการยกระดับความปลอดภัย (Security Hardening ที่ทำแล้ว)
+
+1. **การเข้ารหัสรหัสผ่านและ PIN**:
+   - เข้ารหัสด้วย **`argon2id`** ทั้งรหัสผ่านและรหัส PIN 6 หลัก (`hashSecret` / `verifySecret`)
+   - มีสคริปต์ One-time Migration (`pnpm --filter @jongwen/api exec tsx prisma/hash-existing-accounts.ts`) แปลงข้อมูลใน DB อัตโนมัติ
+2. **การแยกข้อมูลทดสอบ (Mock Data Isolation)**:
+   - ย้าย Mock Data ออกจาก `@jongwen/shared` ไปเก็บเฉพาะฝั่ง Backend API ที่ `apps/api/prisma/demo-data/`
+   - ฝั่ง Frontend Bundle ใน `.next` ปราศจากข้อมูล credentials และ PIN ตัวอย่าง
+   - ระบบ Auto-seed ข้อมูลเดโมจะทำงานเฉพาะเมื่อตั้งค่า `SEED_DEMO=true` (ในโหมด Production จะสร้างเฉพาะบัญชีผู้ดูแลระบบเริ่มต้นจาก `ADMIN_INITIAL_PASSWORD`)
+3. **การป้องกันจุดเชื่อมต่อ API (API Hardening)**:
+   - ติดตั้ง **`helmet`** ป้องกัน HTTP Header ช่องโหว่ความปลอดภัย
+   - ติดตั้ง **`@nestjs/throttler`** ควบคุม Rate Limit (Global 100 ครั้ง/นาที และเข้มงวด 5–10 ครั้ง/นาที สำหรับหมวด Auth/PIN)
+   - ปรับ `verify-pin` ให้ตรวจเฉพาะผู้ใช้ที่กำลังเข้าสู่ระบบ และไม่ส่งภาพลายเซ็นกลับ
+   - ปิดกั้น Endpoint พิเศษ `dev/reset` และ `dev/clear-requests` ให้ใช้งานได้เฉพาะเมื่อ `ENABLE_DEV_ENDPOINTS=true`
+   - กำหนดขนาด Payload Body เป็น **2MB** ให้สอดคล้องกับภาพลายเซ็น Canvas Base64
 
 ---
 
@@ -364,9 +409,9 @@ erDiagram
    - การแนบเอกสารคำขอและรูปถ่ายแจ้งซ่อม ปัจจุบันเก็บเฉพาะชื่อไฟล์จำลอง
    - ต้องเพิ่มการรับไฟล์แบบ Multipart (Multer) และต่อ Object Storage (เช่น S3 / MinIO / Local Storage)
 
-3. **ความปลอดภัยและระบบรหัสผ่าน (Security & Hashing)**
-   - รหัสผ่านเข้าสู่ระบบและ PIN 6 หลักลงนาม ยังเก็บเป็น Plaintext ในฐานข้อมูล
-   - ต้องเข้ารหัสด้วย `bcrypt` หรือ `argon2` พร้อมปรับระบบ JWT ให้เก็บใน HTTP-only Cookie
+3. **ระบบ Token บน HTTP-only Cookie**
+   - รหัสผ่านและ PIN ถูกเข้ารหัสด้วย `argon2id` เรียบร้อยแล้ว
+   - ขั้นต่อไปคือการปรับระบบ Session Token ให้จัดเก็บบน **HTTP-only Cookie** พร้อมระบบ Refresh Token
 
 4. **ระบบส่งออกเอกสารเป็นไฟล์ PDF (PDF Export & Download)**
    - ปัจจุบันใช้การสั่งพิมพ์ผ่านเบราว์เซอร์ (`window.print()`)

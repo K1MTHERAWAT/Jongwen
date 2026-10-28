@@ -166,7 +166,6 @@ export interface SignAccessCheck {
   expectedLevel?: SignLevel;
   requiredRole?: Role;
   requiredPermission?: PermissionKey;
-  suggestedAccountId?: string;
   reason?: string;
 }
 
@@ -187,7 +186,6 @@ export function canSignRequest(
       expectedLevel: 'staff',
       requiredRole: 'STAFF',
       requiredPermission: 'review',
-      suggestedAccountId: 's-suda',
       reason: ok
         ? undefined
         : 'คำขอนี้อยู่ในขั้นรอเจ้าหน้าที่ตรวจสอบ (ระดับ 1) ต้องใช้บัญชีเจ้าหน้าที่ที่มีสิทธิ์ "ตรวจคำขอ & ลงนามระดับเจ้าหน้าที่"',
@@ -200,7 +198,6 @@ export function canSignRequest(
       expectedLevel: 'l2',
       requiredRole: 'APPROVER_L2',
       requiredPermission: 'sign',
-      suggestedAccountId: 'a-wichai',
       reason: ok
         ? undefined
         : 'คำขอนี้อยู่ในขั้นรอเห็นชอบระดับ 2 ต้องลงนามโดย "ผู้อนุมัติระดับ 2 (ปลัด อบต.)" ที่มีสิทธิ์ลงนามอนุมัติเอกสาร',
@@ -213,7 +210,6 @@ export function canSignRequest(
       expectedLevel: 'l1',
       requiredRole: 'APPROVER_L1',
       requiredPermission: 'sign',
-      suggestedAccountId: 'a-prasert',
       reason: ok
         ? undefined
         : 'คำขอนี้อยู่ในขั้นรออนุมัติขั้นสุดท้าย (ระดับ 1) ต้องลงนามโดย "ผู้อนุมัติระดับ 1 (นายก อบต.)" ที่มีสิทธิ์ลงนามอนุมัติเอกสาร',
@@ -231,7 +227,6 @@ export interface RouteAccessResult {
   requiredRoles: Role[];
   requiredPermission?: PermissionKey;
   reason?: string;
-  suggestedAccountId: string;
 }
 
 export function canAccessRoute(
@@ -240,7 +235,7 @@ export function canAccessRoute(
 ): RouteAccessResult {
   // หน้าสาธารณะ
   if (pathname === '/login' || pathname === '/register') {
-    return { allowed: true, title: 'เข้าสู่ระบบ / ลงทะเบียน', requiredRoles: [], suggestedAccountId: 'u-somchai' };
+    return { allowed: true, title: 'เข้าสู่ระบบ / ลงทะเบียน', requiredRoles: [] };
   }
 
   if (!account) {
@@ -249,7 +244,6 @@ export function canAccessRoute(
       title: 'ต้องเข้าสู่ระบบ',
       requiredRoles: ['USER', 'STAFF', 'APPROVER_L2', 'APPROVER_L1', 'ADMIN'],
       reason: 'กรุณาเข้าสู่ระบบก่อนใช้งานหน้านี้',
-      suggestedAccountId: 'u-somchai',
     };
   }
 
@@ -261,7 +255,6 @@ export function canAccessRoute(
       title: 'จัดการบทบาทและสิทธิ์ผู้ใช้',
       requiredRoles: ['ADMIN'],
       requiredPermission: 'manageUsers',
-      suggestedAccountId: 'ad-admin',
       reason: ok
         ? undefined
         : `เฉพาะ "${ROLE_LABEL.ADMIN}" หรือผู้ที่มีสิทธิ์ "${PERMISSION_LABEL.manageUsers}" เท่านั้น`,
@@ -277,7 +270,6 @@ export function canAccessRoute(
       title: 'จัดการทรัพยากรและแบบฟอร์ม',
       requiredRoles: ['ADMIN', 'STAFF'],
       requiredPermission: 'manageResources',
-      suggestedAccountId: 'ad-admin',
       reason: ok
         ? undefined
         : `ต้องมีบทบาทแอดมินหรือเจ้าหน้าที่ และเปิดสิทธิ์ "${PERMISSION_LABEL.manageResources}"`,
@@ -292,7 +284,6 @@ export function canAccessRoute(
       title: 'แดชบอร์ดผู้ดูแลระบบ (แอดมิน)',
       requiredRoles: ['ADMIN'],
       requiredPermission: 'manageUsers',
-      suggestedAccountId: 'ad-admin',
       reason: ok
         ? undefined
         : `หน้านี้สำหรับ "${ROLE_LABEL.ADMIN}" ที่มีสิทธิ์ "${PERMISSION_LABEL.manageUsers}" เท่านั้น`,
@@ -307,7 +298,6 @@ export function canAccessRoute(
       title: 'ตรวจและลงนามคำขอ (ระดับเจ้าหน้าที่)',
       requiredRoles: ['STAFF', 'ADMIN'],
       requiredPermission: 'review',
-      suggestedAccountId: 's-suda',
       reason: ok
         ? undefined
         : `ต้องมีบทบาทเจ้าหน้าที่/แอดมิน และเปิดสิทธิ์ "${PERMISSION_LABEL.review}"`,
@@ -322,7 +312,6 @@ export function canAccessRoute(
       title: 'เช็คลิสต์รับมอบ–รับคืนอุปกรณ์',
       requiredRoles: ['STAFF', 'ADMIN'],
       requiredPermission: 'handover',
-      suggestedAccountId: 's-suda',
       reason: ok
         ? undefined
         : `ต้องมีบทบาทเจ้าหน้าที่/แอดมิน และเปิดสิทธิ์ "${PERMISSION_LABEL.handover}"`,
@@ -337,7 +326,6 @@ export function canAccessRoute(
       title: 'กรอกคำขอแทนผู้มาติดต่อ (Walk-in)',
       requiredRoles: ['STAFF', 'ADMIN'],
       requiredPermission: 'walkIn',
-      suggestedAccountId: 's-suda',
       reason: ok
         ? undefined
         : `ต้องมีบทบาทเจ้าหน้าที่/แอดมิน และเปิดสิทธิ์ "${PERMISSION_LABEL.walkIn}"`,
@@ -357,7 +345,6 @@ export function canAccessRoute(
       title: 'หน้าหลักเจ้าหน้าที่',
       requiredRoles: ['STAFF', 'ADMIN'],
       requiredPermission: 'review',
-      suggestedAccountId: 's-suda',
       reason: ok ? undefined : 'หน้านี้สำหรับเจ้าหน้าที่ผู้รับผิดชอบ หรือผู้ดูแลระบบเท่านั้น',
     };
   }
@@ -373,7 +360,6 @@ export function canAccessRoute(
       allowed: ok,
       title: 'ตั้งค่าลายเซ็นดิจิทัลและรหัส PIN 6 หลัก',
       requiredRoles: ['APPROVER_L2', 'APPROVER_L1', 'STAFF', 'ADMIN'],
-      suggestedAccountId: 'a-prasert',
       reason: ok
         ? undefined
         : 'เฉพาะผู้อนุมัติและเจ้าหน้าที่เท่านั้นที่ต้องตั้งค่าลายเซ็นดิจิทัลและรหัส PIN 6 หลัก (ผู้ใช้งานทั่วไปเซ็นบนหน้าจอยื่นคำขอโดยตรง)',
@@ -386,7 +372,6 @@ export function canAccessRoute(
       allowed: true,
       title: 'เอกสารใบอนุญาต (PDF)',
       requiredRoles: ['USER', 'STAFF', 'APPROVER_L2', 'APPROVER_L1', 'ADMIN'],
-      suggestedAccountId: 'a-prasert',
     };
   }
 
@@ -400,7 +385,6 @@ export function canAccessRoute(
       title: 'ลงนามอนุมัติเอกสาร (ระดับปลัด / นายก อบต.)',
       requiredRoles: ['APPROVER_L2', 'APPROVER_L1'],
       requiredPermission: 'sign',
-      suggestedAccountId: 'a-wichai',
       reason: ok
         ? undefined
         : `เฉพาะผู้อนุมัติระดับ 2 (ปลัด อบต.) หรือผู้อนุมัติระดับ 1 (นายก อบต.) ที่เปิดสิทธิ์ "${PERMISSION_LABEL.sign}" เท่านั้น`,
@@ -412,6 +396,5 @@ export function canAccessRoute(
     allowed: true,
     title: ROLE_META[account.role]?.label ?? 'ผู้ใช้งาน',
     requiredRoles: ['USER', 'STAFF', 'APPROVER_L2', 'APPROVER_L1', 'ADMIN'],
-    suggestedAccountId: 'u-somchai',
   };
 }

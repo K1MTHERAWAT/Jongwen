@@ -1,6 +1,6 @@
-import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, NotFoundException, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
-import { DEFAULT_PERMISSIONS, Account } from '@jongwen/shared';
+import { DEFAULT_PERMISSIONS, Account, DemoAccountSummary } from '@jongwen/shared';
 import { DbService } from '../db/db.service';
 import {
   CurrentUser,
@@ -17,6 +17,45 @@ import { hashSecret, verifySecret } from './secret';
 @Controller('auth')
 export class AuthController {
   constructor(private readonly db: DbService) {}
+
+  @Public()
+  @Get('demo-accounts')
+  demoAccounts(): DemoAccountSummary[] {
+    if (process.env.DEMO_MODE !== 'true') {
+      throw new NotFoundException('Endpoint not available');
+    }
+    return this.db.accounts
+      .filter((a) => a.isDemo && a.active !== false)
+      .map((a) => ({
+        id: a.id,
+        name: a.name,
+        role: a.role,
+        position: a.position,
+        department: a.department,
+        initial: a.initial,
+        nickname: a.nickname,
+      }));
+  }
+
+  @Throttle({ auth: { limit: 15, ttl: 60000 } })
+  @Public()
+  @Post('demo-login')
+  async demoLogin(@Body() body: { accountId?: string }) {
+    if (process.env.DEMO_MODE !== 'true') {
+      throw new NotFoundException('Endpoint not available');
+    }
+    const accountId = String(body.accountId ?? '').trim();
+    if (!accountId) throw new BadRequestException('กรุณาระบุ accountId');
+
+    const user = this.db.accounts.find((a) => a.id === accountId && a.isDemo);
+    if (!user) {
+      throw new UnauthorizedException('ไม่พบบัญชีทดสอบนี้ในระบบ');
+    }
+    if (user.active === false) {
+      throw new UnauthorizedException('บัญชีนี้ถูกระงับการใช้งานชั่วคราว กรุณาติดต่อผู้ดูแลระบบ');
+    }
+    return { token: createSession(user.id), account: this.db.toPublic(user) };
+  }
 
   @Throttle({ auth: { limit: 10, ttl: 60000 } })
   @Public()
@@ -77,7 +116,15 @@ export class AuthController {
     if (password.length < 8 || !/[A-Za-z]/.test(password) || !/\d/.test(password)) {
       throw new BadRequestException('รหัสผ่านต้องยาวอย่างน้อย 8 ตัว และมีทั้งตัวอักษรและตัวเลข');
     }
-    if (!/^\d{6}$/.test(String(body.otp ?? ''))) throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
+    if (process.env.DEMO_MODE === 'true') {
+      if (String(body.otp ?? '') !== '000000') {
+        throw new BadRequestException('รหัส OTP ในโหมดเดโมคือ 000000');
+      }
+    } else {
+      if (!/^\d{6}$/.test(String(body.otp ?? ''))) {
+        throw new BadRequestException('รหัส OTP ไม่ถูกต้อง');
+      }
+    }
     if (this.db.accounts.some((a) => a.phone.replace(/\D/g, '') === digits || a.username === digits)) {
       throw new ConflictException('เบอร์โทรศัพท์นี้ลงทะเบียนแล้ว');
     }

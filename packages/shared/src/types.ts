@@ -25,12 +25,24 @@ export interface Account {
   /** ข้อความ/ภาพลายเซ็น (data URL) — null = ยังไม่ตั้งค่า */
   signature: string | null;
   pin: string | null;
+  /** บัญชีสำหรับโหมดเดโม (เฉพาะโหมดเดโมเท่านั้นที่ล็อกอิน one-click ได้) */
+  isDemo?: boolean;
   /** สถานะเปิด/ปิดการใช้งานบัญชี (ค่าเริ่มต้น = true) */
   active?: boolean;
   createdAt: string;
 }
 
 export type PublicAccount = Omit<Account, 'password' | 'pin'> & { hasPin: boolean };
+
+export interface DemoAccountSummary {
+  id: string;
+  name: string;
+  role: Role;
+  position: string;
+  department: string;
+  initial: string;
+  nickname: string;
+}
 
 // ===== Resources =====
 export type VenueType = 'meeting' | 'pavilion' | 'field' | 'yard' | 'training';

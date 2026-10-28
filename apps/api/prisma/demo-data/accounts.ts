@@ -61,6 +61,7 @@ export const mockAccounts: Account[] = [
     permissions: { ...DEFAULT_PERMISSIONS.USER },
     signature: MOCK_SIGNATURES.somchai,
     pin: MOCK_PIN,
+    isDemo: true,
     createdAt: '2026-09-01T09:00:00+07:00',
   },
   {
@@ -78,6 +79,7 @@ export const mockAccounts: Account[] = [
     permissions: { ...DEFAULT_PERMISSIONS.USER },
     signature: MOCK_SIGNATURES.manee,
     pin: MOCK_PIN,
+    isDemo: true,
     createdAt: '2026-09-12T10:00:00+07:00',
   },
   {
@@ -94,6 +96,7 @@ export const mockAccounts: Account[] = [
     permissions: { ...DEFAULT_PERMISSIONS.STAFF },
     signature: MOCK_SIGNATURES.suda,
     pin: MOCK_PIN,
+    isDemo: true,
     createdAt: '2026-01-10T09:00:00+07:00',
   },
   {
@@ -110,6 +113,7 @@ export const mockAccounts: Account[] = [
     permissions: { ...DEFAULT_PERMISSIONS.APPROVER_L2 },
     signature: MOCK_SIGNATURES.wichai,
     pin: MOCK_PIN,
+    isDemo: true,
     createdAt: '2026-01-10T09:00:00+07:00',
   },
   {
@@ -126,6 +130,7 @@ export const mockAccounts: Account[] = [
     permissions: { ...DEFAULT_PERMISSIONS.APPROVER_L1 },
     signature: MOCK_SIGNATURES.prasert,
     pin: MOCK_PIN,
+    isDemo: true,
     createdAt: '2026-01-10T09:00:00+07:00',
   },
   {
@@ -142,6 +147,7 @@ export const mockAccounts: Account[] = [
     permissions: { ...DEFAULT_PERMISSIONS.ADMIN },
     signature: MOCK_SIGNATURES.admin,
     pin: MOCK_PIN,
+    isDemo: true,
     createdAt: '2026-01-01T09:00:00+07:00',
   },
 ];

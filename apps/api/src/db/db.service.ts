@@ -47,14 +47,15 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   handovers: HandoverRecord[] = [];
 
   private seq = { BK: 0, BR: 0, RP: 0, n: 0, l: 0, u: 100, v: 100, e: 100 };
+  private resetCronTimer?: NodeJS.Timeout;
 
   async onModuleInit() {
     try {
       await this.prisma.$connect();
       const count = await this.prisma.account.count();
       if (count === 0) {
-        if (process.env.SEED_DEMO === 'true') {
-          this.logger.log('SEED_DEMO=true: Seeding demo data into PostgreSQL...');
+        if (process.env.DEMO_MODE === 'true' || process.env.SEED_DEMO === 'true') {
+          this.logger.log('DEMO_MODE=true: Seeding demo data into PostgreSQL...');
           await this.seedDatabase();
         } else {
           this.logger.log('Seeding initial production admin account into PostgreSQL...');
@@ -62,12 +63,38 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
         }
       }
       await this.loadFromDatabase();
+      if (process.env.DEMO_MODE === 'true') {
+        this.scheduleNightlyReset();
+      }
       this.logger.log(
         `PostgreSQL connected: ${this.accounts.length} accounts, ${this.venues.length} venues, ${this.equipment.length} equipment, ${this.requests.length} requests`,
       );
     } catch (err) {
       this.logger.error('Failed to initialize PostgreSQL connection, falling back to in-memory cache', err);
     }
+  }
+
+  scheduleNightlyReset() {
+    const now = new Date();
+    const next3am = new Date(now);
+    next3am.setHours(3, 0, 0, 0);
+    if (next3am.getTime() <= now.getTime()) {
+      next3am.setDate(next3am.getDate() + 1);
+    }
+    const msUntil3am = next3am.getTime() - now.getTime();
+    this.logger.log(
+      `DEMO_MODE: Nightly reset scheduled in ${(msUntil3am / (1000 * 60)).toFixed(0)} minutes (03:00 AM)`,
+    );
+    this.resetCronTimer = setTimeout(async () => {
+      try {
+        this.logger.log('DEMO_MODE: Running nightly automatic reset...');
+        await this.reset();
+        this.logger.log('DEMO_MODE: Nightly reset completed.');
+      } catch (err) {
+        this.logger.error('DEMO_MODE: Failed to run nightly reset', err);
+      }
+      this.scheduleNightlyReset();
+    }, msUntil3am);
   }
 
   async seedProductionAdmin() {
@@ -94,6 +121,9 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async onModuleDestroy() {
+    if (this.resetCronTimer) {
+      clearTimeout(this.resetCronTimer);
+    }
     await this.prisma.$disconnect().catch(() => {});
   }
 
@@ -227,6 +257,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
         permissions: a.permissions as unknown as Prisma.InputJsonValue,
         signature: a.signature ?? null,
         pin: a.pin ?? null,
+        isDemo: a.isDemo ?? false,
         active: a.active ?? true,
         createdAt: new Date(a.createdAt),
       },
@@ -244,6 +275,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
         permissions: a.permissions as unknown as Prisma.InputJsonValue,
         signature: a.signature ?? null,
         pin: a.pin ?? null,
+        isDemo: a.isDemo ?? false,
         active: a.active ?? true,
       },
     });
@@ -568,6 +600,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
           : { ...DEFAULT_PERMISSIONS[a.role] },
       signature: a.signature,
       pin: a.pin,
+      isDemo: a.isDemo,
       active: a.active,
       createdAt: a.createdAt.toISOString(),
     }));

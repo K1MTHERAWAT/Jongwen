@@ -10,6 +10,7 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
 import {
   Account,
   DEFAULT_PERMISSIONS,
@@ -119,20 +120,22 @@ export class AdminController {
     return { ok: true };
   }
 
+  @Throttle({ default: { limit: 2, ttl: 60000 } })
   @Permissions('manageUsers')
   @Post('dev/clear-requests')
   async clearRequests() {
-    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ENDPOINTS !== 'true') {
+    if (process.env.DEMO_MODE !== 'true' && (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ENDPOINTS !== 'true')) {
       throw new NotFoundException('Endpoint not available');
     }
     await this.db.clearTransactions();
     return { ok: true };
   }
 
+  @Throttle({ default: { limit: 2, ttl: 60000 } })
   @Permissions('manageUsers')
   @Post('dev/reset')
   async reset() {
-    if (process.env.NODE_ENV === 'production' || process.env.ENABLE_DEV_ENDPOINTS !== 'true') {
+    if (process.env.DEMO_MODE !== 'true') {
       throw new NotFoundException('Endpoint not available');
     }
     await this.db.reset();

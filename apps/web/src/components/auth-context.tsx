@@ -11,6 +11,7 @@ interface AuthContextValue {
   unreadCount: number;
   loading: boolean;
   loginWithCredentials: (username: string, password: string) => Promise<PublicAccount>;
+  loginWithDemo: (accountId: string) => Promise<PublicAccount>;
   registerAccount: (payload: {
     name: string;
     phone: string;
@@ -113,6 +114,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [refreshNotifications],
   );
 
+  const loginWithDemo = useCallback(
+    async (accountId: string) => {
+      const res = await api.demoLogin(accountId);
+      setStoredAuth(res.token, res.account.id);
+      setAccount(res.account);
+      await refreshNotifications();
+      return res.account;
+    },
+    [refreshNotifications],
+  );
+
   const registerAccount = useCallback(
     async (payload: {
       name: string;
@@ -125,8 +137,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const res = await api.register(payload);
       setStoredAuth(res.token, res.account.id);
       setAccount(res.account);
-      const list = await api.listMockAccounts();
-      setAccounts(list);
       await refreshNotifications();
       return res.account;
     },
@@ -156,6 +166,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         unreadCount,
         loading,
         loginWithCredentials,
+        loginWithDemo,
         registerAccount,
         logout,
         refreshMe,

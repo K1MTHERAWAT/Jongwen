@@ -27,7 +27,7 @@ import {
   equipmentIconName,
   venueIconName,
 } from '@/components/ui';
-import { api, formatPeriodRange, formatThaiDateTime } from '@/lib/api';
+import { api, formatPeriodRange, formatThaiDate, formatThaiDateTime } from '@/lib/api';
 
 const STEPS = ['เลือกสถานที่', 'วัน-เวลา', 'อุปกรณ์เสริม', 'กรอกคำขอ', 'ลงนามและส่ง'];
 
@@ -44,16 +44,14 @@ export default function BookingWizardPage() {
   const [onlyAvailable, setOnlyAvailable] = useState(false);
   const [search, setSearch] = useState('');
 
-  // Step 2 state (ตรงตามต้นฉบับ: ช่วงที่ 1 = 22–24 ต.ค. 13:00–17:00, ช่วงที่ 2 = 28 ต.ค. 09:00–12:00)
+  // Step 2 state (ค่าเริ่มต้น 1 ช่วงเวลา)
   const [month, setMonth] = useState('2026-10');
   const [availability, setAvailability] = useState<DayAvailability[]>([]);
   const [periods, setPeriods] = useState<Period[]>([
-    { start: '2026-10-22T13:00:00+07:00', end: '2026-10-24T17:00:00+07:00' },
-    { start: '2026-10-28T09:00:00+07:00', end: '2026-10-28T12:00:00+07:00' },
+    { start: '2026-10-27T09:00:00+07:00', end: '2026-10-27T16:00:00+07:00' },
   ]);
   const [activePeriodIdx, setActivePeriodIdx] = useState(0);
   const [conflicts, setConflicts] = useState<ConflictInfo[]>([]);
-  const [simulateOverlap, setSimulateOverlap] = useState(false);
 
   // Step 3 state (เลือกอุปกรณ์เสริม)
   const [equipmentList, setEquipmentList] = useState<Equipment[]>([]);
@@ -118,7 +116,7 @@ export default function BookingWizardPage() {
     api
       .checkConflicts(selectedIds, periods)
       .then((res) => setConflicts(res.conflicts))
-      .catch(() => {});
+      .catch(() => setConflicts([]));
   }, [selectedIds, periods]);
 
   const toggleVenue = (v: Venue) => {
@@ -199,21 +197,9 @@ export default function BookingWizardPage() {
     }
   }, [selectedIds, venues]);
 
-  const effectiveConflicts: ConflictInfo[] = simulateOverlap
-    ? [
-        {
-          periodIndex: 0,
-          venueId: selectedIds[0] || 'v-main-hall',
-          venueName: selectedVenues[0]?.name || 'ห้องประชุมใหญ่ อบต.',
-          start: '2026-10-23T09:00:00+07:00',
-          end: '2026-10-23T12:00:00+07:00',
-          code: 'BK-2569-0120',
-        },
-      ]
-    : conflicts;
+  const effectiveConflicts: ConflictInfo[] = conflicts;
 
   const handlePickCalendarDate = (dateStr: string) => {
-    setSimulateOverlap(false);
     setPeriods((prev) => {
       const idx = Math.min(activePeriodIdx, Math.max(0, prev.length - 1));
       return prev.map((p, i) => {
@@ -238,7 +224,6 @@ export default function BookingWizardPage() {
   };
 
   const updatePeriodPart = (idx: number, field: 'startDate' | 'startTime' | 'endDate' | 'endTime', val: string) => {
-    setSimulateOverlap(false);
     setPeriods((prev) =>
       prev.map((p, i) => {
         if (i !== idx) return p;
@@ -578,45 +563,9 @@ export default function BookingWizardPage() {
               onPickDate={handlePickCalendarDate}
             />
 
-            {/* ปุ่มสลับสถานะตัวอย่าง: กรณีว่าง vs กรณีไม่ว่าง (ซ้อนทับ) */}
-            <div className="jw-card p-3.5 flex flex-wrap items-center justify-between gap-2 text-[13px]">
-              <span className="font-semibold text-ink-mute">
-                แตะวันที่ในปฏิทินเพื่อเปลี่ยนวันของ <b>ช่วงที่ {activePeriodIdx + 1}</b>:
-              </span>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSimulateOverlap(false);
-                    setPeriods([
-                      { start: '2026-10-22T13:00:00+07:00', end: '2026-10-24T17:00:00+07:00' },
-                      { start: '2026-10-28T09:00:00+07:00', end: '2026-10-28T12:00:00+07:00' },
-                    ]);
-                  }}
-                  className={`px-3 py-1.5 rounded-full font-semibold transition ${
-                    !simulateOverlap
-                      ? 'bg-brand text-white'
-                      : 'bg-brand-mint text-brand hover:bg-brand hover:text-white'
-                  }`}
-                >
-                  กรณีว่างปกติ
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSimulateOverlap(true);
-                    setPeriods([{ start: '2026-10-22T13:00:00+07:00', end: '2026-10-24T17:00:00+07:00' }]);
-                    setActivePeriodIdx(0);
-                  }}
-                  className={`px-3 py-1.5 rounded-full font-semibold transition ${
-                    simulateOverlap
-                      ? 'bg-status-crit text-white'
-                      : 'bg-[#FDE8E8] text-status-crit hover:bg-status-crit hover:text-white'
-                  }`}
-                >
-                  กรณีไม่ว่าง (ซ้อนทับ)
-                </button>
-              </div>
+            <div className="text-[13px] text-ink-mute flex items-center gap-1.5 px-1">
+              <Icon name="calendar" className="w-4 h-4 text-brand" />
+              <span>แตะเลือกวันที่ในปฏิทินเพื่อเปลี่ยนวันของ <b>ช่วงที่ {activePeriodIdx + 1}</b></span>
             </div>
           </div>
 
@@ -666,7 +615,10 @@ export default function BookingWizardPage() {
 
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-2">
                     <div className="border border-line rounded-[8px] p-2 bg-white flex flex-col gap-1">
-                      <span className="text-[11px] text-ink-mute">เริ่มต้น</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-ink-mute">เริ่มต้น</span>
+                        <span className="text-[11px] text-brand font-semibold">{formatThaiDate(sd, false)}</span>
+                      </div>
                       <div className="flex items-center gap-1.5">
                         <input
                           type="date"
@@ -688,7 +640,10 @@ export default function BookingWizardPage() {
                     </span>
 
                     <div className="border border-line rounded-[8px] p-2 bg-white flex flex-col gap-1">
-                      <span className="text-[11px] text-ink-mute">สิ้นสุด</span>
+                      <div className="flex items-center justify-between">
+                        <span className="text-[11px] text-ink-mute">สิ้นสุด</span>
+                        <span className="text-[11px] text-brand font-semibold">{formatThaiDate(ed, false)}</span>
+                      </div>
                       <div className="flex items-center gap-1.5">
                         <input
                           type="date"
@@ -712,11 +667,12 @@ export default function BookingWizardPage() {
             <button
               type="button"
               onClick={() => {
-                setSimulateOverlap(false);
                 setPeriods((prev) => {
+                  const last = prev[prev.length - 1];
+                  const nextDate = last ? last.end.slice(0, 10) : '2026-10-27';
                   const next = [
                     ...prev,
-                    { start: '2026-10-29T09:00:00+07:00', end: '2026-10-29T12:00:00+07:00' },
+                    { start: `${nextDate}T09:00:00+07:00`, end: `${nextDate}T12:00:00+07:00` },
                   ];
                   setActivePeriodIdx(next.length - 1);
                   return next;
