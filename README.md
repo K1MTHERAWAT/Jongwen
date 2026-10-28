@@ -34,14 +34,14 @@ BookingV1/
 │   │   │   ├── schema.prisma     # Prisma Data Model (11 ตาราง รวม otp_codes + Enums)
 │   │   │   ├── migrations/       # SQL Migration Files (Prisma Migrate)
 │   │   │   ├── seed.ts           # Standalone Seed Script (รองรับ argon2 hash)
-│   │   │   ├── hash-existing-accounts.ts # สคริปต์ One-time แปลงข้อมูลเดิมเป็น argon2
-│   │   │   └── demo-data/        # ข้อมูลสำหรับทดสอบ แยกไว้เฉพาะ API (accounts, resources, requests)
+│   │   │   └── hash-existing-accounts.ts # สคริปต์ One-time แปลงข้อมูลเดิมเป็น argon2
 │   │   ├── .env.example          # ตัวอย่าง DATABASE_URL และตัวแปรระบบ
 │   │   └── src/
-│   │       ├── auth/             # Login, Register, Signature, PIN, Session, argon2 (secret.ts)
+│   │       ├── demo-data/        # ข้อมูลสำหรับทดสอบ แยกไว้เฉพาะ API (accounts, resources, requests)
+│   │       ├── auth/             # Login, Register, Request-OTP, Signature, PIN, Session, argon2 (secret.ts)
 │   │       ├── resources/        # Venues, Equipment, Monthly Availability, Conflict Check
 │   │       ├── requests/         # Booking, Borrow, Repair, 3-Level Sign, Handover, Reschedule
-│   │       ├── admin/            # Users & Permissions, Overview, Notifications
+│   │       ├── admin/            # Users & Permissions, Overview, Notifications, Dev Reset
 │   │       └── db/               # Prisma Database Service (Auto-seed demo หรือ Admin แรกเข้า)
 │   └── web/                    # @jongwen/web — Next.js (App Router) + Tailwind CSS (:3000)
 │       ├── public/               # Static Assets (โลโก้, ไอคอน)
@@ -371,7 +371,7 @@ erDiagram
 * **`GET /auth/demo-accounts`**: ส่งกลับเฉพาะข้อมูลปลอดภัยสำหรับการแสดงผลบทบาท (ID, ชื่อ, ตำแหน่ง, บทบาท, หน่วยงาน) — **ไม่มีเบอร์โทรศัพท์และไม่มีรหัสผ่าน**
 * **`POST /auth/demo-login`**: รับ `{ accountId }` และออก Session Token ให้โดยตรง — รหัสผ่านไม่ปรากฏใน Bundle หน้าเว็บ
 * **OTP ในโหมดเดโม**: ใช้รหัสคงที่ `000000` และปิดการเชื่อมต่อ SMS/LINE Gateway จริง
-* **Dev Reset & Nightly Cron**: `POST /dev/reset` เปิดเฉพาะเมื่อ `DEMO_MODE=true` มี Rate Limit และตั้งระบบ Cron อัตโนมัติรีเซ็ตข้อมูลทุกคืนเวลา 03:00 น.
+* **Dev Reset & Nightly Cron (Bangkok Time UTC+7)**: `POST /dev/reset` เปิดเฉพาะเมื่อ `DEMO_MODE=true` มี Rate Limit และตั้งระบบ Cron อัตโนมัติรีเซ็ตข้อมูลทุกคืนเวลา 03:00 น. เวลาไทย (`20:00:00 UTC`) พร้อมกลไกตรวจจับกรณี instance หลับ (Free tier/Serverless) แล้วตื่นขึ้นมาหลังเวลาตีสาม จะรีเซ็ตย้อนหลังให้อัตโนมัติ
 * **Production Guard**: เมื่อใช้งานบน Production และไม่ได้เปิด `DEMO_MODE=true` จุดเชื่อมต่อเหล่านี้จะตอบกลับ 404 ทันที และระบบจะไม่ Seed ข้อมูลตัวอย่าง
 
 ### 2. ฝั่ง Frontend Web (`NEXT_PUBLIC_DEMO=true`)
@@ -385,17 +385,23 @@ erDiagram
 
 1. **การเข้ารหัสรหัสผ่านและ PIN**:
    - เข้ารหัสด้วย **`argon2id`** ทั้งรหัสผ่านและรหัส PIN 6 หลัก (`hashSecret` / `verifySecret`)
+   - นำ Plaintext fallback ออกจาก `verifySecret` อย่างสมบูรณ์ รองรับเฉพาะแฮช `argon2id` เท่านั้น
    - มีสคริปต์ One-time Migration (`pnpm --filter @jongwen/api exec tsx prisma/hash-existing-accounts.ts`) แปลงข้อมูลใน DB อัตโนมัติ
 2. **การแยกข้อมูลทดสอบ (Mock Data Isolation)**:
-   - ย้าย Mock Data ออกจาก `@jongwen/shared` ไปเก็บเฉพาะฝั่ง Backend API ที่ `apps/api/prisma/demo-data/`
+   - ย้าย Mock Data ออกจาก `@jongwen/shared` ไปเก็บเฉพาะฝั่ง Backend API ที่ `apps/api/src/demo-data/` ป้องกันไม่ให้ build ออกไฟล์ผิดโฟลเดอร์ใน `dist/`
    - ฝั่ง Frontend Bundle ใน `.next` ปราศจากข้อมูล credentials และ PIN ตัวอย่าง
-   - ระบบ Auto-seed ข้อมูลเดโมจะทำงานเฉพาะเมื่อตั้งค่า `SEED_DEMO=true` (ในโหมด Production จะสร้างเฉพาะบัญชีผู้ดูแลระบบเริ่มต้นจาก `ADMIN_INITIAL_PASSWORD`)
-3. **การป้องกันจุดเชื่อมต่อ API (API Hardening)**:
+   - ระบบ Auto-seed ข้อมูลเดโมจะทำงานเฉพาะเมื่อตั้งค่า `DEMO_MODE=true` หรือ `SEED_DEMO=true`
+   - ในโหมด Production บังคับต้องระบุตัวแปร **`ADMIN_INITIAL_PASSWORD`** เท่านั้น หากไม่ระบุเซิร์ฟเวอร์จะปฏิเสธการเริ่มระบบ (Fail-safe) เพื่อป้องกันการใช้รหัสผ่านคาดเดาได้
+3. **การป้องกันจุดเชื่อมต่อ API (API Hardening & Deployment)**:
    - ติดตั้ง **`helmet`** ป้องกัน HTTP Header ช่องโหว่ความปลอดภัย
    - ติดตั้ง **`@nestjs/throttler`** ควบคุม Rate Limit (Global 100 ครั้ง/นาที และเข้มงวด 5–10 ครั้ง/นาที สำหรับหมวด Auth/PIN)
+   - เปิดใช้งาน **`trust proxy: 1`** ใน NestJS/Express เพื่อให้อ่าน IP จริงของผู้ใช้ผ่าน Reverse Proxy/PaaS (Cloud Run, Railway, Nginx) ได้ถูกต้อง
    - ปรับ `verify-pin` ให้ตรวจเฉพาะผู้ใช้ที่กำลังเข้าสู่ระบบ และไม่ส่งภาพลายเซ็นกลับ
-   - ปิดกั้น Endpoint พิเศษ `dev/reset` และ `dev/clear-requests` ให้ใช้งานได้เฉพาะเมื่อ `ENABLE_DEV_ENDPOINTS=true`
+   - ปิดกั้น Endpoint พิเศษ `dev/reset` และ `dev/clear-requests` ให้ใช้งานได้เฉพาะในโหมดเดโมเท่านั้น
    - กำหนดขนาด Payload Body เป็น **2MB** ให้สอดคล้องกับภาพลายเซ็น Canvas Base64
+4. **นโยบายการลงทะเบียนและระบบ OTP**:
+   - **ปิดรับสมัครสมาชิกเป็นค่าเริ่มต้นใน Production**: ต้องเปิดผ่าน `REGISTRATION_OPEN=true` อย่างเจาะจงเท่านั้น
+   - **ตาราง `otp_codes`**: มี Endpoint `POST /auth/request-otp` สุ่มรหัส 6 หลัก แฮชด้วย `argon2id` มีอายุ 5 นาที และจำกัดจำนวนครั้งการลองผิดไม่เกิน 5 ครั้ง โดยในขั้นตอนสมัครสมาชิกจะตรวจรหัสจริงจากตารางนี้
 
 ---
 
