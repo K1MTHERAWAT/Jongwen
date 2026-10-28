@@ -26,9 +26,19 @@ export const NAV: NavItem[] = [
   { href: '/', label: 'หน้าแรก', icon: Home, exact: true },
   { href: '/booking', label: 'สถานที่', icon: Building2 },
   { href: '/borrow', label: 'อุปกรณ์', icon: Package, exact: true },
-  { href: '/borrow/my', label: 'คำขอของฉัน', icon: FileText },
+  {
+    href: '/borrow/my',
+    label: 'คำขอของฉัน',
+    icon: FileText,
+    roles: ['USER', 'STAFF', 'APPROVER_L2', 'APPROVER_L1', 'ADMIN'],
+  },
   { href: '/repair', label: 'แจ้งซ่อม', icon: Wrench },
-  { href: '/history', label: 'ประวัติ', icon: Clock },
+  {
+    href: '/history',
+    label: 'ประวัติ',
+    icon: Clock,
+    roles: ['USER', 'STAFF', 'APPROVER_L2', 'APPROVER_L1', 'ADMIN'],
+  },
   // เจ้าหน้าที่
   { href: '/staff/review', label: 'ตรวจคำขอ', icon: ClipboardList, roles: ['STAFF', 'ADMIN'] },
   { href: '/staff/handover', label: 'รับมอบ-คืน', icon: CheckSquare, roles: ['STAFF', 'ADMIN'] },
@@ -36,14 +46,23 @@ export const NAV: NavItem[] = [
   // ผู้อนุมัติ
   { href: '/approver', label: 'คิวลงนาม/อนุมัติ', icon: CheckSquare, roles: ['APPROVER_L2', 'APPROVER_L1'] },
   // แอดมิน
-  { href: '/admin/resources', label: 'จัดการทรัพยากร', icon: Shield, roles: ['ADMIN'] },
+  { href: '/admin/resources', label: 'จัดการทรัพยากร', icon: Shield, roles: ['ADMIN', 'STAFF'] },
   { href: '/admin/permissions', label: 'กำหนดสิทธิ์ผู้ใช้', icon: Users, roles: ['ADMIN'] },
 ];
 
 export function getVisibleNav(account: PublicAccount | null): NavItem[] {
   return NAV.filter((item) => {
-    if (!item.roles) return true;
-    if (!account) return false;
-    return canAccessRoute(account, item.href);
+    // ถ้าเมนูต้องการบทบาทเฉพาะ แต่ผู้ใช้ยังไม่ได้ล็อกอิน -> ไม่แสดง
+    if (item.roles && !account) {
+      return false;
+    }
+
+    // ถ้ามีบัญชีผู้ใช้ ให้ตรวจสอบความถูกต้องของสิทธิ์ผ่าน canAccessRoute().allowed อย่างเข้มงวด
+    if (account) {
+      return canAccessRoute(account, item.href).allowed;
+    }
+
+    // ถ้าไม่ได้ระบุ roles (เมนูสาธารณะ) และยังไม่ได้ล็อกอิน ให้แสดงได้
+    return true;
   });
 }
