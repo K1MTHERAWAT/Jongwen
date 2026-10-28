@@ -72,10 +72,15 @@ export function Sidebar({ items }: { items: NavItem[] }) {
         <div className="flex flex-col gap-1 overflow-y-auto overflow-x-hidden flex-1">
           {/* Header */}
           <div className="flex h-11 items-center justify-between pl-2 mb-1">
-            <Link href="/" className="flex items-center gap-2.5 min-w-0">
-              <span className="w-7 h-7 rounded-lg bg-brand text-white font-bold flex items-center justify-center shrink-0 text-body">
-                J
-              </span>
+            <Link href="/" className="flex items-center gap-2.5 min-w-0" title="Jongwen">
+              <div className="size-8 rounded-control overflow-hidden shrink-0 flex items-center justify-center bg-surface-muted border border-line-soft">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/logo.png"
+                  alt="Jongwen Logo"
+                  className="size-full object-contain"
+                />
+              </div>
               <span className={['text-heading text-ink font-bold tracking-tight', open ? '' : 'lg:sr-only'].join(' ')}>
                 Jongwen
               </span>

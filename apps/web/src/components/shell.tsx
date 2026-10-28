@@ -91,7 +91,7 @@ export function AppShell({
         {/* Top Header Bar: Minimal Clean */}
         <header className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface/90 px-4 md:px-8 lg:px-10 backdrop-blur-md select-none print:hidden">
           {/* Left: Mobile hamburger space + back button + Title */}
-          <div className="flex items-center gap-2 pl-12 lg:pl-0 min-w-0">
+          <div className="flex items-center gap-2.5 pl-12 lg:pl-0 min-w-0">
             {onBack || backHref ? (
               <button
                 type="button"
@@ -101,7 +101,12 @@ export function AppShell({
               >
                 <ChevronLeft className="size-5" />
               </button>
-            ) : null}
+            ) : (
+              <Link href="/" className="size-7 rounded-control overflow-hidden shrink-0 flex items-center justify-center lg:hidden" title="Jongwen">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="Jongwen Logo" className="size-full object-contain" />
+              </Link>
+            )}
 
             <div className="min-w-0">
               {title ? (

@@ -95,8 +95,9 @@ export default function RegisterPage() {
 
         <div className="p-5 flex flex-col gap-3.5">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-full bg-brand-mint text-brand flex items-center justify-center shrink-0">
-              <Icon name="user-circle" className="w-6 h-6" />
+            <div className="size-11 rounded-control bg-surface-muted border border-line-soft flex items-center justify-center shrink-0 overflow-hidden">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/logo.png" alt="Jongwen Logo" className="size-full object-contain" />
             </div>
             <div>
               <b className="text-[16px] text-ink">สร้างบัญชีผู้ใช้ใหม่</b>
