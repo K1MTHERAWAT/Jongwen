@@ -4,6 +4,14 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  ArrowRight,
+  Building2,
+  Clock,
+  Package,
+  Search,
+  Wrench,
+} from 'lucide-react';
+import {
   BorrowRequest,
   REQUEST_TYPE_LABEL,
   ROLE_LABEL,
@@ -12,9 +20,16 @@ import {
 } from '@jongwen/shared';
 import { useAuth } from '@/components/auth-context';
 import { AppShell, roleHomePath } from '@/components/shell';
-import { Icon } from '@/components/icons';
-import { StatusChip, Tabs } from '@/components/ui';
-import { api, formatPeriodRange, formatThaiDate } from '@/lib/api';
+import {
+  Button,
+  Card,
+  EmptyState,
+  ListRow,
+  ServiceCard,
+  StatusChip,
+  Tabs,
+} from '@/components/ui';
+import { api, formatPeriodRange, formatThaiDate, formatThaiDateTime } from '@/lib/api';
 
 type TabFilter = 'all' | RequestType;
 
@@ -46,189 +61,207 @@ export default function HomePage() {
   });
 
   const dueBorrow = requests.find(
-    (r): r is RequestWithTimeline & BorrowRequest => r.type === 'borrow' && r.status === 'borrowing',
+    (r): r is RequestWithTimeline & BorrowRequest =>
+      r.type === 'borrow' && r.status === 'borrowing',
   );
 
   return (
     <AppShell>
-      {/* แบนเนอร์นำทางหากผู้ใช้ปัจจุบันเป็น เจ้าหน้าที่ / ผู้อนุมัติ / แอดมิน แต่เปิดมาที่หน้าประชาชน */}
-      {account && account.role !== 'USER' && (
-        <div className="mb-5 jw-card p-4 bg-brand-mint border border-brand flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <b className="text-[15px] text-ink block">
-              คุณกำลังเข้าใช้งานในบทบาท: {account.name} ({ROLE_LABEL[account.role]})
-            </b>
-            <span className="text-[13px] text-ink-mute">
-              หน้านี้คือหน้าแรกสำหรับผู้ใช้งานทั่วไป (ประชาชน) คุณสามารถไปยังหน้าหลักตามบทบาทของคุณได้ทันที
-            </span>
-          </div>
-          <Link href={roleHomePath(account.role)} className="jw-btn jw-btn-sm">
-            ไปหน้าหลัก {ROLE_LABEL[account.role]} →
-          </Link>
-        </div>
-      )}
-
-      {/* Header ทักทาย + ค้นหา (Desktop & Mobile/Tablet) */}
-      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-5">
-        <div>
-          <h1 className="text-[22px] sm:text-[28px] font-bold text-ink">
-            สวัสดี, คุณ{account?.nickname || 'สมชาย'}
-          </h1>
-          <p className="text-[14px] text-ink-mute">เลือกบริการที่ต้องการใช้งาน</p>
-        </div>
-        <div className="relative w-full lg:w-[420px]">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-ink-ph">
-            <Icon name="search" className="w-5 h-5" />
-          </span>
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="ค้นหาสถานที่ อุปกรณ์"
-            className="jw-in rounded-full pl-11 h-[42px]"
-          />
-        </div>
-      </div>
-
-      {/* 3 บริการหลัก */}
-      <div className="grid grid-cols-3 gap-3 sm:gap-4 mb-6">
-        <Link
-          href="/booking"
-          className="jw-card p-3.5 sm:p-5 border-[1.5px] border-brand flex flex-col sm:flex-row items-center text-center sm:text-left gap-2.5 sm:gap-4 hover:shadow-high transition"
-        >
-          <div className="w-12 h-12 rounded-full bg-brand text-white flex items-center justify-center shrink-0">
-            <Icon name="building-community" className="w-6 h-6" />
-          </div>
-          <div>
-            <b className="block text-[14px] sm:text-[17px] text-ink">สถานที่</b>
-            <span className="text-[12px] sm:text-[13px] text-ink-mute">เลือกวัน-เวลา</span>
-          </div>
-        </Link>
-
-        <Link
-          href="/repair"
-          className="jw-card p-3.5 sm:p-5 border border-line/60 flex flex-col sm:flex-row items-center text-center sm:text-left gap-2.5 sm:gap-4 hover:shadow-high transition"
-        >
-          <div className="w-12 h-12 rounded-full bg-brand-mint text-brand flex items-center justify-center shrink-0">
-            <Icon name="tool" className="w-6 h-6" />
-          </div>
-          <div>
-            <b className="block text-[14px] sm:text-[17px] text-ink">แจ้งซ่อม</b>
-            <span className="text-[12px] sm:text-[13px] text-ink-mute">แนบรูปได้</span>
-          </div>
-        </Link>
-
-        <Link
-          href="/borrow"
-          className="jw-card p-3.5 sm:p-5 border border-line/60 flex flex-col sm:flex-row items-center text-center sm:text-left gap-2.5 sm:gap-4 hover:shadow-high transition"
-        >
-          <div className="w-12 h-12 rounded-full bg-brand-mint text-brand flex items-center justify-center shrink-0">
-            <Icon name="package" className="w-6 h-6" />
-          </div>
-          <div>
-            <b className="block text-[14px] sm:text-[17px] text-ink">อุปกรณ์</b>
-            <span className="text-[12px] sm:text-[13px] text-ink-mute">ติดตามกำหนดคืน</span>
-          </div>
-        </Link>
-      </div>
-
-      {/* Layout 2 คอลัมน์บน Tablet / Desktop */}
-      <div id="my-requests" className="grid grid-cols-1 lg:grid-cols-[1.55fr_1fr] gap-6 items-start">
-        {/* ซ้าย: คำขอของฉัน */}
-        <div className="flex flex-col gap-3.5">
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
-            <div className="flex items-center justify-between">
-              <b className="text-[18px] text-ink">คำขอของฉัน</b>
-              <Link
-                href="/borrow/my"
-                className="text-[13px] font-semibold text-brand inline-flex items-center gap-1 hover:underline"
-              >
-                รายการอุปกรณ์ของฉัน <Icon name="chevron-right" className="w-4 h-4" />
-              </Link>
+      <div className="flex flex-col gap-6 max-w-[1200px] mx-auto">
+        {/* Banner if staff/approver/admin viewing citizen home */}
+        {account && account.role !== 'USER' && (
+          <Card className="bg-brand-tint border-brand/30 flex flex-wrap items-center justify-between gap-4 p-4">
+            <div>
+              <div className="text-body font-semibold text-brand-ink">
+                คุณกำลังเข้าใช้งานในบทบาท: {account.name} ({ROLE_LABEL[account.role]})
+              </div>
+              <p className="text-caption text-brand-ink/80 mt-0.5">
+                หน้านี้คือหน้าแรกสำหรับประชาชน คุณสามารถสลับไปยังแดชบอร์ดงานของคุณได้ทันที
+              </p>
             </div>
-            <Tabs<TabFilter>
-              value={tab}
-              onChange={setTab}
-              className="w-full sm:w-[380px]"
-              options={[
-                { value: 'all', label: 'ทั้งหมด' },
-                { value: 'booking', label: 'สถานที่' },
-                { value: 'repair', label: 'แจ้งซ่อม' },
-                { value: 'borrow', label: 'อุปกรณ์' },
-              ]}
+            <Link href={roleHomePath(account.role)}>
+              <Button variant="primary" className="h-9 px-3.5 text-caption">
+                ไปหน้าหลัก {ROLE_LABEL[account.role]} <ArrowRight className="size-4" />
+              </Button>
+            </Link>
+          </Card>
+        )}
+
+        {/* Hero & Search Header */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pt-2">
+          <div>
+            <h1 className="text-title md:text-display text-ink font-bold tracking-tight">
+              สวัสดี, คุณ{account?.nickname || account?.name.split(' ')[0] || 'ผู้มาติดต่อ'}
+            </h1>
+            <p className="text-body text-muted mt-1">
+              เลือกบริการเทศบาล/อบต. ที่ต้องการดำเนินการ
+            </p>
+          </div>
+          <div className="relative w-full md:w-80 lg:w-96">
+            <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-muted pointer-events-none">
+              <Search className="size-5" />
+            </span>
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="ค้นหารหัสคำขอ หรือรายการ..."
+              className="h-11 w-full rounded-control border border-line-input bg-surface pl-10 pr-4 text-body text-ink placeholder:text-muted focus-visible:outline-2 focus-visible:outline-brand"
             />
           </div>
-
-          <div className="flex flex-col gap-2.5">
-            {filtered.length === 0 ? (
-              <div className="jw-card p-8 text-center text-[14px] text-ink-mute">ไม่พบรายการคำขอ</div>
-            ) : (
-              filtered.map((req) => {
-                const dateText =
-                  req.type === 'booking'
-                    ? formatPeriodRange(req.periods[0])
-                    : req.type === 'borrow'
-                    ? `${formatThaiDate(req.pickupDate, false)}–${formatThaiDate(req.returnDate, true)}`
-                    : req.subtitle;
-
-                return (
-                  <div
-                    key={req.id}
-                    onClick={() =>
-                      router.push(
-                        req.type === 'repair'
-                          ? `/repair?mode=track&id=${req.id}`
-                          : `/requests/${req.id}`,
-                      )
-                    }
-                    className="jw-card p-4 flex items-center justify-between gap-3 cursor-pointer hover:ring-1 hover:ring-brand transition"
-                  >
-                    <div className="flex flex-col gap-0.5 min-w-0">
-                      <b className="text-[15px] text-ink truncate">{req.title}</b>
-                      <span className="text-[13px] text-ink-mute truncate">
-                        {REQUEST_TYPE_LABEL[req.type]} · {req.code} · {dateText}
-                      </span>
-                    </div>
-                    <StatusChip status={req.status} />
-                  </div>
-                );
-              })
-            )}
-          </div>
         </div>
 
-        {/* ขวา: ใกล้ถึงกำหนด + แจ้งเตือนล่าสุด */}
-        <div className="flex flex-col gap-3.5">
-          <b className="text-[18px] text-ink">ใกล้ถึงกำหนด</b>
-          {dueBorrow ? (
-            <div className="jw-card p-4 bg-brand-mint flex items-center justify-between gap-3">
-              <div className="flex flex-col gap-1">
-                <b className="text-[15px] text-ink inline-flex items-center gap-1.5">
-                  <Icon name="clock" className="w-4 h-4 text-brand" /> คืน{dueBorrow.title}
-                </b>
-                <span className="text-[13px] text-ink-mute">
-                  กำหนดคืน {formatThaiDate(dueBorrow.returnDate)} · 16:00
-                </span>
-              </div>
-              <Link href="/borrow/my" className="jw-btn jw-btn-sm shrink-0">
-                แจ้งคืน
-              </Link>
-            </div>
-          ) : (
-            <div className="jw-card p-4 text-[13px] text-ink-mute">ไม่มีรายการที่ใกล้ครบกำหนดคืน</div>
-          )}
+        {/* 3 Service Cards Grid */}
+        <section aria-label="บริการหลัก">
+          <div className="grid gap-4 md:grid-cols-3">
+            <ServiceCard
+              href="/booking"
+              title="ขอใช้สถานที่"
+              description="ห้องประชุม ศาลา สนามกีฬา และพื้นที่จัดกิจกรรมส่วนกลาง"
+              icon={Building2}
+            />
+            <ServiceCard
+              href="/borrow"
+              title="ยืม–คืนอุปกรณ์"
+              description="เครื่องเสียง โปรเจกเตอร์ เต็นท์ โต๊ะ เก้าอี้ และครุภัณฑ์"
+              icon={Package}
+            />
+            <ServiceCard
+              href="/repair"
+              title="แจ้งซ่อมและปัญหา"
+              description="แจ้งอุปกรณ์ชำรุด อาคารสถานที่เสียหาย และติดตามผลการซ่อม"
+              icon={Wrench}
+            />
+          </div>
+        </section>
 
-          <b className="text-[18px] text-ink mt-2">แจ้งเตือนล่าสุด</b>
-          {notifications.slice(0, 3).map((n) => (
-            <div
-              key={n.id}
-              onClick={() => n.link && router.push(n.link)}
-              className="jw-card p-4 cursor-pointer hover:ring-1 hover:ring-brand transition"
-            >
-              <b className="text-[14px] text-ink block">{n.title}</b>
-              <span className="text-[13px] text-ink-mute">{n.body}</span>
+        {/* 2-Column Dashboard on Desktop */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
+          {/* Left Column: My Requests */}
+          <section aria-label="คำขอของฉัน" className="flex flex-col gap-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-2">
+                <h2 className="text-heading font-bold text-ink">คำขอของฉัน</h2>
+                <span className="text-caption text-muted">({filtered.length})</span>
+              </div>
+              <Tabs<TabFilter>
+                value={tab}
+                onChange={setTab}
+                className="w-full sm:w-auto"
+                options={[
+                  { value: 'all', label: 'ทั้งหมด' },
+                  { value: 'booking', label: 'สถานที่' },
+                  { value: 'borrow', label: 'อุปกรณ์' },
+                  { value: 'repair', label: 'แจ้งซ่อม' },
+                ]}
+              />
             </div>
-          ))}
+
+            <Card padding="none" className="p-2 sm:p-4">
+              {filtered.length === 0 ? (
+                <EmptyState
+                  title="ยังไม่มีคำขอในหมวดนี้"
+                  description="คุณสามารถเลือกบริการด้านบนเพื่อสร้างคำขอจองสถานที่ ยืมอุปกรณ์ หรือแจ้งซ่อมได้ทันที"
+                  actionLabel="ขอใช้สถานที่"
+                  actionHref="/booking"
+                />
+              ) : (
+                <div className="divide-y divide-line-soft">
+                  {filtered.map((req) => {
+                    const dateText =
+                      req.type === 'booking'
+                        ? formatPeriodRange(req.periods[0])
+                        : req.type === 'borrow'
+                        ? `${formatThaiDate(req.pickupDate, false)} – ${formatThaiDate(req.returnDate, true)}`
+                        : req.subtitle;
+
+                    const targetHref =
+                      req.type === 'repair'
+                        ? `/repair?mode=track&id=${req.id}`
+                        : `/requests/${req.id}`;
+
+                    return (
+                      <ListRow
+                        key={req.id}
+                        href={targetHref}
+                        code={`${REQUEST_TYPE_LABEL[req.type]} · ${req.code}`}
+                        title={req.title}
+                        subtitle={dateText}
+                        chip={<StatusChip status={req.status} />}
+                        className="px-2 hover:bg-hover rounded-control transition-colors"
+                      />
+                    );
+                  })}
+                </div>
+              )}
+            </Card>
+          </section>
+
+          {/* Right Column: Due Borrows & Recent Notifications */}
+          <aside aria-label="ข้อมูลประกอบ" className="flex flex-col gap-6">
+            {/* Due Return Box */}
+            <div className="flex flex-col gap-2">
+              <h2 className="text-heading font-bold text-ink">กำหนดส่งคืนอุปกรณ์</h2>
+              {dueBorrow ? (
+                <Card className="border-warn-fg/30 bg-warn-bg/50 p-4 flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1.5 text-body font-semibold text-warn-fg">
+                      <Clock className="size-4 shrink-0" />
+                      <span className="truncate">คืน: {dueBorrow.title}</span>
+                    </div>
+                    <div className="text-caption text-muted mt-1">
+                      กำหนดคืนภายใน {formatThaiDate(dueBorrow.returnDate)}
+                    </div>
+                  </div>
+                  <Link href="/borrow/my" className="shrink-0">
+                    <Button variant="secondary" className="h-9 px-3 text-caption">
+                      แจ้งคืน
+                    </Button>
+                  </Link>
+                </Card>
+              ) : (
+                <Card className="p-4 text-center text-body text-muted">
+                  ไม่มีอุปกรณ์ที่กำลังยืมหรือครบกำหนดคืน
+                </Card>
+              )}
+            </div>
+
+            {/* Recent Notifications */}
+            <div className="flex flex-col gap-2">
+              <h2 className="text-heading font-bold text-ink">แจ้งเตือนล่าสุด</h2>
+              <Card padding="none" className="p-2 sm:p-3">
+                {notifications.length === 0 ? (
+                  <div className="py-6 text-center text-body text-muted">
+                    ไม่มีการแจ้งเตือน
+                  </div>
+                ) : (
+                  <div className="divide-y divide-line-soft">
+                    {notifications.slice(0, 4).map((n) => (
+                      <div
+                        key={n.id}
+                        onClick={() => n.link && router.push(n.link)}
+                        className={`p-3 rounded-control cursor-pointer hover:bg-hover transition-colors ${
+                          !n.read ? 'bg-brand-tint/30' : ''
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-body font-semibold text-ink truncate">
+                            {n.title}
+                          </span>
+                          <span className="text-[11px] text-muted shrink-0">
+                            {formatThaiDateTime(n.at)}
+                          </span>
+                        </div>
+                        <p className="text-caption text-muted mt-1 line-clamp-2">
+                          {n.body}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </Card>
+            </div>
+          </aside>
         </div>
       </div>
     </AppShell>

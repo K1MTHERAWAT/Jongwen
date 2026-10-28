@@ -1,41 +1,38 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&family=Sarabun:wght@400;500;600;700&display=swap');
-
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 @layer base {
   body {
-    @apply font-sans text-ink antialiased;
-    background: linear-gradient(160deg, #EAF3EE 0%, #F7F2E9 100%);
+    @apply font-sans text-ink bg-bg antialiased;
     min-height: 100vh;
   }
 }
 
 @layer components {
   .jw-header {
-    background: linear-gradient(90deg, #2F8F6B, #3AAE82);
+    background: #0E7C66;
   }
   .jw-card {
-    @apply bg-white rounded-hard shadow-card;
+    @apply bg-surface rounded-card border border-line shadow-card;
   }
   .jw-btn {
-    @apply h-12 px-5 rounded-sq bg-brand text-white font-semibold text-[15px] inline-flex items-center justify-center gap-2 transition hover:bg-brand-hover disabled:bg-[#A8AEC2] disabled:cursor-not-allowed;
+    @apply h-11 px-[18px] rounded-control bg-brand text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-brand-ink disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-sec {
-    @apply h-12 px-5 rounded-sq bg-[#fcfcff] text-ink border border-line font-semibold text-[15px] inline-flex items-center justify-center gap-2 transition hover:bg-soft;
+    @apply h-11 px-[18px] rounded-control bg-surface text-ink border border-line-input font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-hover disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-red {
-    @apply h-12 px-5 rounded-sq bg-white text-status-crit border-[1.5px] border-status-crit font-semibold text-[15px] inline-flex items-center justify-center gap-2 transition hover:bg-[#FDE8E8];
+    @apply h-11 px-[18px] rounded-control bg-danger-fg text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-sm {
-    @apply h-[38px] px-4 text-[13px];
+    @apply h-9 px-3 text-caption;
   }
   .jw-in {
-    @apply h-[46px] w-full bg-white border-[1.5px] border-line rounded-sq px-3.5 text-[14px] text-ink placeholder:text-ink-ph focus:outline-none focus:border-brand;
+    @apply h-11 w-full bg-surface border border-line-input rounded-control px-3 text-body text-ink placeholder:text-muted focus:outline-none focus-visible:outline-2 focus-visible:outline-brand;
   }
   .jw-lbl {
-    @apply block font-semibold text-[13px] text-ink mb-1.5;
+    @apply block font-semibold text-caption text-ink mb-1.5;
   }
 }
 
@@ -48,33 +45,5 @@
   html,
   body {
     background: #ffffff !important;
-    color: #000000 !important;
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
-
-  .no-print {
-    display: none !important;
-  }
-
-  .gov-form-paper {
-    width: 100% !important;
-    height: auto !important;
-    min-height: 0 !important;
-    box-sizing: border-box !important;
-    border: none !important;
-    border-radius: 0 !important;
-    box-shadow: none !important;
-    margin: 0 !important;
-    padding: 4mm 6mm !important;
-    font-size: 13.5px !important;
-    line-height: 1.55 !important;
-    break-inside: avoid;
-    page-break-inside: avoid;
   }
 }
