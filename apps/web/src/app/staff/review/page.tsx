@@ -71,7 +71,8 @@ export default function StaffReviewPage() {
   }, [account?.id, account?.signature, current?.id]);
 
   const handleDecision = async (decision: 'approve' | 'reject', pinVal?: string) => {
-    if (!current || !staffSignature.trim()) return;
+    if (!current) return;
+    if (current.type !== 'repair' && !staffSignature.trim()) return;
     setPinError('');
     setSubmitting(true);
     try {
@@ -122,7 +123,37 @@ export default function StaffReviewPage() {
       footer={
         current && !pinStep ? (
           <div className="flex w-full sm:w-auto gap-2.5">
-            {current.type === 'repair' && current.status === 'repair_in_progress' ? (
+            {current.type === 'repair' ? (
+              current.status === 'repair_in_progress' ? (
+                <button
+                  type="button"
+                  disabled={submitting || !confirmed}
+                  onClick={() => handleDecision('approve')}
+                  className="jw-btn w-full sm:w-72"
+                >
+                  {submitting ? 'กำลังบันทึก...' : 'บันทึกซ่อมเสร็จ'}
+                </button>
+              ) : (
+                <>
+                  <button
+                    type="button"
+                    disabled={submitting}
+                    onClick={() => handleDecision('reject')}
+                    className="jw-btn-red flex-1 sm:w-44"
+                  >
+                    ส่งกลับ / ไม่รับเรื่อง
+                  </button>
+                  <button
+                    type="button"
+                    disabled={submitting || !confirmed}
+                    onClick={() => handleDecision('approve')}
+                    className="jw-btn flex-[1.5] sm:w-64"
+                  >
+                    {submitting ? 'กำลังบันทึก...' : 'รับเรื่องซ่อม'}
+                  </button>
+                </>
+              )
+            ) : current.status === 'repair_in_progress' ? (
               <button
                 type="button"
                 disabled={submitting || !confirmed || !staffSignature.trim()}
@@ -162,9 +193,7 @@ export default function StaffReviewPage() {
                   }}
                   className="jw-btn flex-[1.5] sm:w-64"
                 >
-                  {current.type === 'repair'
-                    ? 'ลงนามรับเรื่องและยืนยัน PIN'
-                    : 'ลงนามและยืนยัน PIN'}
+                  ลงนามและยืนยัน PIN
                 </button>
               </>
             )}
@@ -331,32 +360,47 @@ export default function StaffReviewPage() {
 
           {current.type !== 'repair' && showOfficialForm && <OfficialGovFormDocument req={current} />}
 
-          {/* สถานะลายมือชื่อทั้ง 4 ฝ่าย + แถบความคืบหน้า 3 ระดับ (เหมือนหน้าผู้อนุมัติ L2 / L1) */}
+          {/* สถานะลายมือชื่อทั้ง 4 ฝ่าย / ความคืบหน้าแจ้งซ่อม */}
           <div className="jw-card p-4 flex flex-col gap-2.5">
-            <b className="text-[14px] text-ink">สถานะลายมือชื่อบนเอกสารนี้</b>
+            <b className="text-[14px] text-ink">
+              {current.type === 'repair' ? 'ความคืบหน้าการดำเนินงาน (3 ขั้นตอน)' : 'สถานะลายมือชื่อบนเอกสารนี้'}
+            </b>
             {current.type === 'repair' ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <SignaturePreviewCard
-                  roleLabel="1. ผู้แจ้งซ่อม"
-                  signerName={current.requesterName}
-                  signature={current.requesterSignature}
-                  signedAt={formatThaiDateTime(current.createdAt)}
-                  status="signed"
-                />
-                <SignaturePreviewCard
-                  roleLabel="2. เจ้าหน้าที่ผู้รับเรื่อง/ซ่อม"
-                  signerName={current.staffSignerName || account?.name || 'สุดา มีสุข'}
-                  signature={current.staffSignature}
-                  signedAt={current.acceptedAt ? formatThaiDateTime(current.acceptedAt) : undefined}
-                  status={current.staffSignature ? 'signed' : 'pending'}
-                />
-                <SignaturePreviewCard
-                  roleLabel="3. ผู้แจ้งตรวจรับงานซ่อม"
-                  signerName={current.requesterName}
-                  signature={current.acceptanceSignature}
-                  signedAt={current.acceptedByRequesterAt ? formatThaiDateTime(current.acceptedByRequesterAt) : undefined}
-                  status={current.acceptanceSignature ? 'signed' : 'pending'}
-                />
+                <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                  <span className="text-[12px] font-semibold text-ink-mute">1. ผู้แจ้งส่งเรื่อง</span>
+                  <span className="text-[13.5px] font-bold text-ink">{current.requesterName}</span>
+                  <span className="text-[12px] text-ink-mute">{formatThaiDateTime(current.createdAt)}</span>
+                  <span className="inline-flex items-center gap-1 text-[12px] font-medium text-brand mt-1">✓ ส่งเรื่องแล้ว</span>
+                </div>
+                <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                  <span className="text-[12px] font-semibold text-ink-mute">2. เจ้าหน้าที่รับเรื่อง & ซ่อม</span>
+                  <span className="text-[13.5px] font-bold text-ink">{current.staffSignerName || account?.name || 'ฝ่ายช่างซ่อมบำรุง'}</span>
+                  <span className="text-[12px] text-ink-mute">
+                    {current.finishedAt
+                      ? `เสร็จ: ${formatThaiDateTime(current.finishedAt)}`
+                      : current.acceptedAt
+                      ? `รับเรื่อง: ${formatThaiDateTime(current.acceptedAt)}`
+                      : 'รอดำเนินการ'}
+                  </span>
+                  <span className={`inline-flex items-center gap-1 text-[12px] font-medium mt-1 ${
+                    current.finishedAt ? 'text-brand' : current.acceptedAt ? 'text-amber-600' : 'text-ink-mute'
+                  }`}>
+                    {current.finishedAt ? '✓ ซ่อมเสร็จแล้ว' : current.acceptedAt ? '⟳ กำลังดำเนินการ' : '○ รอช่างรับเรื่อง'}
+                  </span>
+                </div>
+                <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                  <span className="text-[12px] font-semibold text-ink-mute">3. ผู้แจ้งตรวจรับงาน</span>
+                  <span className="text-[13.5px] font-bold text-ink">{current.requesterName}</span>
+                  <span className="text-[12px] text-ink-mute">
+                    {current.acceptedByRequesterAt ? formatThaiDateTime(current.acceptedByRequesterAt) : '-'}
+                  </span>
+                  <span className={`inline-flex items-center gap-1 text-[12px] font-medium mt-1 ${
+                    current.status === 'repair_done' ? 'text-brand' : current.status === 'repair_awaiting_acceptance' ? 'text-amber-600' : 'text-ink-mute'
+                  }`}>
+                    {current.status === 'repair_done' ? '✓ ตรวจรับเรียบร้อย' : current.status === 'repair_awaiting_acceptance' ? '⟳ รอคุณตรวจรับ' : '○ รอซ่อมเสร็จ'}
+                  </span>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -486,36 +530,56 @@ export default function StaffReviewPage() {
             </>
           )}
 
-          {/* กล่องลายเซ็นของเจ้าหน้าที่ผู้ตรวจ (ระดับ 1) เหมือนผู้อนุมัติระดับ 2 และ 1 */}
-          <div className="jw-card p-4 flex flex-col gap-3">
-            <label className="jw-lbl">
-              ลายเซ็นของคุณ ({account?.name || 'สุดา มีสุข'} · {account?.position || 'เจ้าหน้าที่ธุรการ'})
-            </label>
-            <SignatureBox
-              value={staffSignature}
-              onChange={setStaffSignature}
-              savedSignature={account?.signature}
-              signerLabel={`${account?.name || 'สุดา มีสุข'} · ${account?.position || 'เจ้าหน้าที่ธุรการ'}`}
-              height={155}
-              skipPinPrompt
-            />
-
-            <div
-              onClick={() => setConfirmed((v) => !v)}
-              className="flex items-start gap-2.5 cursor-pointer select-none pt-1"
-            >
+          {/* กล่องลายเซ็นของเจ้าหน้าที่ (ยกเว้นงานซ่อมที่ไม่ต้องลงนาม) */}
+          {current.type === 'repair' ? (
+            <div className="jw-card p-4 flex flex-col gap-3">
               <div
-                className={`w-[22px] h-[22px] rounded-[6px] border-[1.5px] flex items-center justify-center shrink-0 mt-0.5 ${
-                  confirmed ? 'bg-brand border-brand text-white' : 'bg-white border-[#7A7A7A]'
-                }`}
+                onClick={() => setConfirmed((v) => !v)}
+                className="flex items-start gap-2.5 cursor-pointer select-none"
               >
-                {confirmed && <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} />}
+                <div
+                  className={`w-[22px] h-[22px] rounded-[6px] border-[1.5px] flex items-center justify-center shrink-0 mt-0.5 ${
+                    confirmed ? 'bg-brand border-brand text-white' : 'bg-white border-[#7A7A7A]'
+                  }`}
+                >
+                  {confirmed && <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} />}
+                </div>
+                <span className="text-[13.5px] text-ink font-medium leading-relaxed">
+                  ข้าพเจ้ายืนยันการดำเนินการงานแจ้งซ่อมนี้ตามข้อเท็จจริง (ไม่ต้องลงนามลายเซ็น)
+                </span>
               </div>
-              <span className="text-[13px] text-ink-mute leading-relaxed">
-                ข้าพเจ้ายืนยันว่าได้ตรวจเอกสารแล้วและลงลายมือชื่อด้วยตนเอง
-              </span>
             </div>
-          </div>
+          ) : (
+            <div className="jw-card p-4 flex flex-col gap-3">
+              <label className="jw-lbl">
+                ลายเซ็นของคุณ ({account?.name || 'สุดา มีสุข'} · {account?.position || 'เจ้าหน้าที่ธุรการ'})
+              </label>
+              <SignatureBox
+                value={staffSignature}
+                onChange={setStaffSignature}
+                savedSignature={account?.signature}
+                signerLabel={`${account?.name || 'สุดา มีสุข'} · ${account?.position || 'เจ้าหน้าที่ธุรการ'}`}
+                height={155}
+                skipPinPrompt
+              />
+
+              <div
+                onClick={() => setConfirmed((v) => !v)}
+                className="flex items-start gap-2.5 cursor-pointer select-none pt-1"
+              >
+                <div
+                  className={`w-[22px] h-[22px] rounded-[6px] border-[1.5px] flex items-center justify-center shrink-0 mt-0.5 ${
+                    confirmed ? 'bg-brand border-brand text-white' : 'bg-white border-[#7A7A7A]'
+                  }`}
+                >
+                  {confirmed && <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} />}
+                </div>
+                <span className="text-[13px] text-ink-mute leading-relaxed">
+                  ข้าพเจ้ายืนยันว่าได้ตรวจเอกสารแล้วและลงลายมือชื่อด้วยตนเอง
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </AppShell>

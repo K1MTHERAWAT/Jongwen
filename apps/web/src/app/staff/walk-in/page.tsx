@@ -156,10 +156,15 @@ export default function StaffWalkInPage() {
           </button>
           <button
             type="button"
-            onClick={() => setShowSignModal(true)}
+            disabled={submitting}
+            onClick={() => (serviceType === 'repair' ? handleSubmit() : setShowSignModal(true))}
             className="jw-btn flex-[1.5] sm:w-64"
           >
-            ถัดไป · ลงนามผู้มาติดต่อ & เจ้าหน้าที่
+            {serviceType === 'repair'
+              ? submitting
+                ? 'กำลังบันทึก...'
+                : 'บันทึกส่งเรื่องแจ้งซ่อม'
+              : 'ถัดไป · ลงนามผู้มาติดต่อ & เจ้าหน้าที่'}
           </button>
         </div>
       }

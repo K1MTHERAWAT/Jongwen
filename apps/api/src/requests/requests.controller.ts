@@ -477,8 +477,9 @@ export class RequestsController {
       throw new ForbiddenException('ไม่มีสิทธิ์กรอกคำขอแทนที่เคาน์เตอร์');
     }
 
-    const requesterSig = requireDrawnSignature(body.requesterSignature, 'ผู้แจ้งซ่อม');
-    const staffSig = isWalkIn ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
+    // งานแจ้งซ่อม ไม่ต้องลงนาม (กรณีมีส่งลายเซ็นมาก็บันทึกไว้ได้ แต่ไม่บังคับ)
+    const requesterSig = body.requesterSignature ? requireDrawnSignature(body.requesterSignature, 'ผู้แจ้งซ่อม') : undefined;
+    const staffSig = isWalkIn && body.createdByStaffSignature ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
 
     const now = new Date().toISOString();
     const code = await this.db.nextCode('RP');
@@ -748,14 +749,16 @@ export class RequestsController {
       if (!hasPermission(user, 'review')) {
         throw new ForbiddenException('เฉพาะเจ้าหน้าที่ผู้รับผิดชอบเท่านั้นที่สามารถรับเรื่องหรือบันทึกซ่อมเสร็จได้');
       }
-      if (!user.pin) throw new BadRequestException('กรุณาตั้งค่า PIN 6 หลักก่อนลงนาม');
-      const key = `pin:${user.id}`;
-      assertNotLocked(key);
-      if (!(await verifySecret(user.pin, String(body.pin ?? '')))) {
-        recordFailure(key);
-        throw new UnauthorizedException('รหัส PIN ไม่ถูกต้อง');
+      // งานแจ้งซ่อมไม่บังคับยืนยัน PIN (ถ้ามีส่งมาจะตรวจสอบ)
+      if (body.pin && user.pin) {
+        const key = `pin:${user.id}`;
+        assertNotLocked(key);
+        if (!(await verifySecret(user.pin, String(body.pin ?? '')))) {
+          recordFailure(key);
+          throw new UnauthorizedException('รหัส PIN ไม่ถูกต้อง');
+        }
+        clearFailures(key);
       }
-      clearFailures(key);
     } else if (body.action === 'confirm' || body.action === 'reopen') {
       // การตรวจรับงานต้องทำโดยผู้แจ้งซ่อมเท่านั้น (เจ้าหน้าที่ตรวจรับแทนไม่ได้)
       if (req.requesterId !== user.id) {
@@ -779,10 +782,10 @@ export class RequestsController {
     if (body.action === 'accept') {
       req.status = 'repair_in_progress';
       req.acceptedAt = now;
-      req.staffSignature = requireDrawnSignature(body.signature, 'เจ้าหน้าที่ผู้รับเรื่อง');
+      req.staffSignature = body.signature ? requireDrawnSignature(body.signature, 'เจ้าหน้าที่ผู้รับเรื่อง') : undefined;
       req.staffSignerName = user.name;
     } else if (body.action === 'finish') {
-      const sig = requireDrawnSignature(body.signature, 'เจ้าหน้าที่ผู้ซ่อม');
+      const sig = body.signature ? requireDrawnSignature(body.signature, 'เจ้าหน้าที่ผู้ซ่อม') : undefined;
       req.status = 'repair_awaiting_acceptance';
       req.finishedAt = now;
       req.resolution = String(body.resolution ?? '').slice(0, 1000) || 'ดำเนินการซ่อมเรียบร้อย';
@@ -790,7 +793,7 @@ export class RequestsController {
       req.staffSignerName = user.name;
       this.db.notify(req.requesterId, `${req.location} ซ่อมเสร็จแล้ว`, 'รอคุณตรวจรับงาน', `/repair?mode=track&id=${req.id}`);
     } else if (body.action === 'confirm') {
-      const sig = requireDrawnSignature(body.signature, 'ผู้แจ้งซ่อม');
+      const sig = body.signature ? requireDrawnSignature(body.signature, 'ผู้แจ้งซ่อม') : undefined;
       req.status = 'repair_done';
       req.acceptanceSignature = sig;
       req.acceptedByRequesterAt = now;

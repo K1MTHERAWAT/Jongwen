@@ -201,40 +201,51 @@ export default function RequestDetailPage() {
         <div className="jw-card p-5 flex flex-col gap-3">
           <div>
             <b className="text-[16px] text-ink block">
-              ลายมือชื่อผู้เกี่ยวข้องทุกฝ่าย ({req.type === 'repair' ? '3 ขั้นตอน' : '4 ฝ่าย'})
+              {req.type === 'repair' ? 'ความคืบหน้าการดำเนินงาน (3 ขั้นตอน)' : 'ลายมือชื่อผู้เกี่ยวข้องทุกฝ่าย (4 ฝ่าย)'}
             </b>
             <span className="text-[12.5px] text-ink-mute">
-              ทุกฝ่ายต้องเขียนลายมือชื่อจริงบนหน้าจอเพื่อยืนยันความรับผิดชอบในแต่ละขั้นตอน
+              {req.type === 'repair'
+                ? 'งานแจ้งซ่อมบำรุงดำเนินการตามลำดับขั้นตอน (ไม่ต้องลงนามลายเซ็น)'
+                : 'ทุกฝ่ายต้องเขียนลายมือชื่อจริงบนหน้าจอเพื่อยืนยันความรับผิดชอบในแต่ละขั้นตอน'}
             </span>
           </div>
 
           {req.type === 'repair' ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <SignaturePreviewCard
-                roleLabel="1. ผู้แจ้งซ่อม"
-                signerName={req.requesterName}
-                signature={req.requesterSignature}
-                signedAt={formatThaiDateTime(req.createdAt)}
-                status="signed"
-              />
-              <SignaturePreviewCard
-                roleLabel="2. เจ้าหน้าที่ผู้รับเรื่อง/ซ่อม"
-                signerName={req.staffSignerName || 'นางสาวสุดา รอบคอบ'}
-                signature={req.staffSignature}
-                signedAt={
-                  req.finishedAt || req.acceptedAt
-                    ? formatThaiDateTime((req.finishedAt || req.acceptedAt)!)
-                    : undefined
-                }
-                status={req.staffSignature ? 'signed' : 'pending'}
-              />
-              <SignaturePreviewCard
-                roleLabel="3. ผู้แจ้งตรวจรับงานซ่อม"
-                signerName={req.requesterName}
-                signature={req.acceptanceSignature}
-                signedAt={req.acceptedByRequesterAt ? formatThaiDateTime(req.acceptedByRequesterAt) : undefined}
-                status={req.acceptanceSignature ? 'signed' : 'pending'}
-              />
+              <div className="p-3.5 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                <span className="text-[12px] font-semibold text-ink-mute">1. ผู้แจ้งส่งเรื่อง</span>
+                <span className="text-[13.5px] font-bold text-ink">{req.requesterName}</span>
+                <span className="text-[12px] text-ink-mute">{formatThaiDateTime(req.createdAt)}</span>
+                <span className="inline-flex items-center gap-1 text-[12px] font-medium text-brand mt-1">✓ ส่งเรื่องแล้ว</span>
+              </div>
+              <div className="p-3.5 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                <span className="text-[12px] font-semibold text-ink-mute">2. เจ้าหน้าที่รับเรื่อง & ซ่อม</span>
+                <span className="text-[13.5px] font-bold text-ink">{req.staffSignerName || 'ฝ่ายช่างซ่อมบำรุง'}</span>
+                <span className="text-[12px] text-ink-mute">
+                  {req.finishedAt
+                    ? `เสร็จ: ${formatThaiDateTime(req.finishedAt)}`
+                    : req.acceptedAt
+                    ? `รับเรื่อง: ${formatThaiDateTime(req.acceptedAt)}`
+                    : 'รอดำเนินการ'}
+                </span>
+                <span className={`inline-flex items-center gap-1 text-[12px] font-medium mt-1 ${
+                  req.finishedAt ? 'text-brand' : req.acceptedAt ? 'text-amber-600' : 'text-ink-mute'
+                }`}>
+                  {req.finishedAt ? '✓ ซ่อมเสร็จแล้ว' : req.acceptedAt ? '⟳ กำลังดำเนินการ' : '○ รอช่างรับเรื่อง'}
+                </span>
+              </div>
+              <div className="p-3.5 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                <span className="text-[12px] font-semibold text-ink-mute">3. ผู้แจ้งตรวจรับงาน</span>
+                <span className="text-[13.5px] font-bold text-ink">{req.requesterName}</span>
+                <span className="text-[12px] text-ink-mute">
+                  {req.acceptedByRequesterAt ? formatThaiDateTime(req.acceptedByRequesterAt) : '-'}
+                </span>
+                <span className={`inline-flex items-center gap-1 text-[12px] font-medium mt-1 ${
+                  req.status === 'repair_done' ? 'text-brand' : req.status === 'repair_awaiting_acceptance' ? 'text-amber-600' : 'text-ink-mute'
+                }`}>
+                  {req.status === 'repair_done' ? '✓ ตรวจรับเรียบร้อย' : req.status === 'repair_awaiting_acceptance' ? '⟳ รอคุณตรวจรับ' : '○ รอซ่อมเสร็จ'}
+                </span>
+              </div>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-2.5">

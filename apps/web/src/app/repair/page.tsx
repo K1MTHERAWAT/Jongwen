@@ -5,7 +5,7 @@ import { REPAIR_CATEGORIES, RepairRequest, RequestWithTimeline } from '@jongwen/
 import { useAuth } from '@/components/auth-context';
 import { AppShell } from '@/components/shell';
 import { Icon } from '@/components/icons';
-import { SignatureBox, SignaturePreviewCard, StatusChip, Tabs, Timeline } from '@/components/ui';
+import { StatusChip, Tabs, Timeline } from '@/components/ui';
 import { api, formatThaiDateTime } from '@/lib/api';
 
 type Mode = 'form' | 'track';
@@ -22,8 +22,6 @@ export default function RepairPage() {
   const [category, setCategory] = useState('เครื่องปรับอากาศ');
   const [detail, setDetail] = useState('เปิดแอร์แล้วไม่เย็น มีน้ำหยดจากเครื่องด้านใน เริ่มเป็นตั้งแต่เมื่อวาน');
   const [photos, setPhotos] = useState(2);
-  const [requesterSignature, setRequesterSignature] = useState('');
-  const [acceptanceSignature, setAcceptanceSignature] = useState('');
   const [draftSaved, setDraftSaved] = useState(false);
   const [submitting, setSubmitting] = useState(false);
 
@@ -73,7 +71,6 @@ export default function RepairPage() {
         category,
         detail,
         photos,
-        requesterSignature,
       });
       await loadRepairs();
       setActiveId(created.id);
@@ -85,12 +82,13 @@ export default function RepairPage() {
   };
 
   const handleAction = async (id: string, action: 'confirm' | 'reopen') => {
-    await api.updateRepairStatus(id, {
-      action,
-      signature: action === 'confirm' ? acceptanceSignature : undefined,
-    });
-    setAcceptanceSignature('');
-    await loadRepairs();
+    setSubmitting(true);
+    try {
+      await api.updateRepairStatus(id, { action });
+      await loadRepairs();
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const activeRepair =
@@ -124,17 +122,18 @@ export default function RepairPage() {
             </button>
             <button
               type="button"
-              disabled={submitting || !detail.trim() || !requesterSignature.trim()}
+              disabled={submitting || !detail.trim()}
               onClick={handleSubmit}
               className="jw-btn flex-[1.5] sm:w-56"
             >
-              {submitting ? 'กำลังส่ง...' : 'ลงนามและส่งแจ้งซ่อม'}
+              {submitting ? 'กำลังส่ง...' : 'ส่งเรื่องแจ้งซ่อม'}
             </button>
           </div>
         ) : activeRepair && activeRepair.status === 'repair_awaiting_acceptance' ? (
           <div className="flex w-full sm:w-auto gap-2.5">
             <button
               type="button"
+              disabled={submitting}
               onClick={() => handleAction(activeRepair.id, 'reopen')}
               className="jw-btn-red flex-1 sm:w-44"
             >
@@ -142,11 +141,11 @@ export default function RepairPage() {
             </button>
             <button
               type="button"
-              disabled={!acceptanceSignature.trim()}
+              disabled={submitting}
               onClick={() => handleAction(activeRepair.id, 'confirm')}
               className="jw-btn flex-1 sm:w-52"
             >
-              ลงนามตรวจรับงานซ่อม
+              ยืนยันตรวจรับงานซ่อม
             </button>
           </div>
         ) : undefined
@@ -254,18 +253,8 @@ export default function RepairPage() {
               </div>
             </div>
 
-            <div className="pt-2 border-t border-line flex flex-col gap-2">
-              <label className="jw-lbl">เขียนลายเซ็นผู้แจ้งซ่อม ({account?.name || 'สมชาย ใจดี'})</label>
-              <SignatureBox
-                value={requesterSignature}
-                onChange={setRequesterSignature}
-                savedSignature={account?.signature}
-                signerLabel={`${account?.name || 'สมชาย ใจดี'} · ผู้แจ้งซ่อม`}
-              />
-            </div>
-
             <p className="text-[13px] text-ink-mute">
-              งานซ่อมต้องมีการลงนามครบ 3 ขั้นตอน: (1) ผู้แจ้งซ่อม → (2) เจ้าหน้าที่ผู้ดำเนินการซ่อม → (3) ผู้แจ้งลงนามตรวจรับงาน
+              ขั้นตอนงานแจ้งซ่อม: (1) ผู้แจ้งส่งเรื่อง → (2) เจ้าหน้าที่รับเรื่อง & ซ่อมแซม → (3) ผู้แจ้งตรวจรับงาน (ไม่ต้องลงนาม)
             </p>
 
             {draftSaved && (
@@ -301,51 +290,54 @@ export default function RepairPage() {
                 <Timeline steps={activeRepair.timeline} />
 
                 <div className="pt-2 border-t border-line flex flex-col gap-2.5">
-                  <b className="text-[14px] text-ink">สถานะการลงนามทุกฝ่าย (3 ขั้นตอน)</b>
+                  <b className="text-[14px] text-ink">ความคืบหน้าการดำเนินงาน (3 ขั้นตอน)</b>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <SignaturePreviewCard
-                      roleLabel="1. ผู้แจ้งซ่อม"
-                      signerName={activeRepair.requesterName}
-                      signature={activeRepair.requesterSignature}
-                      signedAt={formatThaiDateTime(activeRepair.createdAt)}
-                      status="signed"
-                    />
-                    <SignaturePreviewCard
-                      roleLabel="2. เจ้าหน้าที่ผู้ซ่อม/รับเรื่อง"
-                      signerName={activeRepair.staffSignerName || 'นางสาวสุดา รอบคอบ'}
-                      signature={activeRepair.staffSignature}
-                      signedAt={
-                        activeRepair.finishedAt || activeRepair.acceptedAt
-                          ? formatThaiDateTime((activeRepair.finishedAt || activeRepair.acceptedAt)!)
-                          : undefined
-                      }
-                      status={activeRepair.staffSignature ? 'signed' : 'pending'}
-                    />
-                    <SignaturePreviewCard
-                      roleLabel="3. ผู้แจ้งตรวจรับงานซ่อม"
-                      signerName={activeRepair.requesterName}
-                      signature={activeRepair.acceptanceSignature}
-                      signedAt={
-                        activeRepair.acceptedByRequesterAt
-                          ? formatThaiDateTime(activeRepair.acceptedByRequesterAt)
-                          : undefined
-                      }
-                      status={activeRepair.acceptanceSignature ? 'signed' : 'pending'}
-                    />
+                    <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                      <span className="text-[12px] font-semibold text-ink-mute">1. ผู้แจ้งส่งเรื่อง</span>
+                      <span className="text-[13.5px] font-bold text-ink">{activeRepair.requesterName}</span>
+                      <span className="text-[12px] text-ink-mute">{formatThaiDateTime(activeRepair.createdAt)}</span>
+                      <span className="inline-flex items-center gap-1 text-[12px] font-medium text-brand mt-1">✓ ส่งเรื่องแล้ว</span>
+                    </div>
+                    <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                      <span className="text-[12px] font-semibold text-ink-mute">2. เจ้าหน้าที่รับเรื่อง & ซ่อม</span>
+                      <span className="text-[13.5px] font-bold text-ink">{activeRepair.staffSignerName || 'ฝ่ายช่างซ่อมบำรุง'}</span>
+                      <span className="text-[12px] text-ink-mute">
+                        {activeRepair.finishedAt
+                          ? `เสร็จ: ${formatThaiDateTime(activeRepair.finishedAt)}`
+                          : activeRepair.acceptedAt
+                          ? `รับเรื่อง: ${formatThaiDateTime(activeRepair.acceptedAt)}`
+                          : 'รอดำเนินการ'}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 text-[12px] font-medium mt-1 ${
+                        activeRepair.finishedAt ? 'text-brand' : activeRepair.acceptedAt ? 'text-amber-600' : 'text-ink-mute'
+                      }`}>
+                        {activeRepair.finishedAt ? '✓ ซ่อมเสร็จแล้ว' : activeRepair.acceptedAt ? '⟳ กำลังดำเนินการ' : '○ รอช่างรับเรื่อง'}
+                      </span>
+                    </div>
+                    <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                      <span className="text-[12px] font-semibold text-ink-mute">3. ผู้แจ้งตรวจรับงาน</span>
+                      <span className="text-[13.5px] font-bold text-ink">{activeRepair.requesterName}</span>
+                      <span className="text-[12px] text-ink-mute">
+                        {activeRepair.acceptedByRequesterAt ? formatThaiDateTime(activeRepair.acceptedByRequesterAt) : '-'}
+                      </span>
+                      <span className={`inline-flex items-center gap-1 text-[12px] font-medium mt-1 ${
+                        activeRepair.status === 'repair_done' ? 'text-brand' : activeRepair.status === 'repair_awaiting_acceptance' ? 'text-amber-600' : 'text-ink-mute'
+                      }`}>
+                        {activeRepair.status === 'repair_done' ? '✓ ตรวจรับเรียบร้อย' : activeRepair.status === 'repair_awaiting_acceptance' ? '⟳ รอคุณตรวจรับ' : '○ รอซ่อมเสร็จ'}
+                      </span>
+                    </div>
                   </div>
                 </div>
 
                 {activeRepair.status === 'repair_awaiting_acceptance' && (
-                  <div className="pt-3 border-t border-line flex flex-col gap-2">
-                    <label className="jw-lbl">
-                      เขียนลายเซ็นผู้แจ้งเพื่อยืนยันการตรวจรับงานซ่อม ({activeRepair.requesterName})
-                    </label>
-                    <SignatureBox
-                      value={acceptanceSignature}
-                      onChange={setAcceptanceSignature}
-                      savedSignature={account?.signature}
-                      signerLabel={`${activeRepair.requesterName} · ผู้ตรวจรับงานซ่อม`}
-                    />
+                  <div className="pt-3 border-t border-line flex flex-col gap-2 bg-amber-50/50 dark:bg-amber-950/20 p-3.5 rounded-[12px] border border-amber-200">
+                    <b className="text-[14px] text-amber-900 dark:text-amber-200">งานซ่อมเสร็จเรียบร้อยแล้ว รอการตรวจรับจากคุณ</b>
+                    <p className="text-[13px] text-amber-800 dark:text-amber-300">
+                      ผลการซ่อม: {activeRepair.resolution || 'ดำเนินการซ่อมเรียบร้อย'}
+                    </p>
+                    <p className="text-[12px] text-ink-mute">
+                      หากผลงานเรียบร้อยดี กรุณากดปุ่ม <b>"ยืนยันตรวจรับงานซ่อม"</b> ด้านล่าง (ไม่ต้องลงนาม)
+                    </p>
                   </div>
                 )}
               </div>
