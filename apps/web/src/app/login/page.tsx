@@ -79,17 +79,8 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col justify-between">
-      {/* แถบเตือนโหมดสาธิตด้านบนสุด */}
-      {isDemo && (
-        <div className="bg-amber-500 text-amber-950 font-bold text-[12px] sm:text-[13px] py-2 px-4 text-center flex items-center justify-center gap-1.5 shadow-sm">
-          <Icon name="alert-triangle" className="w-4 h-4 shrink-0" />
-          <span>โหมดสาธิต · ข้อมูลสมมติ ห้ามกรอกข้อมูลจริง</span>
-        </div>
-      )}
-
-      <div className="flex-1 flex items-center justify-center p-4 sm:p-8">
-        <div className="w-full max-w-[960px] grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
+    <div className="min-h-screen flex items-center justify-center p-4 sm:p-8">
+      <div className="w-full max-w-[960px] grid grid-cols-1 lg:grid-cols-2 gap-6 items-stretch">
           {/* การ์ดเข้าสู่ระบบด้วยชื่อผู้ใช้และรหัสผ่าน */}
           <form onSubmit={handleLogin} className="jw-card p-6 sm:p-8 flex flex-col justify-center gap-4">
             <div className="flex flex-col items-center text-center gap-2">
@@ -235,7 +226,5 @@ export default function LoginPage() {
           )}
         </div>
       </div>
-      <div />
-    </div>
   );
 }

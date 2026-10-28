@@ -152,7 +152,7 @@ export default function StaffHandoverPage() {
           </div>
           <div className="flex flex-col gap-1 flex-1">
             <div className="flex items-center justify-between">
-              <b className="text-[16px]">{current?.code || 'BK-2569-00128'}</b>
+              <b className="text-[16px]">{current?.code || `BK-${new Date().getFullYear() + 543}-001`}</b>
               {current && <StatusChip status={current.status} />}
             </div>
             <span className="text-[14px] text-ink-mute">

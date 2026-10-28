@@ -24,15 +24,27 @@ export default function StaffWalkInPage() {
 
   // จองสถานที่ (booking)
   const [venueId, setVenueId] = useState('v-main-hall');
-  const [date, setDate] = useState('2026-10-24');
+  const [date, setDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    return d.toISOString().slice(0, 10);
+  });
   const [timeSlot, setTimeSlot] = useState('13:00–17:00');
   const [purpose, setPurpose] = useState('ประชุมสมาชิกกลุ่มประจำเดือน');
 
   // ยืม–คืนอุปกรณ์ (borrow)
   const [equipmentId, setEquipmentId] = useState('e-audio');
   const [equipmentQty, setEquipmentQty] = useState(1);
-  const [pickupDate, setPickupDate] = useState('2026-10-24');
-  const [returnDate, setReturnDate] = useState('2026-10-26');
+  const [pickupDate, setPickupDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [returnDate, setReturnDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    return d.toISOString().slice(0, 10);
+  });
 
   // แจ้งซ่อม (repair)
   const [building, setBuilding] = useState('อาคารสำนักงาน');

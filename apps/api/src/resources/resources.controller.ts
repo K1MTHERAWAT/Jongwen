@@ -151,9 +151,10 @@ export class ResourcesController {
   /** ปฏิทินความว่างรายเดือนของสถานที่ */
   @Public()
   @Get('availability')
-  availability(@Query('venueIds') venueIdsParam = '', @Query('month') month = '2026-10'): DayAvailability[] {
+  availability(@Query('venueIds') venueIdsParam = '', @Query('month') month?: string): DayAvailability[] {
+    const targetMonth = month && /^\d{4}-\d{2}$/.test(month) ? month : new Date().toISOString().slice(0, 7);
     const venueIds = venueIdsParam.split(',').filter(Boolean);
-    const [y, m] = month.split('-').map(Number);
+    const [y, m] = targetMonth.split('-').map(Number);
     const daysInMonth = new Date(y, m, 0).getDate();
     const bookings = this.db.requests.filter(
       (r): r is BookingRequest =>
@@ -164,7 +165,7 @@ export class ResourcesController {
 
     const out: DayAvailability[] = [];
     for (let d = 1; d <= daysInMonth; d++) {
-      const dateStr = `${month}-${String(d).padStart(2, '0')}`;
+      const dateStr = `${targetMonth}-${String(d).padStart(2, '0')}`;
       const dayStart = new Date(`${dateStr}T00:00:00+07:00`);
       const dayEnd = new Date(`${dateStr}T23:59:59+07:00`);
       let bookedHours = 0;

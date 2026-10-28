@@ -15,11 +15,19 @@ export default function RescheduleOrCancelPage() {
   const router = useRouter();
   const [req, setReq] = useState<(RequestWithTimeline & BookingRequest) | null>(null);
   const [mode, setMode] = useState<Mode>('reschedule');
-  const [month, setMonth] = useState('2026-10');
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [availability, setAvailability] = useState<DayAvailability[]>([]);
-  const [newPeriod, setNewPeriod] = useState<Period>({
-    start: '2026-10-31T13:00:00+07:00',
-    end: '2026-10-31T17:00:00+07:00',
+  const [newPeriod, setNewPeriod] = useState<Period>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 5);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return {
+      start: `${dateStr}T13:00:00+07:00`,
+      end: `${dateStr}T17:00:00+07:00`,
+    };
   });
   const [cancelReason, setCancelReason] = useState('ติดภารกิจเร่งด่วน ขอเลื่อน/ยกเลิกการใช้สถานที่');
   const [submitting, setSubmitting] = useState(false);

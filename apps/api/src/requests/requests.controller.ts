@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Body,
+  ConflictException,
   Controller,
   ForbiddenException,
   Get,
@@ -23,6 +24,7 @@ import {
   SignLevel,
   canSignRequest,
   hasPermission,
+  overlaps,
   withTimeline,
 } from '@jongwen/shared';
 import {
@@ -55,6 +57,140 @@ export class RequestsController {
       cleaned.push({ equipmentId: eq.id, qty });
     }
     return cleaned;
+  }
+
+  private validatePeriodsAndVenues(venueIds: string[], periods: Period[], excludeRequestId?: string) {
+    if (!venueIds.length || !periods.length || periods.length > 20) {
+      throw new BadRequestException('กรุณาเลือกสถานที่และวันเวลา');
+    }
+
+    const venues = this.db.venues.filter((v) => venueIds.includes(v.id) && v.enabled);
+    if (venues.length !== venueIds.length) {
+      throw new BadRequestException('มีสถานที่บางแห่งที่ปิดปรับปรุงหรือไม่พร้อมใช้งาน');
+    }
+
+    const now = new Date();
+    // เวลาไทย (UTC+7) ณ 00:00:00 น.
+    const bkkNow = new Date(now.getTime() + 7 * 60 * 60 * 1000);
+    const todayBkkMidnight = Date.UTC(bkkNow.getUTCFullYear(), bkkNow.getUTCMonth(), bkkNow.getUTCDate());
+
+    for (const p of periods) {
+      const s = new Date(p?.start).getTime();
+      const e = new Date(p?.end).getTime();
+      if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) {
+        throw new BadRequestException('ช่วงวันเวลาไม่ถูกต้อง');
+      }
+
+      // แปลงช่วงเวลาของคำขอเป็นเวลาไทย (UTC+7)
+      const startBkk = new Date(s + 7 * 60 * 60 * 1000);
+      const endBkk = new Date(e + 7 * 60 * 60 * 1000);
+
+      const startDayBkk = Date.UTC(startBkk.getUTCFullYear(), startBkk.getUTCMonth(), startBkk.getUTCDate());
+      const dayDiff = Math.floor((startDayBkk - todayBkkMidnight) / (24 * 60 * 60 * 1000));
+      const dayOfWeek = startBkk.getUTCDay(); // 0 = อาทิตย์ ... 6 = เสาร์
+
+      const startH = String(startBkk.getUTCHours()).padStart(2, '0');
+      const startM = String(startBkk.getUTCMinutes()).padStart(2, '0');
+      const endH = String(endBkk.getUTCHours()).padStart(2, '0');
+      const endM = String(endBkk.getUTCMinutes()).padStart(2, '0');
+      const startTimeStr = `${startH}:${startM}`;
+      const endTimeStr = `${endH}:${endM}`;
+
+      for (const v of venues) {
+        // 1. วันจองล่วงหน้า (advanceDays)
+        if (v.advanceDays > 0 && dayDiff < v.advanceDays) {
+          throw new BadRequestException(
+            `สถานที่ "${v.name}" ต้องจองล่วงหน้าอย่างน้อย ${v.advanceDays} วัน (วันที่เลือกเร็วเกินไป)`,
+          );
+        }
+
+        // 2. วันที่เปิดให้บริการ (openDays)
+        if (v.openDays && v.openDays.length > 0 && !v.openDays.includes(dayOfWeek)) {
+          const thaiDayNames = ['อาทิตย์', 'จันทร์', 'อังคาร', 'พุธ', 'พฤหัสบดี', 'ศุกร์', 'เสาร์'];
+          throw new BadRequestException(
+            `สถานที่ "${v.name}" ไม่เปิดให้บริการในวัน${thaiDayNames[dayOfWeek]}`,
+          );
+        }
+
+        // 3. เวลาเปิด-ปิดทำการ (openTime / closeTime)
+        if (v.openTime && startTimeStr < v.openTime) {
+          throw new BadRequestException(
+            `เวลาเริ่มต้น (${startTimeStr} น.) เร็วกว่าเวลาเปิดทำการของ "${v.name}" (${v.openTime} น.)`,
+          );
+        }
+        if (v.closeTime && endTimeStr > v.closeTime) {
+          throw new BadRequestException(
+            `เวลาสิ้นสุด (${endTimeStr} น.) เกินเวลาปิดทำการของ "${v.name}" (${v.closeTime} น.)`,
+          );
+        }
+      }
+    }
+
+    // 4. ตรวจสอบการจองซ้อนทับ (Booking Conflict) กับคำขอที่กำลังดำเนินการหรืออนุมัติแล้ว
+    const activeBookings = this.db.requests.filter(
+      (r): r is BookingRequest =>
+        r.type === 'booking' &&
+        ['pending_staff', 'pending_l2', 'pending_l1', 'approved'].includes(r.status) &&
+        r.id !== excludeRequestId &&
+        r.venueIds.some((v) => venueIds.includes(v)),
+    );
+
+    for (const p of periods) {
+      for (const b of activeBookings) {
+        for (const bp of b.periods) {
+          if (overlaps(p, bp)) {
+            const conflictVenueId = b.venueIds.find((v) => venueIds.includes(v))!;
+            const venueName = this.db.venues.find((v) => v.id === conflictVenueId)?.name || conflictVenueId;
+            throw new ConflictException(
+              `สถานที่ "${venueName}" มีการจองซ้อนทับแล้วในช่วงเวลาดังกล่าว (คำขอ ${b.code})`,
+            );
+          }
+        }
+      }
+    }
+  }
+
+  private validateBorrowInventory(
+    items: ItemQty[],
+    pickupDate: string,
+    returnDate: string,
+    excludeRequestId?: string,
+  ) {
+    const pick = new Date(pickupDate).getTime();
+    const ret = new Date(returnDate).getTime();
+    if (!Number.isFinite(pick) || !Number.isFinite(ret) || ret < pick) {
+      throw new BadRequestException('วันที่รับและคืนไม่ถูกต้อง');
+    }
+
+    // คำขอยืมอุปกรณ์ที่กำลังใช้งานและจองสต็อกคงคลังอยู่
+    const activeBorrows = this.db.requests.filter(
+      (r): r is BorrowRequest =>
+        r.type === 'borrow' &&
+        ['pending_staff', 'pending_l2', 'pending_l1', 'approved', 'borrowing', 'return_inspect'].includes(r.status) &&
+        r.id !== excludeRequestId,
+    );
+
+    // ตรวจสอบช่วงวันที่ทับซ้อน: pickupA <= returnB && pickupB <= returnA
+    const overlapping = activeBorrows.filter(
+      (b) => b.pickupDate <= returnDate && b.returnDate >= pickupDate,
+    );
+
+    for (const item of items) {
+      const eq = this.db.equipment.find((e) => e.id === item.equipmentId && e.enabled);
+      if (!eq) throw new BadRequestException(`ไม่พบอุปกรณ์รหัส ${item.equipmentId}`);
+
+      const currentlyReserved = overlapping.reduce((sum, b) => {
+        const found = b.items.find((i) => i.equipmentId === eq.id);
+        return sum + (found ? found.qty : 0);
+      }, 0);
+
+      const available = eq.stock - currentlyReserved;
+      if (item.qty > available) {
+        throw new ConflictException(
+          `อุปกรณ์ "${eq.name}" ในช่วงวันที่ ${pickupDate} ถึง ${returnDate} มีคงเหลือให้ยืมเพียง ${Math.max(0, available)} ชิ้น (ถูกยืม/จองแล้ว ${currentlyReserved} จากทั้งหมด ${eq.stock} ชิ้น)`,
+        );
+      }
+    }
   }
 
   private enrich(req: AnyRequest) {
@@ -171,18 +307,10 @@ export class RequestsController {
       purposeItems?: { item: string; forWhat: string }[];
     },
   ) {
-    const venueIds = Array.isArray(body.venueIds) ? body.venueIds.filter((v) => this.db.venues.some((x) => x.id === v && x.enabled)) : [];
+    const venueIds = Array.isArray(body.venueIds) ? body.venueIds : [];
     const periods = Array.isArray(body.periods) ? body.periods : [];
-    if (!venueIds.length || !periods.length || periods.length > 20) {
-      throw new BadRequestException('กรุณาเลือกสถานที่และวันเวลา');
-    }
-    for (const p of periods) {
-      const s = new Date(p?.start).getTime();
-      const e = new Date(p?.end).getTime();
-      if (!Number.isFinite(s) || !Number.isFinite(e) || e <= s) {
-        throw new BadRequestException('ช่วงวันเวลาไม่ถูกต้อง');
-      }
-    }
+    this.validatePeriodsAndVenues(venueIds, periods);
+
     const requesterSig = requireDrawnSignature(body.requesterSignature, 'ผู้ขอใช้สถานที่');
 
     const isWalkIn =
@@ -197,6 +325,12 @@ export class RequestsController {
       throw new BadRequestException('ไม่พบผู้ใช้ที่ระบุ');
     }
     const staffSig = isWalkIn ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
+
+    const extraItems = this.sanitizeItems(body.extraItems);
+    if (extraItems.length > 0) {
+      const dates = periods.flatMap((p) => [p.start.slice(0, 10), p.end.slice(0, 10)]).sort();
+      this.validateBorrowInventory(extraItems, dates[0], dates[dates.length - 1]);
+    }
 
     const now = new Date().toISOString();
     const code = this.db.nextCode('BK');
@@ -219,7 +353,7 @@ export class RequestsController {
       activity: String(body.activity ?? '').trim().slice(0, 200) || 'ขอใช้สถานที่',
       purpose: String(body.purpose ?? '').trim().slice(0, 1000) || 'ใช้จัดกิจกรรม',
       attachments: (body.attachments ?? []).slice(0, 10).map((a) => String(a).slice(0, 200)),
-      extraItems: this.sanitizeItems(body.extraItems),
+      extraItems,
       signatures: [],
       writtenAt: body.writtenAt ? String(body.writtenAt).slice(0, 120) : '',
       requesterPosition: body.requesterPosition ? String(body.requesterPosition).slice(0, 120) : (user.position || ''),
@@ -261,11 +395,9 @@ export class RequestsController {
   ) {
     const items = this.sanitizeItems(body.items);
     if (!items.length) throw new BadRequestException('กรุณาเลือกอุปกรณ์อย่างน้อย 1 รายการ');
-    const pick = new Date(body.pickupDate).getTime();
-    const ret = new Date(body.returnDate).getTime();
-    if (!Number.isFinite(pick) || !Number.isFinite(ret) || ret < pick) {
-      throw new BadRequestException('วันที่รับ/คืนไม่ถูกต้อง');
-    }
+    const pickupDate = String(body.pickupDate ?? '').slice(0, 10);
+    const returnDate = String(body.returnDate ?? '').slice(0, 10);
+    this.validateBorrowInventory(items, pickupDate, returnDate);
 
     const isWalkIn =
       Boolean(body.createdByStaffSignature) ||
@@ -455,9 +587,7 @@ export class RequestsController {
       throw new BadRequestException('คำขอนี้ไม่อยู่ในสถานะที่ขอเลื่อนวันได้');
     }
     const periods = Array.isArray(body.periods) ? body.periods : [];
-    if (!periods.length || periods.some((p) => !(new Date(p?.end).getTime() > new Date(p?.start).getTime()))) {
-      throw new BadRequestException('ช่วงวันเวลาไม่ถูกต้อง');
-    }
+    this.validatePeriodsAndVenues(req.venueIds, periods, req.id);
     req.periods = periods.map((p) => ({ start: p.start, end: p.end }));
     req.status = 'pending_staff';
     req.signatures = [];

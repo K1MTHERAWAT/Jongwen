@@ -139,14 +139,6 @@ export function AppShell({
 
   return (
     <div className="min-h-screen flex flex-col print:min-h-0 print:block">
-      {/* แถบเตือนโหมดเดโม */}
-      {process.env.NEXT_PUBLIC_DEMO === 'true' && (
-        <div className="no-print print:hidden bg-amber-500 text-amber-950 font-bold text-[12px] sm:text-[13px] py-1.5 px-4 text-center flex items-center justify-center gap-1.5 sticky top-0 z-40 shadow-sm">
-          <Icon name="alert-triangle" className="w-4 h-4 shrink-0" />
-          <span>โหมดสาธิต · ข้อมูลสมมติ ห้ามกรอกข้อมูลจริง</span>
-        </div>
-      )}
-
       {/* Header หลัก (Green Gradient) — ซ่อนเวลาสั่งพิมพ์ PDF */}
       <header className="no-print print:hidden jw-header text-white h-16 px-4 sm:px-8 flex items-center gap-4 shadow-low sticky top-0 z-30">
         {onBack || backHref ? (

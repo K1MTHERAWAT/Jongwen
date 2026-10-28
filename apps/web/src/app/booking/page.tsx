@@ -45,11 +45,17 @@ export default function BookingWizardPage() {
   const [search, setSearch] = useState('');
 
   // Step 2 state (ค่าเริ่มต้น 1 ช่วงเวลา)
-  const [month, setMonth] = useState('2026-10');
+  const [month, setMonth] = useState(() => {
+    const now = new Date();
+    return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+  });
   const [availability, setAvailability] = useState<DayAvailability[]>([]);
-  const [periods, setPeriods] = useState<Period[]>([
-    { start: '2026-10-27T09:00:00+07:00', end: '2026-10-27T16:00:00+07:00' },
-  ]);
+  const [periods, setPeriods] = useState<Period[]>(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 3);
+    const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return [{ start: `${dateStr}T09:00:00+07:00`, end: `${dateStr}T16:00:00+07:00` }];
+  });
   const [activePeriodIdx, setActivePeriodIdx] = useState(0);
   const [conflicts, setConflicts] = useState<ConflictInfo[]>([]);
 
@@ -669,7 +675,9 @@ export default function BookingWizardPage() {
               onClick={() => {
                 setPeriods((prev) => {
                   const last = prev[prev.length - 1];
-                  const nextDate = last ? last.end.slice(0, 10) : '2026-10-27';
+                  const nextDate = last
+                    ? last.end.slice(0, 10)
+                    : new Date().toISOString().slice(0, 10);
                   const next = [
                     ...prev,
                     { start: `${nextDate}T09:00:00+07:00`, end: `${nextDate}T12:00:00+07:00` },

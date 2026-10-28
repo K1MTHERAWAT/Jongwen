@@ -26,8 +26,16 @@ export default function BorrowWizardPage() {
 
   // Step 2
   const [organization, setOrganization] = useState(account?.department || 'กองสวัสดิการสังคม');
-  const [pickupDate, setPickupDate] = useState('2026-10-22');
-  const [returnDate, setReturnDate] = useState('2026-10-25');
+  const [pickupDate, setPickupDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    return d.toISOString().slice(0, 10);
+  });
+  const [returnDate, setReturnDate] = useState(() => {
+    const d = new Date();
+    d.setDate(d.getDate() + 4);
+    return d.toISOString().slice(0, 10);
+  });
   const [purpose, setPurpose] = useState('ใช้ในงานอบรมกลางแจ้ง หมู่ 5');
   const [attachmentName, setAttachmentName] = useState('');
 

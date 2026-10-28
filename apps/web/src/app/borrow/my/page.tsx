@@ -56,7 +56,8 @@ export default function MyBorrowsPage() {
             <div className="jw-card p-8 text-center text-[14px] text-ink-mute">ไม่มีรายการในหมวดนี้</div>
           ) : (
             filtered.map((r) => {
-              const isSoon = r.returnDate <= '2026-10-22' && r.status === 'borrowing';
+              const todayStr = new Date().toISOString().slice(0, 10);
+              const isSoon = r.returnDate <= todayStr && r.status === 'borrowing';
               return (
                 <div key={r.id} className="jw-card p-4 flex items-center gap-3.5">
                   <div className="w-14 h-14 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">

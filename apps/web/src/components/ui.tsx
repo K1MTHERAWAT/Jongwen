@@ -270,8 +270,9 @@ export function CalendarC4({
           const day = idx + 1;
           const dateStr = `${month}-${String(day).padStart(2, '0')}`;
           const av = availMap.get(dateStr);
-          const isPast = dateStr < '2026-10-15';
-          const isToday = dateStr === '2026-10-15';
+          const todayStr = new Date().toISOString().slice(0, 10);
+          const isPast = dateStr < todayStr;
+          const isToday = dateStr === todayStr;
           const isFull = av?.level === 'full';
           const { isEndpoint, isStart, isEnd, isMid, isConflict } = dayState(dateStr);
 
@@ -813,13 +814,18 @@ const THAI_MONTHS_FULL = [
 ];
 
 function parseThaiDateParts(iso?: string): { day: string; month: string; year: string } {
-  const d = iso ? new Date(iso) : new Date('2026-10-18T09:00:00+07:00');
+  const d = iso ? new Date(iso) : new Date();
   if (Number.isNaN(d.getTime())) {
-    return { day: '20', month: 'ตุลาคม', year: '2569' };
+    const now = new Date();
+    return {
+      day: String(now.getDate()),
+      month: THAI_MONTHS_FULL[now.getMonth()] || '',
+      year: String(now.getFullYear() + 543),
+    };
   }
   return {
     day: String(d.getDate()),
-    month: THAI_MONTHS_FULL[d.getMonth()] || 'ตุลาคม',
+    month: THAI_MONTHS_FULL[d.getMonth()] || '',
     year: String(d.getFullYear() + 543),
   };
 }
