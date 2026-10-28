@@ -16,7 +16,7 @@ export function ServiceCard({ href, title, description, icon: IconComponent }: S
       className="group rounded-card border border-line bg-surface p-5 shadow-xs hover:border-line-input transition-colors flex flex-col justify-between gap-4"
     >
       <div className="flex flex-col gap-3">
-        <div className="size-11 rounded-[12px] bg-brand-tint text-brand-ink flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
+        <div className="size-11 rounded-2xl bg-brand-tint text-brand-ink flex items-center justify-center shrink-0 group-hover:scale-105 transition-transform">
           <IconComponent className="size-6" />
         </div>
         <div>

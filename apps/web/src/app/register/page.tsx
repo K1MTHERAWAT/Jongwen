@@ -106,7 +106,7 @@ export default function RegisterPage() {
           </div>
 
           {!isRegistrationOpen && (
-            <div className="rounded-[10px] bg-amber-50 border border-amber-200 px-3.5 py-3 text-[13px] text-amber-900 flex items-start gap-2">
+            <div className="rounded-2xl bg-amber-50 border border-amber-200 px-3.5 py-3 text-[13px] text-amber-900 flex items-start gap-2">
               <Icon name="shield-check" className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
               <div>
                 <b>ปิดรับการลงทะเบียนด้วยตนเองชั่วคราว</b>
@@ -117,7 +117,7 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <div className="border border-line rounded-[12px] p-3 flex items-center gap-3 bg-white">
+          <div className="border border-line rounded-2xl p-3 flex items-center gap-3 bg-white">
             <div className="w-10 h-10 rounded-full bg-brand-mint text-brand font-bold flex items-center justify-center shrink-0">
               {name.trim().charAt(0) || 'ส'}
             </div>
@@ -186,7 +186,7 @@ export default function RegisterPage() {
                   maxLength={1}
                   value={digit}
                   onChange={(e) => handleOtpChange(idx, e.target.value)}
-                  className={`flex-1 h-[52px] w-full bg-white border-[1.5px] rounded-[10px] text-center text-[22px] font-bold focus:outline-none ${
+                  className={`flex-1 h-[52px] w-full bg-white border-[1.5px] rounded-2xl text-center text-[22px] font-bold focus:outline-none ${
                     idx === otp.findIndex((d) => !d) ? 'border-brand border-2' : 'border-line focus:border-brand'
                   }`}
                 />
@@ -214,7 +214,7 @@ export default function RegisterPage() {
 
           <div
             onClick={() => setPdpa((v) => !v)}
-            className="border border-line rounded-[12px] p-3 flex items-start gap-2.5 cursor-pointer select-none bg-white"
+            className="border border-line rounded-2xl p-3 flex items-start gap-2.5 cursor-pointer select-none bg-white"
           >
             <div
               className={`w-[22px] h-[22px] rounded-[6px] border-[1.5px] flex items-center justify-center shrink-0 mt-0.5 ${
@@ -230,7 +230,7 @@ export default function RegisterPage() {
           </div>
 
           {error && (
-            <div className="rounded-[10px] bg-[#FDE8E8] border border-[#f9b4b4] px-3 py-2 text-[13px] text-[#7a1010]">
+            <div className="rounded-2xl bg-[#FDE8E8] border border-[#f9b4b4] px-3 py-2 text-[13px] text-[#7a1010]">
               {error}
             </div>
           )}

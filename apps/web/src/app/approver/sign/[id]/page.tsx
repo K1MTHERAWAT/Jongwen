@@ -327,7 +327,7 @@ export default function ApproverSignDocumentPage() {
           />
 
           {error && (
-            <div className="rounded-[10px] bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2 text-[13px] text-[#7a1010]">
+            <div className="rounded-2xl bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2 text-[13px] text-[#7a1010]">
               {error}
             </div>
           )}

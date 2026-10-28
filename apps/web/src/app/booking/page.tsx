@@ -538,8 +538,8 @@ export default function BookingWizardPage() {
               <div className="text-[13px] text-ink-mute py-4">กรุณาแตะเลือกสถานที่อย่างน้อย 1 แห่ง</div>
             ) : (
               selectedVenues.map((v) => (
-                <div key={v.id} className="border border-line rounded-[12px] p-3 flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+                <div key={v.id} className="border border-line rounded-2xl p-3 flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl bg-brand-mint text-brand flex items-center justify-center shrink-0">
                     <Icon name={venueIconName(v.type)} className="w-6 h-6" />
                   </div>
                   <div className="min-w-0 flex-1">
@@ -620,7 +620,7 @@ export default function BookingWizardPage() {
                   </div>
 
                   <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] items-center gap-2">
-                    <div className="border border-line rounded-[8px] p-2 bg-white flex flex-col gap-1">
+                    <div className="border border-line rounded-xl p-2 bg-white flex flex-col gap-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] text-ink-mute">เริ่มต้น</span>
                         <span className="text-[11px] text-brand font-semibold">{formatThaiDate(sd, false)}</span>
@@ -645,7 +645,7 @@ export default function BookingWizardPage() {
                       <Icon name="arrow-right" className="w-4 h-4" />
                     </span>
 
-                    <div className="border border-line rounded-[8px] p-2 bg-white flex flex-col gap-1">
+                    <div className="border border-line rounded-xl p-2 bg-white flex flex-col gap-1">
                       <div className="flex items-center justify-between">
                         <span className="text-[11px] text-ink-mute">สิ้นสุด</span>
                         <span className="text-[11px] text-brand font-semibold">{formatThaiDate(ed, false)}</span>
@@ -692,7 +692,7 @@ export default function BookingWizardPage() {
             </button>
 
             {effectiveConflicts.length > 0 ? (
-              <div className="rounded-[12px] bg-[#FDE8E8] border border-[#f9b4b4] p-3.5 flex items-start gap-2.5 text-[13px] text-[#7a1010]">
+              <div className="rounded-2xl bg-[#FDE8E8] border border-[#f9b4b4] p-3.5 flex items-start gap-2.5 text-[13px] text-[#7a1010]">
                 <Icon name="x" className="w-5 h-5 text-status-crit shrink-0 mt-0.5" />
                 <div>
                   <b>{effectiveConflicts[0].venueName} ไม่ว่างในช่วงนี้</b>
@@ -800,7 +800,7 @@ export default function BookingWizardPage() {
                     }`}
                   >
                     <div
-                      className={`w-12 h-12 rounded-[12px] flex items-center justify-center shrink-0 ${
+                      className={`w-12 h-12 rounded-2xl flex items-center justify-center shrink-0 ${
                         isSelected ? 'bg-brand text-white' : 'bg-brand-mint text-brand'
                       }`}
                     >
@@ -841,7 +841,7 @@ export default function BookingWizardPage() {
 
           {/* สรุปรายการอุปกรณ์ที่เลือก (ถ้ามี) */}
           {selectedExtraItems.length > 0 && (
-            <div className="rounded-[12px] bg-brand-mint/30 border border-brand/20 p-3.5 flex flex-col gap-2">
+            <div className="rounded-2xl bg-brand-mint/30 border border-brand/20 p-3.5 flex flex-col gap-2">
               <b className="text-[13px] text-brand block">รายการอุปกรณ์เสริมที่เลือกไว้:</b>
               <div className="flex flex-wrap gap-2">
                 {selectedExtraItems.map((item) => (
@@ -985,13 +985,13 @@ export default function BookingWizardPage() {
           </div>
 
           {/* มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ */}
-          <div className="rounded-[12px] bg-soft/60 border border-line p-4 flex flex-col gap-3">
+          <div className="rounded-2xl bg-soft/60 border border-line p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
               <b className="text-[14px] text-ink">มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้</b>
               <button
                 type="button"
                 onClick={() => setPurposeItems((prev) => [...prev, { item: '', forWhat: '' }])}
-                className="text-[12.5px] text-brand font-semibold hover:underline flex items-center gap-1 cursor-pointer bg-brand/10 hover:bg-brand/15 px-2.5 py-1 rounded-[6px] transition"
+                className="text-[12.5px] text-brand font-semibold hover:underline flex items-center gap-1 cursor-pointer bg-brand/10 hover:bg-brand/15 px-3 py-1 rounded-full transition"
               >
                 <Icon name="plus" className="w-3.5 h-3.5" />
                 เพิ่มข้อ
@@ -1060,7 +1060,7 @@ export default function BookingWizardPage() {
 
           <div>
             <label className="jw-lbl">แนบเอกสารประกอบคำขอ</label>
-            <label className="border-[1.5px] border-dashed border-[#7A7A7A] rounded-[12px] p-4 text-center text-ink-mute bg-white cursor-pointer block hover:border-brand">
+            <label className="border-[1.5px] border-dashed border-[#7A7A7A] rounded-2xl p-4 text-center text-ink-mute bg-white cursor-pointer block hover:border-brand">
               <input
                 type="file"
                 className="hidden"
@@ -1112,7 +1112,7 @@ export default function BookingWizardPage() {
               ต้องลงนามทุกฝ่าย (4 ฝ่าย): (1) ผู้ขออนุญาตใช้สถานที่ราชการ → (2) ความเห็นของเจ้าหน้าที่ → (3) ความเห็นของปลัด → (4) คำสั่งของผู้มีอำนาจอนุมัติ
             </p>
             {draftSaved && (
-              <div className="rounded-[10px] bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold">
+              <div className="rounded-2xl bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold">
                 บันทึกร่างคำขอเรียบร้อยแล้ว
               </div>
             )}

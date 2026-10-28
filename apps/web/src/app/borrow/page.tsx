@@ -184,7 +184,7 @@ export default function BorrowWizardPage() {
               const qty = quantities[eq.id] ?? 0;
               return (
                 <div key={eq.id} className="jw-card p-3.5 flex items-center gap-3.5">
-                  <div className="w-14 h-14 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-brand-mint text-brand flex items-center justify-center shrink-0">
                     <Icon name={equipmentIconName(eq.category)} className="w-6 h-6" />
                   </div>
                   <div className="flex-1 min-w-0">
@@ -271,7 +271,7 @@ export default function BorrowWizardPage() {
 
           <div>
             <label className="jw-lbl">แนบเอกสาร</label>
-            <label className="border-[1.5px] border-dashed border-[#7A7A7A] rounded-[12px] p-4 text-center text-ink-mute bg-white cursor-pointer block hover:border-brand">
+            <label className="border-[1.5px] border-dashed border-[#7A7A7A] rounded-2xl p-4 text-center text-ink-mute bg-white cursor-pointer block hover:border-brand">
               <input
                 type="file"
                 className="hidden"
@@ -320,7 +320,7 @@ export default function BorrowWizardPage() {
               ต้องลงนามทุกฝ่าย (4 ฝ่าย): (1) ผู้ยื่นคำขอ → (2) เจ้าหน้าที่ผู้ตรวจสอบ → (3) ปลัด อบต. → (4) นายก อบต.
             </p>
             {draftSaved && (
-              <div className="rounded-[10px] bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold mt-1">
+              <div className="rounded-2xl bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold mt-1">
                 บันทึกร่างคำขอใช้อุปกรณ์เรียบร้อยแล้ว
               </div>
             )}

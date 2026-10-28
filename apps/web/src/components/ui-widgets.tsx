@@ -106,7 +106,7 @@ export function Tabs<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={`flex bg-soft rounded-[10px] p-[3px] ${className}`}>
+    <div className={`flex bg-soft rounded-control p-[3px] ${className}`}>
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -114,8 +114,8 @@ export function Tabs<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`flex-1 h-9 px-2 rounded-[8px] text-[13px] font-semibold transition ${
-              active ? 'bg-white text-ink shadow-low' : 'text-ink-mute hover:text-ink'
+            className={`flex-1 h-9 px-3 rounded-[8px] text-[13px] font-semibold transition ${
+              active ? 'bg-white text-ink shadow-xs' : 'text-ink-mute hover:text-ink'
             }`}
           >
             {opt.label}
@@ -574,7 +574,7 @@ export function SignatureBox({
     <div className="flex flex-col gap-2.5">
       <div
         style={{ height }}
-        className={`border-[1.5px] rounded-[14px] relative bg-white overflow-hidden select-none transition ${
+        className={`border-[1.5px] rounded-card relative bg-white overflow-hidden select-none transition ${
           hasDrawnSignature ? 'border-brand' : 'border-line'
         }`}
       >
@@ -660,7 +660,7 @@ export function SignatureBox({
               onComplete={handleVerifyPinForSignature}
             />
             {pinError && (
-              <div className="w-full rounded-[10px] bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2 text-[13px] text-[#7a1010] text-center">
+              <div className="w-full rounded-2xl bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2 text-[13px] text-[#7a1010] text-center">
                 {pinError}
               </div>
             )}
@@ -700,7 +700,7 @@ export function SignaturePreviewCard({
 
   return (
     <div
-      className={`rounded-[10px] border-[1.5px] p-2.5 min-h-[118px] flex flex-col items-center justify-between text-center ${
+      className={`rounded-2xl border-[1.5px] p-2.5 min-h-[118px] flex flex-col items-center justify-between text-center ${
         isRejected
           ? 'border-status-crit bg-[#FDE8E8]/50'
           : hasImg

@@ -71,7 +71,7 @@ export default function ManageResourcesPage() {
             {venues.map((v, i) => (
               <div
                 key={v.id}
-                className={`p-4 rounded-[12px] border bg-white flex flex-col gap-1 ${
+                className={`p-4 rounded-2xl border bg-white flex flex-col gap-1 ${
                   i === 0 ? 'border-ink bg-brand-mint/40' : 'border-line'
                 }`}
               >
@@ -91,7 +91,7 @@ export default function ManageResourcesPage() {
         {tab === 'equipment' && (
           <div className="flex flex-col gap-2.5">
             {equipment.map((e) => (
-              <div key={e.id} className="p-4 rounded-[12px] border border-line bg-white flex flex-col gap-1">
+              <div key={e.id} className="p-4 rounded-2xl border border-line bg-white flex flex-col gap-1">
                 <div className="flex items-center justify-between gap-3">
                   <b className="text-[15px] text-ink">{e.name}</b>
                   <Toggle checked={e.enabled} onChange={(next) => toggleEquipment(e, next)} />
@@ -138,7 +138,7 @@ export default function ManageResourcesPage() {
                     key={f.key}
                     type="button"
                     onClick={() => setSelectedForm(f.key)}
-                    className={`p-4 rounded-[12px] border text-left transition flex items-center justify-between ${
+                    className={`p-4 rounded-2xl border text-left transition flex items-center justify-between ${
                       active
                         ? 'border-brand ring-2 ring-brand bg-brand-mint/40'
                         : 'border-line bg-white hover:bg-soft/40'

@@ -171,7 +171,7 @@ export default function LoginPage() {
             </div>
 
             {error && (
-              <div className="rounded-[10px] bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2.5 text-[13px] text-[#7a1010] flex items-center gap-2">
+              <div className="rounded-2xl bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2.5 text-[13px] text-[#7a1010] flex items-center gap-2">
                 <Icon name="x" className="w-4 h-4 text-status-crit shrink-0" />
                 <span>{error}</span>
               </div>
@@ -215,7 +215,7 @@ export default function LoginPage() {
                       type="button"
                       disabled={submitting}
                       onClick={() => handleDemoLoginClick(acc.id)}
-                      className="w-full text-left border border-line hover:border-brand hover:bg-brand-mint/30 rounded-[12px] p-3 bg-white flex items-center justify-between gap-3 cursor-pointer transition group disabled:opacity-50"
+                      className="w-full text-left border border-line hover:border-brand hover:bg-brand-mint/30 rounded-2xl p-3 bg-white flex items-center justify-between gap-3 cursor-pointer transition group disabled:opacity-50"
                     >
                       <div className="flex items-center gap-3 flex-1 min-w-0">
                         <div className="w-10 h-10 rounded-full bg-brand-mint text-brand font-bold flex items-center justify-center shrink-0">

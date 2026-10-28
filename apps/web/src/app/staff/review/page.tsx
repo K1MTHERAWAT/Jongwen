@@ -255,7 +255,7 @@ export default function StaffReviewPage() {
           />
 
           {pinError && (
-            <div className="rounded-[10px] bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2 text-[13px] text-[#7a1010]">
+            <div className="rounded-2xl bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2 text-[13px] text-[#7a1010]">
               {pinError}
             </div>
           )}
@@ -367,13 +367,13 @@ export default function StaffReviewPage() {
             </b>
             {current.type === 'repair' ? (
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                <div className="p-3 rounded-2xl bg-canvas border border-line flex flex-col gap-1">
                   <span className="text-[12px] font-semibold text-ink-mute">1. ผู้แจ้งส่งเรื่อง</span>
                   <span className="text-[13.5px] font-bold text-ink">{current.requesterName}</span>
                   <span className="text-[12px] text-ink-mute">{formatThaiDateTime(current.createdAt)}</span>
                   <span className="inline-flex items-center gap-1 text-[12px] font-medium text-brand mt-1">✓ ส่งเรื่องแล้ว</span>
                 </div>
-                <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                <div className="p-3 rounded-2xl bg-canvas border border-line flex flex-col gap-1">
                   <span className="text-[12px] font-semibold text-ink-mute">2. เจ้าหน้าที่รับเรื่อง & ซ่อม</span>
                   <span className="text-[13.5px] font-bold text-ink">{current.staffSignerName || account?.name || 'ฝ่ายช่างซ่อมบำรุง'}</span>
                   <span className="text-[12px] text-ink-mute">
@@ -389,7 +389,7 @@ export default function StaffReviewPage() {
                     {current.finishedAt ? '✓ ซ่อมเสร็จแล้ว' : current.acceptedAt ? '⟳ กำลังดำเนินการ' : '○ รอช่างรับเรื่อง'}
                   </span>
                 </div>
-                <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                <div className="p-3 rounded-2xl bg-canvas border border-line flex flex-col gap-1">
                   <span className="text-[12px] font-semibold text-ink-mute">3. ผู้แจ้งตรวจรับงาน</span>
                   <span className="text-[13.5px] font-bold text-ink">{current.requesterName}</span>
                   <span className="text-[12px] text-ink-mute">
@@ -467,7 +467,7 @@ export default function StaffReviewPage() {
                   {Array.from({ length: afterPhotos }).map((_, idx) => (
                     <div
                       key={idx}
-                      className="w-16 h-16 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center relative"
+                      className="w-16 h-16 rounded-2xl bg-brand-mint text-brand flex items-center justify-center relative"
                     >
                       <Icon name="photo" className="w-6 h-6" strokeWidth={1.6} />
                       <button
@@ -483,7 +483,7 @@ export default function StaffReviewPage() {
                     <button
                       type="button"
                       onClick={() => setAfterPhotos((p) => Math.min(3, p + 1))}
-                      className="w-16 h-16 rounded-[10px] bg-white border-[1.5px] border-dashed border-[#7A7A7A] text-ink-mute text-[12px] flex flex-col items-center justify-center gap-0.5 hover:border-brand"
+                      className="w-16 h-16 rounded-2xl bg-white border-[1.5px] border-dashed border-[#7A7A7A] text-ink-mute text-[12px] flex flex-col items-center justify-center gap-0.5 hover:border-brand"
                     >
                       <Icon name="plus" className="w-4 h-4" />
                       <span>+ รูป</span>

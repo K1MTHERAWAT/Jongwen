@@ -397,7 +397,7 @@ export default function StaffWalkInPage() {
           )}
 
           {draftSaved && (
-            <div className="rounded-[10px] bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold">
+            <div className="rounded-2xl bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold">
               บันทึกร่างคำขอหน้าเคาน์เตอร์เรียบร้อยแล้ว
             </div>
           )}

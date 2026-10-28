@@ -88,7 +88,7 @@ export default function ApproverSignaturePinSettingsPage() {
           />
 
           {message && (
-            <div className="rounded-[10px] bg-brand-mint text-brand px-4 py-2 text-[13px] font-semibold">
+            <div className="rounded-2xl bg-brand-mint text-brand px-4 py-2 text-[13px] font-semibold">
               {message}
             </div>
           )}

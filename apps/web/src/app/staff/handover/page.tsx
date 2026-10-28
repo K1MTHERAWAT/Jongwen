@@ -303,7 +303,7 @@ export default function StaffHandoverPage() {
         </div>
 
         {savedMsg && (
-          <div className="rounded-[12px] bg-brand-mint border border-brand px-4 py-2.5 text-[14px] text-brand font-semibold">
+          <div className="rounded-2xl bg-brand-mint border border-brand px-4 py-2.5 text-[14px] text-brand font-semibold">
             {savedMsg}
           </div>
         )}

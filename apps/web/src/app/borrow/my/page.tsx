@@ -60,7 +60,7 @@ export default function MyBorrowsPage() {
               const isSoon = r.returnDate <= todayStr && r.status === 'borrowing';
               return (
                 <div key={r.id} className="jw-card p-4 flex items-center gap-3.5">
-                  <div className="w-14 h-14 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+                  <div className="w-14 h-14 rounded-2xl bg-brand-mint text-brand flex items-center justify-center shrink-0">
                     <Icon name="package" className="w-6 h-6" />
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col gap-1">

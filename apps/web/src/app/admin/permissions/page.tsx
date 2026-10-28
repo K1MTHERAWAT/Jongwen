@@ -159,7 +159,7 @@ export default function AdminPermissionsPage() {
                   <React.Fragment key={u.id}>
                     <div
                       onClick={() => selectUser(u)}
-                      className={`p-3.5 rounded-[10px] border cursor-pointer transition ${
+                      className={`p-3.5 rounded-2xl border cursor-pointer transition ${
                         active ? 'border-ink bg-brand-mint' : 'border-line bg-white hover:border-brand'
                       }`}
                     >
@@ -179,7 +179,7 @@ export default function AdminPermissionsPage() {
 
                     {active && (
                       <div className="jw-card p-4 sm:p-5 flex flex-col gap-4 border-brand">
-                        <div className="border border-line rounded-[12px] p-3.5 bg-white flex items-center justify-between gap-3">
+                        <div className="border border-line rounded-2xl p-3.5 bg-white flex items-center justify-between gap-3">
                           <div>
                             <b className="block text-[14px] text-ink">สถานะการเปิด/ปิดการใช้งานบัญชี</b>
                             <span className="text-[12px] text-ink-mute">
@@ -209,7 +209,7 @@ export default function AdminPermissionsPage() {
                               </button>
                             ))}
                           </div>
-                          <div className="mt-2.5 rounded-[10px] bg-soft border border-line p-3 text-[13px]">
+                          <div className="mt-2.5 rounded-2xl bg-soft border border-line p-3 text-[13px]">
                             <b className="text-ink block">{ROLE_META[roleDraft].label}</b>
                             <span className="text-ink-mute">{ROLE_META[roleDraft].summary}</span>
                           </div>
@@ -228,7 +228,7 @@ export default function AdminPermissionsPage() {
                               คืนค่ามาตรฐานของบทบาทนี้
                             </button>
                           </div>
-                          <div className="divide-y divide-line border border-line rounded-[12px] px-3.5 bg-white">
+                          <div className="divide-y divide-line border border-line rounded-2xl px-3.5 bg-white">
                             {PERMISSION_KEYS.map((key) => {
                               const meta = PERMISSION_META[key];
                               const checked = !!permDraft[key];
@@ -267,7 +267,7 @@ export default function AdminPermissionsPage() {
             </div>
 
             {savedMsg && (
-              <div className="rounded-[10px] bg-brand-mint border border-brand px-4 py-2.5 text-[14px] text-brand font-semibold">
+              <div className="rounded-2xl bg-brand-mint border border-brand px-4 py-2.5 text-[14px] text-brand font-semibold">
                 {savedMsg}
               </div>
             )}
@@ -284,21 +284,21 @@ export default function AdminPermissionsPage() {
                 <Chip tone="green">3 ลำดับ</Chip>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 text-[13px]">
-                <div className="border border-line rounded-[10px] p-3 bg-white">
+                <div className="border border-line rounded-2xl p-3 bg-white">
                   <span className="text-[11px] font-bold text-brand block">ลำดับที่ 1 · เจ้าหน้าที่ตรวจสอบ</span>
                   <b className="text-[14px] text-ink block mt-0.5">
                     {users.filter((u) => u.role === 'STAFF' && u.active !== false).map((u) => u.name).join(', ') || '-'}
                   </b>
                   <span className="text-[12px] text-ink-mute">ตรวจเอกสาร + ลงนามระดับ 1</span>
                 </div>
-                <div className="border border-line rounded-[10px] p-3 bg-white">
+                <div className="border border-line rounded-2xl p-3 bg-white">
                   <span className="text-[11px] font-bold text-brand block">ลำดับที่ 2 · ผู้อนุมัติระดับ 2 (ปลัด อบต.)</span>
                   <b className="text-[14px] text-ink block mt-0.5">
                     {users.filter((u) => u.role === 'APPROVER_L2' && u.active !== false).map((u) => u.name).join(', ') || '-'}
                   </b>
                   <span className="text-[12px] text-ink-mute">กลั่นกรองเห็นชอบ + ยืนยัน PIN 6 หลัก</span>
                 </div>
-                <div className="border border-line rounded-[10px] p-3 bg-white">
+                <div className="border border-line rounded-2xl p-3 bg-white">
                   <span className="text-[11px] font-bold text-brand block">ลำดับที่ 3 · ผู้อนุมัติระดับ 1 (นายก อบต.)</span>
                   <b className="text-[14px] text-ink block mt-0.5">
                     {users.filter((u) => u.role === 'APPROVER_L1' && u.active !== false).map((u) => u.name).join(', ') || '-'}
@@ -320,7 +320,7 @@ export default function AdminPermissionsPage() {
                 <Chip tone="green">Workflow มาตรฐาน อบต.</Chip>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[13px]">
-                <div className="rounded-[12px] border border-line bg-soft p-3.5 flex flex-col gap-1">
+                <div className="rounded-2xl border border-line bg-soft p-3.5 flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <b className="text-brand">ระดับที่ 1 · เจ้าหน้าที่ตรวจสอบ</b>
                     <Chip tone="blue">STAFF</Chip>
@@ -334,7 +334,7 @@ export default function AdminPermissionsPage() {
                   </span>
                 </div>
 
-                <div className="rounded-[12px] border border-line bg-soft p-3.5 flex flex-col gap-1">
+                <div className="rounded-2xl border border-line bg-soft p-3.5 flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <b className="text-brand">ระดับที่ 2 · เห็นชอบ</b>
                     <Chip tone="amber">APPROVER_L2</Chip>
@@ -348,7 +348,7 @@ export default function AdminPermissionsPage() {
                   </span>
                 </div>
 
-                <div className="rounded-[12px] border border-line bg-soft p-3.5 flex flex-col gap-1">
+                <div className="rounded-2xl border border-line bg-soft p-3.5 flex flex-col gap-1">
                   <div className="flex items-center justify-between">
                     <b className="text-brand">ระดับที่ 3 · อนุมัติขั้นสุดท้าย</b>
                     <Chip tone="amber">APPROVER_L1</Chip>

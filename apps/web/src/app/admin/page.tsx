@@ -88,7 +88,7 @@ export default function AdminHomePage() {
               href="/admin/resources"
               className="jw-card p-4 flex items-center gap-3 hover:ring-1 hover:ring-brand transition"
             >
-              <div className="w-11 h-11 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-brand-mint text-brand flex items-center justify-center shrink-0">
                 <Icon name="building-community" className="w-6 h-6" />
               </div>
               <b className="text-[15px]">ทรัพยากร</b>
@@ -98,7 +98,7 @@ export default function AdminHomePage() {
               href="/admin/permissions"
               className="jw-card p-4 flex items-center gap-3 hover:ring-1 hover:ring-brand transition"
             >
-              <div className="w-11 h-11 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-brand-mint text-brand flex items-center justify-center shrink-0">
                 <Icon name="shield-check" className="w-6 h-6" />
               </div>
               <b className="text-[15px]">จัดการสิทธิ์</b>
@@ -108,7 +108,7 @@ export default function AdminHomePage() {
               href="/admin/resources"
               className="jw-card p-4 flex items-center gap-3 hover:ring-1 hover:ring-brand transition"
             >
-              <div className="w-11 h-11 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center shrink-0">
+              <div className="w-11 h-11 rounded-2xl bg-brand-mint text-brand flex items-center justify-center shrink-0">
                 <Icon name="file-text" className="w-6 h-6" />
               </div>
               <b className="text-[15px]">แบบฟอร์ม</b>
@@ -131,7 +131,7 @@ export default function AdminHomePage() {
           <div className="jw-card px-4 divide-y divide-line">
             {overview.activities.map((act) => (
               <div key={act.id} className="py-3.5 flex items-center gap-3.5">
-                <div className="w-10 h-10 rounded-[12px] bg-soft text-brand flex items-center justify-center shrink-0">
+                <div className="w-10 h-10 rounded-2xl bg-soft text-brand flex items-center justify-center shrink-0">
                   <Icon name={iconForKind(act.kind)} className="w-5 h-5" />
                 </div>
                 <div className="flex-1 min-w-0">

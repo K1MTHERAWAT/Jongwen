@@ -193,7 +193,7 @@ export default function AddResourcePage() {
               {Array.from({ length: photos }).map((_, idx) => (
                 <div
                   key={idx}
-                  className="w-20 h-20 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center relative"
+                  className="w-20 h-20 rounded-2xl bg-brand-mint text-brand flex items-center justify-center relative"
                 >
                   <Icon name="photo" className="w-7 h-7" strokeWidth={1.6} />
                   <button
@@ -209,7 +209,7 @@ export default function AddResourcePage() {
                 <button
                   type="button"
                   onClick={() => setPhotos((p) => Math.min(3, p + 1))}
-                  className="w-20 h-20 rounded-[10px] bg-white border-[1.5px] border-dashed border-[#7A7A7A] text-ink-mute text-[12px] flex flex-col items-center justify-center gap-1 hover:border-brand"
+                  className="w-20 h-20 rounded-2xl bg-white border-[1.5px] border-dashed border-[#7A7A7A] text-ink-mute text-[12px] flex flex-col items-center justify-center gap-1 hover:border-brand"
                 >
                   <Icon name="upload" className="w-5 h-5" />
                   <span>เพิ่มรูป</span>
@@ -397,7 +397,7 @@ export default function AddResourcePage() {
                     key={label}
                     type="button"
                     onClick={() => toggleDay(idx)}
-                    className={`flex-1 h-[38px] rounded-[10px] border-[1.5px] text-[13px] font-semibold transition ${
+                    className={`flex-1 h-[38px] rounded-full border-[1.5px] text-[13px] font-semibold transition ${
                       on
                         ? 'bg-brand border-brand text-white'
                         : 'bg-white border-line text-ink hover:border-brand'
@@ -410,7 +410,7 @@ export default function AddResourcePage() {
             </div>
           </div>
 
-          <div className="border border-line rounded-[12px] px-4 py-2 bg-white">
+          <div className="border border-line rounded-2xl px-4 py-2 bg-white">
             <div className="flex items-center justify-between py-2">
               <div>
                 <b className="text-[14px] block">ลำดับการอนุมัติ (ลากเรียงลำดับได้)</b>
@@ -469,7 +469,7 @@ export default function AddResourcePage() {
             </select>
           </div>
 
-          <div className="border border-line rounded-[12px] p-3.5 flex items-center justify-between bg-white">
+          <div className="border border-line rounded-2xl p-3.5 flex items-center justify-between bg-white">
             <div>
               <b className="block text-[14px]">เปิดให้จอง</b>
               <span className="text-[12px] text-ink-mute">

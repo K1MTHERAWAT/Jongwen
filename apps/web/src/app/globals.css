@@ -17,19 +17,22 @@
     @apply bg-surface rounded-card border border-line shadow-card;
   }
   .jw-btn {
-    @apply h-11 px-[18px] rounded-control bg-brand text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-brand-ink disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-4 rounded-control bg-brand text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-brand-ink disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-sec {
-    @apply h-11 px-[18px] rounded-control bg-surface text-ink border border-line-input font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-hover disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-4 rounded-control bg-surface text-ink border border-line-input font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-hover disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-red {
-    @apply h-11 px-[18px] rounded-control bg-danger-fg text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-4 rounded-control bg-danger-fg text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-sm {
     @apply h-9 px-3 text-caption;
   }
   .jw-in {
-    @apply h-11 w-full bg-surface border border-line-input rounded-control px-3 text-body text-ink placeholder:text-muted focus:outline-none focus-visible:outline-2 focus-visible:outline-brand;
+    @apply h-11 w-full bg-surface border border-line-input rounded-control px-3.5 text-body text-ink placeholder:text-muted focus:outline-none focus-visible:outline-2 focus-visible:outline-brand;
+  }
+  textarea.jw-in {
+    @apply rounded-control py-2.5;
   }
   .jw-lbl {
     @apply block font-semibold text-caption text-ink mb-1.5;

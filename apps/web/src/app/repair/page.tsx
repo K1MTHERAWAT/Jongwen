@@ -228,7 +228,7 @@ export default function RepairPage() {
                 {Array.from({ length: photos }).map((_, idx) => (
                   <div
                     key={idx}
-                    className="w-20 h-20 rounded-[10px] bg-brand-mint text-brand flex items-center justify-center relative"
+                    className="w-20 h-20 rounded-2xl bg-brand-mint text-brand flex items-center justify-center relative"
                   >
                     <Icon name="photo" className="w-7 h-7" strokeWidth={1.6} />
                     <button
@@ -244,7 +244,7 @@ export default function RepairPage() {
                   <button
                     type="button"
                     onClick={() => setPhotos((p) => Math.min(3, p + 1))}
-                    className="w-20 h-20 rounded-[10px] bg-white border-[1.5px] border-dashed border-[#7A7A7A] text-ink-mute text-[13px] flex flex-col items-center justify-center gap-1 hover:border-brand"
+                    className="w-20 h-20 rounded-2xl bg-white border-[1.5px] border-dashed border-[#7A7A7A] text-ink-mute text-[13px] flex flex-col items-center justify-center gap-1 hover:border-brand"
                   >
                     <Icon name="plus" className="w-5 h-5" />
                     <span>+ รูป</span>
@@ -258,7 +258,7 @@ export default function RepairPage() {
             </p>
 
             {draftSaved && (
-              <div className="rounded-[10px] bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold">
+              <div className="rounded-2xl bg-brand-mint text-brand px-3.5 py-2 text-[13px] font-semibold">
                 บันทึกร่างการแจ้งซ่อมเรียบร้อยแล้ว
               </div>
             )}
@@ -292,13 +292,13 @@ export default function RepairPage() {
                 <div className="pt-2 border-t border-line flex flex-col gap-2.5">
                   <b className="text-[14px] text-ink">ความคืบหน้าการดำเนินงาน (3 ขั้นตอน)</b>
                   <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-                    <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                    <div className="p-3 rounded-2xl bg-canvas border border-line flex flex-col gap-1">
                       <span className="text-[12px] font-semibold text-ink-mute">1. ผู้แจ้งส่งเรื่อง</span>
                       <span className="text-[13.5px] font-bold text-ink">{activeRepair.requesterName}</span>
                       <span className="text-[12px] text-ink-mute">{formatThaiDateTime(activeRepair.createdAt)}</span>
                       <span className="inline-flex items-center gap-1 text-[12px] font-medium text-brand mt-1">✓ ส่งเรื่องแล้ว</span>
                     </div>
-                    <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                    <div className="p-3 rounded-2xl bg-canvas border border-line flex flex-col gap-1">
                       <span className="text-[12px] font-semibold text-ink-mute">2. เจ้าหน้าที่รับเรื่อง & ซ่อม</span>
                       <span className="text-[13.5px] font-bold text-ink">{activeRepair.staffSignerName || 'ฝ่ายช่างซ่อมบำรุง'}</span>
                       <span className="text-[12px] text-ink-mute">
@@ -314,7 +314,7 @@ export default function RepairPage() {
                         {activeRepair.finishedAt ? '✓ ซ่อมเสร็จแล้ว' : activeRepair.acceptedAt ? '⟳ กำลังดำเนินการ' : '○ รอช่างรับเรื่อง'}
                       </span>
                     </div>
-                    <div className="p-3 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+                    <div className="p-3 rounded-2xl bg-canvas border border-line flex flex-col gap-1">
                       <span className="text-[12px] font-semibold text-ink-mute">3. ผู้แจ้งตรวจรับงาน</span>
                       <span className="text-[13.5px] font-bold text-ink">{activeRepair.requesterName}</span>
                       <span className="text-[12px] text-ink-mute">
@@ -330,7 +330,7 @@ export default function RepairPage() {
                 </div>
 
                 {activeRepair.status === 'repair_awaiting_acceptance' && (
-                  <div className="pt-3 border-t border-line flex flex-col gap-2 bg-amber-50/50 dark:bg-amber-950/20 p-3.5 rounded-[12px] border border-amber-200">
+                  <div className="pt-3 border-t border-line flex flex-col gap-2 bg-amber-50/50 dark:bg-amber-950/20 p-3.5 rounded-2xl border border-amber-200">
                     <b className="text-[14px] text-amber-900 dark:text-amber-200">งานซ่อมเสร็จเรียบร้อยแล้ว รอการตรวจรับจากคุณ</b>
                     <p className="text-[13px] text-amber-800 dark:text-amber-300">
                       ผลการซ่อม: {activeRepair.resolution || 'ดำเนินการซ่อมเรียบร้อย'}

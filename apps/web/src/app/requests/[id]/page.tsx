@@ -170,7 +170,7 @@ export default function RequestDetailPage() {
             </span>
           </div>
           {req.rejectReason && (
-            <div className="mt-2 rounded-[10px] bg-[#FDE8E8] border border-[#f9b4b4] px-3 py-2 text-[13px] text-[#7a1010]">
+            <div className="mt-2 rounded-2xl bg-[#FDE8E8] border border-[#f9b4b4] px-3.5 py-2 text-[13px] text-[#7a1010]">
               <b>หมายเหตุ:</b> {req.rejectReason}
             </div>
           )}
@@ -212,13 +212,13 @@ export default function RequestDetailPage() {
 
           {req.type === 'repair' ? (
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
-              <div className="p-3.5 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+              <div className="p-3.5 rounded-2xl bg-canvas border border-line flex flex-col gap-1">
                 <span className="text-[12px] font-semibold text-ink-mute">1. ผู้แจ้งส่งเรื่อง</span>
                 <span className="text-[13.5px] font-bold text-ink">{req.requesterName}</span>
                 <span className="text-[12px] text-ink-mute">{formatThaiDateTime(req.createdAt)}</span>
                 <span className="inline-flex items-center gap-1 text-[12px] font-medium text-brand mt-1">✓ ส่งเรื่องแล้ว</span>
               </div>
-              <div className="p-3.5 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+              <div className="p-3.5 rounded-2xl bg-canvas border border-line flex flex-col gap-1">
                 <span className="text-[12px] font-semibold text-ink-mute">2. เจ้าหน้าที่รับเรื่อง & ซ่อม</span>
                 <span className="text-[13.5px] font-bold text-ink">{req.staffSignerName || 'ฝ่ายช่างซ่อมบำรุง'}</span>
                 <span className="text-[12px] text-ink-mute">
@@ -234,7 +234,7 @@ export default function RequestDetailPage() {
                   {req.finishedAt ? '✓ ซ่อมเสร็จแล้ว' : req.acceptedAt ? '⟳ กำลังดำเนินการ' : '○ รอช่างรับเรื่อง'}
                 </span>
               </div>
-              <div className="p-3.5 rounded-[12px] bg-canvas border border-line flex flex-col gap-1">
+              <div className="p-3.5 rounded-2xl bg-canvas border border-line flex flex-col gap-1">
                 <span className="text-[12px] font-semibold text-ink-mute">3. ผู้แจ้งตรวจรับงาน</span>
                 <span className="text-[13.5px] font-bold text-ink">{req.requesterName}</span>
                 <span className="text-[12px] text-ink-mute">

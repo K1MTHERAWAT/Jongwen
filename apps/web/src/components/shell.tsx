@@ -181,7 +181,7 @@ export function AppShell({
                             setShowNotif(false);
                             if (n.link) router.push(n.link);
                           }}
-                          className={`py-3 px-2 rounded-control cursor-pointer hover:bg-hover transition-colors ${
+                          className={`py-3 px-2 rounded-xl cursor-pointer hover:bg-hover transition-colors ${
                             !n.read ? 'bg-brand-tint/40 font-medium' : ''
                           }`}
                         >
@@ -257,7 +257,7 @@ export function AppShell({
           ) : !access.allowed ? (
             <Card className="p-6 max-w-[620px] mx-auto my-6 border-danger-fg/30 flex flex-col gap-4">
               <div className="flex items-start gap-4">
-                <div className="size-11 rounded-[12px] bg-danger-bg text-danger-fg flex items-center justify-center shrink-0">
+                <div className="size-11 rounded-2xl bg-danger-bg text-danger-fg flex items-center justify-center shrink-0">
                   <ShieldAlert className="size-6" />
                 </div>
                 <div className="flex flex-col gap-1 min-w-0 flex-1">
@@ -271,7 +271,7 @@ export function AppShell({
                 </div>
               </div>
 
-              <div className="rounded-control bg-surface-muted border border-line p-4 flex flex-col gap-2 text-caption">
+              <div className="rounded-2xl bg-surface-muted border border-line p-4 flex flex-col gap-2 text-caption">
                 <div className="flex justify-between gap-2">
                   <span className="text-muted">บัญชีของคุณขณะนี้:</span>
                   <span className="font-semibold text-ink">
@@ -360,7 +360,7 @@ export function AppShell({
               </div>
             </div>
 
-            <div className="bg-surface-muted rounded-control p-4 flex flex-col gap-2.5 text-body">
+            <div className="bg-surface-muted rounded-2xl p-4 flex flex-col gap-2.5 text-body">
               <div className="flex justify-between gap-2">
                 <span className="text-muted">หน่วยงาน:</span>
                 <span className="font-semibold text-ink text-right">{account.department || '-'}</span>
