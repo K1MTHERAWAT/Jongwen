@@ -8,8 +8,28 @@ on:
 
 jobs:
   verify:
-    name: Lint, Typecheck, Test & Build
+    name: Database Migration, Typecheck, Test & Build
     runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: jongwen
+          POSTGRES_PASSWORD: jongwen_dev_secret_change_in_production
+          POSTGRES_DB: jongwen
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql://jongwen:jongwen_dev_secret_change_in_production@localhost:5433/jongwen?schema=public
+      JWT_SECRET: jongwen_ci_test_secret_key_at_least_32_chars
+      DEMO_MODE: "false"
 
     steps:
       - name: Checkout code
@@ -43,6 +63,9 @@ jobs:
 
       - name: Generate Prisma Client
         run: pnpm --filter @jongwen/api prisma:generate
+
+      - name: Deploy Prisma Migrations (Verify DB Schema)
+        run: pnpm --filter @jongwen/api prisma:deploy
 
       - name: Build Shared Package
         run: pnpm build:shared

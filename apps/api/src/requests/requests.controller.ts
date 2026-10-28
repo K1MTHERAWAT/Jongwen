@@ -37,9 +37,30 @@ import {
 } from '../auth/auth.guard';
 import { verifySecret } from '../auth/secret';
 import { DbService } from '../db/db.service';
+import {
+  CreateBookingDto,
+  CreateBorrowDto,
+  CreateRepairDto,
+  HandoverDto,
+  RepairStatusDto,
+  RescheduleDto,
+  SignDto,
+} from './dto';
+
+class AsyncMutex {
+  private queue = Promise.resolve();
+
+  runExclusive<T>(fn: () => Promise<T>): Promise<T> {
+    const res = this.queue.then(fn, fn);
+    this.queue = res.then(() => {}, () => {});
+    return res;
+  }
+}
 
 @Controller('requests')
 export class RequestsController {
+  private readonly bookingMutex = new AsyncMutex();
+
   constructor(private readonly db: DbService) {}
 
   private sanitizeItems(items: unknown): ItemQty[] {
@@ -170,20 +191,40 @@ export class RequestsController {
         r.id !== excludeRequestId,
     );
 
+    // คำขอจองสถานที่ที่มีอุปกรณ์เสริม (extraItems)
+    const activeBookingsWithItems = this.db.requests.filter(
+      (r): r is BookingRequest =>
+        r.type === 'booking' &&
+        ['pending_staff', 'pending_l2', 'pending_l1', 'approved'].includes(r.status) &&
+        r.id !== excludeRequestId &&
+        Boolean(r.extraItems && r.extraItems.length > 0),
+    );
+
     // ตรวจสอบช่วงวันที่ทับซ้อน: pickupA <= returnB && pickupB <= returnA
-    const overlapping = activeBorrows.filter(
+    const overlappingBorrows = activeBorrows.filter(
       (b) => b.pickupDate <= returnDate && b.returnDate >= pickupDate,
     );
+    const overlappingBookings = activeBookingsWithItems.filter((b) => {
+      const dates = b.periods.flatMap((p) => [p.start.slice(0, 10), p.end.slice(0, 10)]).sort();
+      if (dates.length === 0) return false;
+      return dates[0] <= returnDate && dates[dates.length - 1] >= pickupDate;
+    });
 
     for (const item of items) {
       const eq = this.db.equipment.find((e) => e.id === item.equipmentId && e.enabled);
       if (!eq) throw new BadRequestException(`ไม่พบอุปกรณ์รหัส ${item.equipmentId}`);
 
-      const currentlyReserved = overlapping.reduce((sum, b) => {
+      const reservedInBorrows = overlappingBorrows.reduce((sum, b) => {
         const found = b.items.find((i) => i.equipmentId === eq.id);
         return sum + (found ? found.qty : 0);
       }, 0);
 
+      const reservedInBookings = overlappingBookings.reduce((sum, b) => {
+        const found = b.extraItems.find((i) => i.equipmentId === eq.id);
+        return sum + (found ? found.qty : 0);
+      }, 0);
+
+      const currentlyReserved = reservedInBorrows + reservedInBookings;
       const available = eq.stock - currentlyReserved;
       if (item.qty > available) {
         throw new ConflictException(
@@ -283,188 +324,165 @@ export class RequestsController {
   @Post('booking')
   async createBooking(
     @CurrentUser() user: Account,
-    @Body()
-    body: {
-      venueIds: string[];
-      periods: Period[];
-      attendees?: number;
-      activity?: string;
-      purpose?: string;
-      organization?: string;
-      attachments?: string[];
-      extraItems?: ItemQty[];
-      requesterId?: string;
-      requesterName?: string;
-      requesterSignature?: string;
-      createdByStaffSignature?: string;
-      writtenAt?: string;
-      requesterPosition?: string;
-      addressHouseNo?: string;
-      addressMoo?: string;
-      addressSubdistrict?: string;
-      addressDistrict?: string;
-      addressProvince?: string;
-      purposeItems?: { item: string; forWhat: string }[];
-    },
+    @Body() body: CreateBookingDto,
   ) {
-    const venueIds = Array.isArray(body.venueIds) ? body.venueIds : [];
-    const periods = Array.isArray(body.periods) ? body.periods : [];
-    this.validatePeriodsAndVenues(venueIds, periods);
+    return this.bookingMutex.runExclusive(async () => {
+      const venueIds = Array.isArray(body.venueIds) ? body.venueIds : [];
+      const periods = Array.isArray(body.periods) ? body.periods : [];
+      this.validatePeriodsAndVenues(venueIds, periods);
 
-    const requesterSig = requireDrawnSignature(body.requesterSignature, 'ผู้ขอใช้สถานที่');
+      // ตรวจสอบความจุสถานที่ (Venue Capacity)
+      for (const vId of venueIds) {
+        const v = this.db.venues.find((item) => item.id === vId);
+        if (v && v.capacity > 0 && body.attendees && body.attendees > v.capacity) {
+          throw new BadRequestException(
+            `จำนวนผู้เข้าร่วม (${body.attendees} คน) เกินความจุของสถานที่ "${v.name}" (รองรับได้สูงสุด ${v.capacity} คน)`,
+          );
+        }
+      }
 
-    const isWalkIn =
-      (body.requesterId && body.requesterId !== user.id) ||
-      (body.requesterName && body.requesterName.trim() !== user.name);
-    if (isWalkIn && !hasPermission(user, 'walkIn')) {
-      throw new ForbiddenException(
-        'ไม่มีสิทธิ์กรอกคำขอแทนผู้มาติดต่อ (Walk-in): ต้องเปิดสิทธิ์ "กรอกคำขอแทนผู้มาติดต่อหน้าเคาน์เตอร์"',
-      );
-    }
-    if (isWalkIn && body.requesterId && !this.db.accounts.some((a) => a.id === body.requesterId)) {
-      throw new BadRequestException('ไม่พบผู้ใช้ที่ระบุ');
-    }
-    const staffSig = isWalkIn ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
+      const requesterSig = requireDrawnSignature(body.requesterSignature, 'ผู้ขอใช้สถานที่');
 
-    const extraItems = this.sanitizeItems(body.extraItems);
-    if (extraItems.length > 0) {
-      const dates = periods.flatMap((p) => [p.start.slice(0, 10), p.end.slice(0, 10)]).sort();
-      this.validateBorrowInventory(extraItems, dates[0], dates[dates.length - 1]);
-    }
+      const isWalkIn =
+        (body.requesterId && body.requesterId !== user.id) ||
+        (body.requesterName && body.requesterName.trim() !== user.name);
+      if (isWalkIn && !hasPermission(user, 'walkIn')) {
+        throw new ForbiddenException(
+          'ไม่มีสิทธิ์กรอกคำขอแทนผู้มาติดต่อ (Walk-in): ต้องเปิดสิทธิ์ "กรอกคำขอแทนผู้มาติดต่อหน้าเคาน์เตอร์"',
+        );
+      }
+      if (isWalkIn && body.requesterId && !this.db.accounts.some((a) => a.id === body.requesterId)) {
+        throw new BadRequestException('ไม่พบผู้ใช้ที่ระบุ');
+      }
+      const staffSig = isWalkIn ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
 
-    const now = new Date().toISOString();
-    const code = await this.db.nextCode('BK');
-    const req: BookingRequest = {
-      id: `r-${code.toLowerCase()}`,
-      code,
-      type: 'booking',
-      status: 'pending_staff',
-      requesterId: isWalkIn ? body.requesterId ?? user.id : user.id,
-      requesterName: (isWalkIn ? body.requesterName?.trim() : '') || user.name,
-      requesterSignature: requesterSig,
-      organization: String(body.organization ?? '').slice(0, 200) || user.department,
-      createdAt: now,
-      updatedAt: now,
-      createdByStaffId: isWalkIn ? user.id : undefined,
-      createdByStaffSignature: staffSig,
-      venueIds,
-      periods: periods.map((p) => ({ start: p.start, end: p.end })),
-      attendees: Math.max(1, Math.min(10000, Math.floor(Number(body.attendees ?? 30)) || 30)),
-      activity: String(body.activity ?? '').trim().slice(0, 200) || 'ขอใช้สถานที่',
-      purpose: String(body.purpose ?? '').trim().slice(0, 1000) || 'ใช้จัดกิจกรรม',
-      attachments: (body.attachments ?? []).slice(0, 10).map((a) => String(a).slice(0, 200)),
-      extraItems,
-      signatures: [],
-      writtenAt: body.writtenAt ? String(body.writtenAt).slice(0, 120) : '',
-      requesterPosition: body.requesterPosition ? String(body.requesterPosition).slice(0, 120) : (user.position || ''),
-      addressHouseNo: body.addressHouseNo ? String(body.addressHouseNo).slice(0, 40) : '',
-      addressMoo: body.addressMoo ? String(body.addressMoo).slice(0, 20) : '',
-      addressSubdistrict: body.addressSubdistrict ? String(body.addressSubdistrict).slice(0, 80) : '',
-      addressDistrict: body.addressDistrict ? String(body.addressDistrict).slice(0, 80) : '',
-      addressProvince: body.addressProvince ? String(body.addressProvince).slice(0, 80) : '',
-      purposeItems: Array.isArray(body.purposeItems)
-        ? body.purposeItems.slice(0, 20).map((pi) => ({
-            item: String(pi?.item ?? '').slice(0, 200),
-            forWhat: String(pi?.forWhat ?? '').slice(0, 300),
-          }))
-        : undefined,
-    };
-    this.db.requests.unshift(req);
-    await this.db.persistRequest(req);
-    this.db.notifyRole('STAFF', 'มีคำขอจองสถานที่ใหม่', `${req.code} · ${req.requesterName}`, `/staff/review?id=${req.id}`);
-    await this.db.log('request', `ส่งคำขอจอง ${req.code}`, req.requesterName, {
-      id: user.id,
-      name: user.name,
-      role: user.role,
+      const extraItems = this.sanitizeItems(body.extraItems);
+      if (extraItems.length > 0) {
+        const dates = periods.flatMap((p) => [p.start.slice(0, 10), p.end.slice(0, 10)]).sort();
+        this.validateBorrowInventory(extraItems, dates[0], dates[dates.length - 1]);
+      }
+
+      const now = new Date().toISOString();
+      const code = await this.db.nextCode('BK');
+
+      // ตรวจสอบความซ้ำซ้อนอีกครั้งก่อนบันทึกแบบ atomic
+      this.validatePeriodsAndVenues(venueIds, periods);
+
+      const req: BookingRequest = {
+        id: `r-${code.toLowerCase()}`,
+        code,
+        type: 'booking',
+        status: 'pending_staff',
+        approvalRound: 1,
+        requesterId: isWalkIn ? body.requesterId ?? user.id : user.id,
+        requesterName: (isWalkIn ? body.requesterName?.trim() : '') || user.name,
+        requesterSignature: requesterSig,
+        organization: String(body.organization ?? '').slice(0, 200) || user.department,
+        createdAt: now,
+        updatedAt: now,
+        createdByStaffId: isWalkIn ? user.id : undefined,
+        createdByStaffSignature: staffSig,
+        venueIds,
+        periods: periods.map((p) => ({ start: p.start, end: p.end })),
+        attendees: Math.max(1, Math.min(10000, Math.floor(Number(body.attendees ?? 30)) || 30)),
+        activity: String(body.activity ?? '').trim().slice(0, 200) || 'ขอใช้สถานที่',
+        purpose: String(body.purpose ?? '').trim().slice(0, 1000) || 'ใช้จัดกิจกรรม',
+        attachments: (body.attachments ?? []).slice(0, 10).map((a) => String(a).slice(0, 200)),
+        extraItems,
+        signatures: [],
+        writtenAt: body.writtenAt ? String(body.writtenAt).slice(0, 120) : '',
+        requesterPosition: body.requesterPosition ? String(body.requesterPosition).slice(0, 120) : (user.position || ''),
+        addressHouseNo: body.addressHouseNo ? String(body.addressHouseNo).slice(0, 40) : '',
+        addressMoo: body.addressMoo ? String(body.addressMoo).slice(0, 20) : '',
+        addressSubdistrict: body.addressSubdistrict ? String(body.addressSubdistrict).slice(0, 80) : '',
+        addressDistrict: body.addressDistrict ? String(body.addressDistrict).slice(0, 80) : '',
+        addressProvince: body.addressProvince ? String(body.addressProvince).slice(0, 80) : '',
+        purposeItems: Array.isArray(body.purposeItems)
+          ? body.purposeItems.slice(0, 20).map((pi) => ({
+              item: String(pi?.item ?? '').slice(0, 200),
+              forWhat: String(pi?.forWhat ?? '').slice(0, 300),
+            }))
+          : undefined,
+      };
+      this.db.requests.unshift(req);
+      await this.db.persistRequest(req);
+      this.db.notifyRole('STAFF', 'มีคำขอจองสถานที่ใหม่', `${req.code} · ${req.requesterName}`, `/staff/review?id=${req.id}`);
+      await this.db.log('request', `ส่งคำขอจอง ${req.code}`, req.requesterName, {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+      });
+      return this.enrich(req);
     });
-    return this.enrich(req);
   }
 
   @Post('borrow')
   async createBorrow(
     @CurrentUser() user: Account,
-    @Body()
-    body: {
-      items: ItemQty[];
-      pickupDate: string;
-      returnDate: string;
-      purpose?: string;
-      organization?: string;
-      attachments?: string[];
-      requesterId?: string;
-      requesterName?: string;
-      requesterSignature?: string;
-      createdByStaffSignature?: string;
-    },
+    @Body() body: CreateBorrowDto,
   ) {
-    const items = this.sanitizeItems(body.items);
-    if (!items.length) throw new BadRequestException('กรุณาเลือกอุปกรณ์อย่างน้อย 1 รายการ');
-    const pickupDate = String(body.pickupDate ?? '').slice(0, 10);
-    const returnDate = String(body.returnDate ?? '').slice(0, 10);
-    this.validateBorrowInventory(items, pickupDate, returnDate);
+    return this.bookingMutex.runExclusive(async () => {
+      const items = this.sanitizeItems(body.items);
+      if (!items.length) throw new BadRequestException('กรุณาเลือกอุปกรณ์อย่างน้อย 1 รายการ');
+      const pickupDate = String(body.pickupDate ?? '').slice(0, 10);
+      const returnDate = String(body.returnDate ?? '').slice(0, 10);
+      this.validateBorrowInventory(items, pickupDate, returnDate);
 
-    const isWalkIn =
-      Boolean(body.createdByStaffSignature) ||
-      Boolean(body.requesterId && body.requesterId !== user.id) ||
-      Boolean(body.requesterName && body.requesterName.trim() !== user.name);
+      const isWalkIn =
+        Boolean(body.createdByStaffSignature) ||
+        Boolean(body.requesterId && body.requesterId !== user.id) ||
+        Boolean(body.requesterName && body.requesterName.trim() !== user.name);
 
-    if (isWalkIn && !hasPermission(user, 'walkIn')) {
-      throw new ForbiddenException('ไม่มีสิทธิ์กรอกคำขอแทนที่เคาน์เตอร์');
-    }
+      if (isWalkIn && !hasPermission(user, 'walkIn')) {
+        throw new ForbiddenException('ไม่มีสิทธิ์กรอกคำขอแทนที่เคาน์เตอร์');
+      }
 
-    const requesterSig = requireDrawnSignature(body.requesterSignature, 'ผู้ขอยืม');
-    const staffSig = isWalkIn ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
+      const requesterSig = requireDrawnSignature(body.requesterSignature, 'ผู้ขอยืม');
+      const staffSig = isWalkIn ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
 
-    const now = new Date().toISOString();
-    const code = await this.db.nextCode('BR');
-    const req: BorrowRequest = {
-      id: `r-${code.toLowerCase()}`,
-      code,
-      type: 'borrow',
-      status: 'pending_staff',
-      requesterId: isWalkIn ? body.requesterId ?? user.id : user.id,
-      requesterName: (isWalkIn ? body.requesterName?.trim() : '') || user.name,
-      requesterSignature: requesterSig,
-      organization: String(body.organization ?? '').slice(0, 200) || user.department,
-      createdAt: now,
-      updatedAt: now,
-      createdByStaffId: isWalkIn ? user.id : undefined,
-      createdByStaffSignature: staffSig,
-      items,
-      pickupDate: String(body.pickupDate).slice(0, 10),
-      returnDate: String(body.returnDate).slice(0, 10),
-      purpose: String(body.purpose ?? '').trim().slice(0, 1000) || 'ใช้งานกิจกรรมในพื้นที่',
-      attachments: (body.attachments ?? []).slice(0, 10).map((a) => String(a).slice(0, 200)),
-      signatures: [],
-    };
-    this.db.requests.unshift(req);
-    await this.db.persistRequest(req);
-    this.db.notifyRole('STAFF', 'มีคำขอยืมครุภัณฑ์ใหม่', `${req.code} · ${req.requesterName}`, `/staff/review?id=${req.id}`);
-    await this.db.log('request', `ส่งคำขอยืม ${req.code}`, req.requesterName, {
-      id: user.id,
-      name: user.name,
-      role: user.role,
+      const now = new Date().toISOString();
+      const code = await this.db.nextCode('BR');
+
+      // ตรวจสอบสต็อกซ้ำอีกครั้งก่อนบันทึกแบบ atomic
+      this.validateBorrowInventory(items, pickupDate, returnDate);
+
+      const req: BorrowRequest = {
+        id: `r-${code.toLowerCase()}`,
+        code,
+        type: 'borrow',
+        status: 'pending_staff',
+        approvalRound: 1,
+        requesterId: isWalkIn ? body.requesterId ?? user.id : user.id,
+        requesterName: (isWalkIn ? body.requesterName?.trim() : '') || user.name,
+        requesterSignature: requesterSig,
+        organization: String(body.organization ?? '').slice(0, 200) || user.department,
+        createdAt: now,
+        updatedAt: now,
+        createdByStaffId: isWalkIn ? user.id : undefined,
+        createdByStaffSignature: staffSig,
+        items,
+        pickupDate: String(body.pickupDate).slice(0, 10),
+        returnDate: String(body.returnDate).slice(0, 10),
+        purpose: String(body.purpose ?? '').trim().slice(0, 1000) || 'ใช้งานกิจกรรมในพื้นที่',
+        attachments: (body.attachments ?? []).slice(0, 10).map((a) => String(a).slice(0, 200)),
+        signatures: [],
+      };
+      this.db.requests.unshift(req);
+      await this.db.persistRequest(req);
+      this.db.notifyRole('STAFF', 'มีคำขอยืมครุภัณฑ์ใหม่', `${req.code} · ${req.requesterName}`, `/staff/review?id=${req.id}`);
+      await this.db.log('request', `ส่งคำขอยืม ${req.code}`, req.requesterName, {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+      });
+      return this.enrich(req);
     });
-    return this.enrich(req);
   }
 
   @Post('repair')
   async createRepair(
     @CurrentUser() user: Account,
-    @Body()
-    body: {
-      building: string;
-      floor: string;
-      location: string;
-      category: string;
-      detail: string;
-      photos?: number;
-      requesterId?: string;
-      requesterName?: string;
-      organization?: string;
-      requesterSignature?: string;
-      createdByStaffSignature?: string;
-    },
+    @Body() body: CreateRepairDto,
   ) {
     if (!body.detail?.trim()) throw new BadRequestException('กรุณาระบุรายละเอียดอาการ');
 
@@ -477,7 +495,7 @@ export class RequestsController {
       throw new ForbiddenException('ไม่มีสิทธิ์กรอกคำขอแทนที่เคาน์เตอร์');
     }
 
-    // งานแจ้งซ่อม ไม่ต้องลงนาม (กรณีมีส่งลายเซ็นมาก็บันทึกไว้ได้ แต่ไม่บังคับ)
+    // Policy: งานแจ้งซ่อมจากประชาชนเป็น fast-ticket ช่องทางด่วน ไม่บังคับลายเซ็น/PIN
     const requesterSig = body.requesterSignature ? requireDrawnSignature(body.requesterSignature, 'ผู้แจ้งซ่อม') : undefined;
     const staffSig = isWalkIn && body.createdByStaffSignature ? requireDrawnSignature(body.createdByStaffSignature, 'เจ้าหน้าที่ผู้กรอกแทน') : undefined;
 
@@ -488,6 +506,7 @@ export class RequestsController {
       code,
       type: 'repair',
       status: 'repair_submitted',
+      approvalRound: 1,
       requesterId: isWalkIn ? body.requesterId ?? user.id : user.id,
       requesterName: (isWalkIn ? body.requesterName?.trim() : '') || user.name,
       requesterSignature: requesterSig,
@@ -520,7 +539,7 @@ export class RequestsController {
   async sign(
     @CurrentUser() user: Account,
     @Param('id') id: string,
-    @Body() body: { decision: 'approve' | 'reject'; note?: string; pin?: string; signature?: string },
+    @Body() body: SignDto,
   ) {
     const req = this.db.requests.find((r) => r.id === id || r.code === id);
     if (!req || req.type === 'repair') throw new NotFoundException('ไม่พบคำขอที่ต้องลงนาม');
@@ -563,6 +582,7 @@ export class RequestsController {
     req.signatures = req.signatures.filter((s) => s.level !== level);
     req.signatures.push({
       level,
+      round: req.approvalRound || 1,
       signerId: user.id,
       signerName: user.name,
       title: SIGN_LEVEL_TITLE[level],
@@ -604,28 +624,39 @@ export class RequestsController {
 
   /** ขอเลื่อนวัน หรือ ยกเลิกคำขอ (เฉพาะเจ้าของคำขอ หรือ เจ้าหน้าที่ที่มีสิทธิ์ตรวจคำขอ) */
   @Post(':id/reschedule')
-  async reschedule(@CurrentUser() user: Account, @Param('id') id: string, @Body() body: { periods: Period[] }) {
-    const req = this.db.requests.find((r): r is BookingRequest => (r.id === id || r.code === id) && r.type === 'booking');
-    if (!req) throw new NotFoundException('ไม่พบคำขอจอง');
-    if (req.requesterId !== user.id && !hasPermission(user, 'review')) {
-      throw new ForbiddenException('เฉพาะเจ้าของคำขอ หรือเจ้าหน้าที่ผู้รับผิดชอบเท่านั้นที่สามารถขอเลื่อนวันได้');
-    }
-    if (!['pending_staff', 'pending_l2', 'pending_l1', 'approved'].includes(req.status)) {
-      throw new BadRequestException('คำขอนี้ไม่อยู่ในสถานะที่ขอเลื่อนวันได้');
-    }
-    const periods = Array.isArray(body.periods) ? body.periods : [];
-    this.validatePeriodsAndVenues(req.venueIds, periods, req.id);
-    req.periods = periods.map((p) => ({ start: p.start, end: p.end }));
-    req.status = 'pending_staff';
-    req.signatures = [];
-    req.updatedAt = new Date().toISOString();
-    await this.db.persistRequest(req);
-    await this.db.log('request', `ขอเลื่อนวัน ${req.code}`, user.name, {
-      id: user.id,
-      name: user.name,
-      role: user.role,
+  async reschedule(@CurrentUser() user: Account, @Param('id') id: string, @Body() body: RescheduleDto) {
+    return this.bookingMutex.runExclusive(async () => {
+      const req = this.db.requests.find((r): r is BookingRequest => (r.id === id || r.code === id) && r.type === 'booking');
+      if (!req) throw new NotFoundException('ไม่พบคำขอจอง');
+      if (req.requesterId !== user.id && !hasPermission(user, 'review')) {
+        throw new ForbiddenException('เฉพาะเจ้าของคำขอ หรือเจ้าหน้าที่ผู้รับผิดชอบเท่านั้นที่สามารถขอเลื่อนวันได้');
+      }
+      if (!['pending_staff', 'pending_l2', 'pending_l1', 'approved'].includes(req.status)) {
+        throw new BadRequestException('คำขอนี้ไม่อยู่ในสถานะที่ขอเลื่อนวันได้');
+      }
+      const periods = Array.isArray(body.periods) ? body.periods : [];
+      this.validatePeriodsAndVenues(req.venueIds, periods, req.id);
+
+      // ตรวจสอบสต็อกอุปกรณ์เสริม (extraItems) สำหรับช่วงเวลาใหม่ด้วย
+      if (req.extraItems && req.extraItems.length > 0) {
+        const dates = periods.flatMap((p) => [p.start.slice(0, 10), p.end.slice(0, 10)]).sort();
+        this.validateBorrowInventory(req.extraItems, dates[0], dates[dates.length - 1], req.id);
+      }
+
+      req.periods = periods.map((p) => ({ start: p.start, end: p.end }));
+      req.status = 'pending_staff';
+      // รอบการอนุมัติใหม่ (Immutable Audit Trail: รักษาประวัติลายเซ็นรอบเก่าไว้ใน DB)
+      req.approvalRound = (req.approvalRound || 1) + 1;
+      req.signatures = [];
+      req.updatedAt = new Date().toISOString();
+      await this.db.persistRequest(req);
+      await this.db.log('request', `ขอเลื่อนวัน ${req.code} (รอบที่ ${req.approvalRound})`, user.name, {
+        id: user.id,
+        name: user.name,
+        role: user.role,
+      });
+      return this.enrich(req);
     });
-    return this.enrich(req);
   }
 
   @Post(':id/cancel')
@@ -674,14 +705,7 @@ export class RequestsController {
   async handover(
     @CurrentUser() user: Account,
     @Param('id') id: string,
-    @Body()
-    body: {
-      phase: 'before' | 'after';
-      items: { label: string; ok: boolean }[];
-      note?: string;
-      citizenSignature?: string;
-      staffSignature?: string;
-    },
+    @Body() body: HandoverDto,
   ) {
     const req = this.db.requests.find((r) => r.id === id || r.code === id);
     if (!req || req.type === 'repair') throw new NotFoundException('ไม่พบคำขอ');
@@ -734,13 +758,7 @@ export class RequestsController {
   async updateRepair(
     @CurrentUser() user: Account,
     @Param('id') id: string,
-    @Body()
-    body: {
-      action: 'accept' | 'finish' | 'confirm' | 'reopen';
-      resolution?: string;
-      signature?: string;
-      pin?: string;
-    },
+    @Body() body: RepairStatusDto,
   ) {
     const req = this.db.requests.find((r): r is RepairRequest => (r.id === id || r.code === id) && r.type === 'repair');
     if (!req) throw new NotFoundException('ไม่พบรายการแจ้งซ่อม');
@@ -749,11 +767,14 @@ export class RequestsController {
       if (!hasPermission(user, 'review')) {
         throw new ForbiddenException('เฉพาะเจ้าหน้าที่ผู้รับผิดชอบเท่านั้นที่สามารถรับเรื่องหรือบันทึกซ่อมเสร็จได้');
       }
-      // งานแจ้งซ่อมไม่บังคับยืนยัน PIN (ถ้ามีส่งมาจะตรวจสอบ)
-      if (body.pin && user.pin) {
+      // Security Policy: เจ้าหน้าที่ที่มี PIN ต้องยืนยัน PIN เสมอเมื่อรับเรื่องหรือบันทึกซ่อมเสร็จ
+      if (user.pin) {
+        if (!body.pin) {
+          throw new BadRequestException('กรุณาระบุรหัส PIN 6 หลักเพื่อยืนยันการดำเนินการ');
+        }
         const key = `pin:${user.id}`;
         assertNotLocked(key);
-        if (!(await verifySecret(user.pin, String(body.pin ?? '')))) {
+        if (!(await verifySecret(user.pin, String(body.pin)))) {
           recordFailure(key);
           throw new UnauthorizedException('รหัส PIN ไม่ถูกต้อง');
         }

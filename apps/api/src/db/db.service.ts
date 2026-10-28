@@ -84,6 +84,10 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
     return new Date(date.getTime() + 7 * 60 * 60 * 1000);
   }
 
+  getBuddhistYear(date = new Date()): number {
+    return this.getBangkokTime(date).getUTCFullYear() + 543;
+  }
+
   scheduleNightlyReset() {
     const now = new Date();
     // 03:00 น. กรุงเทพฯ (UTC+7) ตรงกับ 20:00:00 UTC
@@ -196,7 +200,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   // ===================== Sequence Management (PostgreSQL Atomic) =====================
 
   async nextCode(prefix: 'BK' | 'BR' | 'RP'): Promise<string> {
-    const buddhistYear = 2569;
+    const buddhistYear = this.getBuddhistYear();
     const key = `${prefix}-${buddhistYear}`;
     const seq = await this.prisma.sequence.upsert({
       where: { key },
@@ -218,17 +222,18 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async syncSequences() {
+    const buddhistYear = this.getBuddhistYear();
     const requests = await this.prisma.request.findMany({ select: { code: true } });
     for (const prefix of ['BK', 'BR', 'RP'] as const) {
       let maxVal = 0;
       for (const r of requests) {
-        const m = new RegExp(`^${prefix}-2569-(\\d+)$`).exec(r.code);
+        const m = new RegExp(`^${prefix}-${buddhistYear}-(\\d+)$`).exec(r.code);
         if (m) {
           const val = Number(m[1]);
           if (val > maxVal) maxVal = val;
         }
       }
-      const key = `${prefix}-2569`;
+      const key = `${prefix}-${buddhistYear}`;
       await this.prisma.sequence.upsert({
         where: { key },
         create: { key, value: maxVal },
@@ -504,6 +509,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       createdByStaffId: r.createdByStaffId ?? null,
       createdByStaffSignature: r.createdByStaffSignature ?? null,
       rejectReason: r.rejectReason ?? null,
+      approvalRound: r.approvalRound ?? 1,
       createdAt: new Date(r.createdAt),
       updatedAt: new Date(r.updatedAt),
     };
@@ -563,17 +569,21 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
 
         // รักษาร่องรอยและหลักฐานการลงนาม (Audit Trail) โดยไม่อนุญาตให้ deleteMany ทิ้ง
         if (r.signatures.length > 0) {
+          const currentRound = r.approvalRound ?? 1;
           for (const s of r.signatures) {
+            const sigRound = s.round ?? currentRound;
             await tx.signatureRecord.upsert({
               where: {
-                requestId_level: {
+                requestId_level_round: {
                   requestId: r.id,
                   level: s.level,
+                  round: sigRound,
                 },
               },
               create: {
                 requestId: r.id,
                 level: s.level,
+                round: sigRound,
                 signerId: s.signerId,
                 signerName: s.signerName,
                 title: s.title,
@@ -784,6 +794,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
         createdByStaffId: r.createdByStaffId ?? undefined,
         createdByStaffSignature: r.createdByStaffSignature ?? undefined,
         rejectReason: r.rejectReason ?? undefined,
+        approvalRound: r.approvalRound,
         writtenAt: r.writtenAt ?? undefined,
         requesterPosition: r.requesterPosition ?? undefined,
         addressHouseNo: r.addressHouseNo ?? undefined,
@@ -796,16 +807,20 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
           : undefined,
       };
 
-      const signatures = r.signatures.map((s) => ({
-        level: s.level,
-        signerId: s.signerId,
-        signerName: s.signerName,
-        title: s.title,
-        at: s.signedAt.toISOString(),
-        decision: s.decision,
-        signature: s.signature ?? undefined,
-        note: s.note ?? undefined,
-      }));
+      const currentRound = r.approvalRound ?? 1;
+      const signatures = r.signatures
+        .filter((s) => s.round === currentRound)
+        .map((s) => ({
+          level: s.level,
+          round: s.round,
+          signerId: s.signerId,
+          signerName: s.signerName,
+          title: s.title,
+          at: s.signedAt.toISOString(),
+          decision: s.decision,
+          signature: s.signature ?? undefined,
+          note: s.note ?? undefined,
+        }));
 
       if (r.type === 'booking') {
         const currentPeriods = r.periods

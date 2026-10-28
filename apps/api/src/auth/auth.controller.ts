@@ -11,6 +11,15 @@ import {
   requireDrawnSignature,
 } from './auth.guard';
 import { hashSecret, verifySecret } from './secret';
+import {
+  DemoLoginDto,
+  LoginDto,
+  RegisterDto,
+  RequestOtpDto,
+  SetPinDto,
+  SetSignatureDto,
+  VerifyPinDto,
+} from './dto';
 
 @Controller('auth')
 export class AuthController {
@@ -39,7 +48,7 @@ export class AuthController {
   @Throttle({ auth: { limit: 15, ttl: 60000 } })
   @Public()
   @Post('demo-login')
-  async demoLogin(@Body() body: { accountId?: string }) {
+  async demoLogin(@Body() body: DemoLoginDto) {
     if (process.env.DEMO_MODE !== 'true') {
       throw new NotFoundException('Endpoint not available');
     }
@@ -61,7 +70,7 @@ export class AuthController {
   @Throttle({ auth: { limit: 10, ttl: 60000 } })
   @Public()
   @Post('login')
-  async login(@Body() body: { username?: string; password?: string }) {
+  async login(@Body() body: LoginDto) {
     const username = String(body.username ?? '').trim().toLowerCase();
     const password = String(body.password ?? '');
     if (!username || !password) throw new UnauthorizedException('ชื่อผู้ใช้หรือรหัสผ่านไม่ถูกต้อง');
@@ -94,7 +103,7 @@ export class AuthController {
   @Throttle({ auth: { limit: 3, ttl: 60000 } })
   @Public()
   @Post('request-otp')
-  async requestOtp(@Body() body: { phone?: string }) {
+  async requestOtp(@Body() body: RequestOtpDto) {
     const isRegistrationOpen = process.env.DEMO_MODE === 'true' || process.env.REGISTRATION_OPEN === 'true';
     if (!isRegistrationOpen) {
       throw new ForbiddenException('ปิดรับการลงทะเบียนด้วยตนเองชั่วคราว');
@@ -132,14 +141,7 @@ export class AuthController {
   @Post('register')
   async register(
     @Body()
-    body: {
-      name: string;
-      phone: string;
-      password: string;
-      otp?: string;
-      lineName?: string;
-      department?: string;
-    },
+    body: RegisterDto,
   ) {
     const isRegistrationOpen = process.env.DEMO_MODE === 'true' || process.env.REGISTRATION_OPEN === 'true';
     if (!isRegistrationOpen) {
@@ -231,7 +233,7 @@ export class AuthController {
   }
 
   @Post('signature')
-  async saveSignature(@CurrentUser() user: Account, @Body() body: { signature: string }) {
+  async saveSignature(@CurrentUser() user: Account, @Body() body: SetSignatureDto) {
     user.signature = requireDrawnSignature(body.signature, 'ผู้ใช้');
     await this.db.persistAccount(user);
     return this.db.toPublic(user);
@@ -239,7 +241,7 @@ export class AuthController {
 
   @Throttle({ auth: { limit: 10, ttl: 60000 } })
   @Post('pin')
-  async savePin(@CurrentUser() user: Account, @Body() body: { pin: string }) {
+  async savePin(@CurrentUser() user: Account, @Body() body: SetPinDto) {
     if (!/^\d{6}$/.test(body.pin ?? '')) throw new BadRequestException('PIN ต้องเป็นตัวเลข 6 หลัก');
     if (!user.signature) {
       throw new BadRequestException('กรุณาเขียนและบันทึกลายเซ็นก่อนตั้งรหัส PIN');
@@ -252,7 +254,7 @@ export class AuthController {
 
   @Throttle({ auth: { limit: 10, ttl: 60000 } })
   @Post('verify-pin')
-  async verifyPin(@CurrentUser() user: Account, @Body() body: { pin: string }) {
+  async verifyPin(@CurrentUser() user: Account, @Body() body: VerifyPinDto) {
     if (!user.pin) throw new BadRequestException('บัญชีนี้ยังไม่ได้ตั้งค่า PIN');
     const key = `pin:${user.id}`;
     assertNotLocked(key);

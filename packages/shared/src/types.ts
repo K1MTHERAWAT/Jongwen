@@ -111,6 +111,7 @@ export interface SignatureRecord {
   /** ภาพลายเซ็นที่วาดด้วยมือ (data:image/...) */
   signature?: string;
   note?: string;
+  round?: number;
 }
 
 export interface TimelineStep {
@@ -140,6 +141,7 @@ interface BaseRequest {
   organization: string;
   createdAt: string;
   updatedAt: string;
+  approvalRound?: number;
   /** ลายเซ็นผู้ยื่นคำขอ (วาดบนหน้าจอ data:image/...) */
   requesterSignature?: string;
   /** เจ้าหน้าที่ที่กรอกแทนที่เคาน์เตอร์ */

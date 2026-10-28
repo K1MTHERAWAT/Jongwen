@@ -10,6 +10,15 @@ import { Icon } from '@/components/icons';
 import { Chip } from '@/components/ui';
 import { api } from '@/lib/api';
 
+const DEFAULT_DEMO_ACCOUNTS: DemoAccountSummary[] = [
+  { id: 'u-somchai', name: 'สมชาย ใจดี', role: 'USER', position: 'ประชาชน', department: 'กลุ่มแม่บ้านบ้านหนองบัว', initial: 'ส', nickname: 'สมชาย' },
+  { id: 'u-manee', name: 'มานี มีนา', role: 'USER', position: 'ประชาชน', department: 'กองสวัสดิการสังคม', initial: 'ม', nickname: 'มานี' },
+  { id: 's-suda', name: 'สุดา มีสุข', role: 'STAFF', position: 'เจ้าหน้าที่ธุรการ', department: 'สำนักปลัด อบต.', initial: 'สุ', nickname: 'สุดา' },
+  { id: 'a-wichai', name: 'วิชัย รักถิ่น', role: 'APPROVER_L2', position: 'ปลัด อบต.', department: 'สำนักปลัด อบต.', initial: 'วิ', nickname: 'วิชัย' },
+  { id: 'a-prasert', name: 'ประเสริฐ ศรีสุข', role: 'APPROVER_L1', position: 'นายก อบต.', department: 'องค์การบริหารส่วนตำบล', initial: 'ป', nickname: 'ประเสริฐ' },
+  { id: 'ad-admin', name: 'ผู้ดูแลระบบ', role: 'ADMIN', position: 'ผู้ดูแลระบบ', department: 'ฝ่ายเทคโนโลยีสารสนเทศ', initial: 'อ', nickname: 'แอดมิน' },
+];
+
 export default function LoginPage() {
   const router = useRouter();
   const { loginWithCredentials, loginWithDemo } = useAuth();
@@ -18,18 +27,25 @@ export default function LoginPage() {
   const [pdpa, setPdpa] = useState(true);
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
-  const [demoAccounts, setDemoAccounts] = useState<DemoAccountSummary[]>([]);
+  const [demoAccounts, setDemoAccounts] = useState<DemoAccountSummary[]>(DEFAULT_DEMO_ACCOUNTS);
+  const [loadingDemo, setLoadingDemo] = useState(false);
   const isDemo = process.env.NEXT_PUBLIC_DEMO === 'true';
 
   useEffect(() => {
     if (!isDemo) return;
     let active = true;
+    setLoadingDemo(true);
     api
       .demoAccounts()
       .then((data) => {
-        if (active) setDemoAccounts(data);
+        if (active && data && data.length > 0) setDemoAccounts(data);
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.warn('Could not fetch demo accounts from API, using fallback list:', err);
+      })
+      .finally(() => {
+        if (active) setLoadingDemo(false);
+      });
     return () => {
       active = false;
     };

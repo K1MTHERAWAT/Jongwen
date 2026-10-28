@@ -231,6 +231,7 @@ model Request {
   createdByStaffSignature String? @map("created_by_staff_signature")
 
   rejectReason String?  @map("reject_reason")
+  approvalRound Int     @default(1) @map("approval_round")
   createdAt    DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt    DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -298,6 +299,7 @@ model SignatureRecord {
   id         Int       @id @default(autoincrement())
   requestId  String    @map("request_id")
   level      SignLevel
+  round      Int       @default(1)
   signerId   String    @map("signer_id")
   signerName String    @map("signer_name")
   title      String
@@ -309,7 +311,7 @@ model SignatureRecord {
   request Request @relation(fields: [requestId], references: [id], onDelete: Cascade)
   signer  Account @relation(fields: [signerId], references: [id])
 
-  @@unique([requestId, level])
+  @@unique([requestId, level, round])
   @@index([signerId])
   @@map("signature_records")
 }
