@@ -656,17 +656,17 @@ export function AppShell({
 
       {/* ======================================================== */}
       {/* Sidebar Drawer (เปิดเมื่อกดปุ่มแฮมเบอร์เกอร์ ≡ หรือกดที่ชื่อ) */}
-      {/* สไลด์ออกมาจากฝั่งขวา ตรงตาม GovCenter UserSidebar           */}
+      {/* สไลด์ออกมาจากฝั่งซ้าย (Left Sidebar Drawer)                 */}
       {/* ======================================================== */}
       {sidebarOpen && (
-        <div className="no-print print:hidden fixed inset-0 z-50 flex justify-end">
+        <div className="no-print print:hidden fixed inset-0 z-50 flex">
           {/* Backdrop ดำโปร่งใส */}
           <div
             className="fixed inset-0 bg-black/45 backdrop-blur-xs transition-opacity"
             onClick={() => setSidebarOpen(false)}
           />
-          {/* กล่อง Sidebar สีขาว เลื่อนออกมาจากฝั่งขวา */}
-          <div className="relative w-80 max-w-[85vw] bg-white h-full flex flex-col shadow-[-4px_0_24px_rgba(0,0,0,0.12)] z-10 animate-in slide-in-from-right duration-200">
+          {/* กล่อง Sidebar สีขาว เลื่อนออกมาจากฝั่งซ้าย */}
+          <div className="relative w-80 max-w-[85vw] bg-white h-full flex flex-col shadow-[4px_0_24px_rgba(0,0,0,0.12)] z-10 animate-in slide-in-from-left duration-200">
             <SidebarContent
               account={account}
               pathname={pathname}
