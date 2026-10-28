@@ -1013,7 +1013,7 @@ export function OfficialGovFormDocument({
   );
 
   return (
-    <div className="gov-form-paper bg-white border border-line rounded-[8px] p-5 sm:p-8 shadow-card text-black text-[13.5px] sm:text-[14.5px] leading-[1.65] relative overflow-hidden">
+    <div className="gov-form-paper bg-white p-5 sm:p-8 text-black text-[13.5px] sm:text-[14.5px] leading-[1.65] relative">
       <div>
         {/* หัวเรื่องกลางหน้ากระดาษ */}
         <h2 className="text-center text-[18px] sm:text-[20px] font-bold text-black tracking-wide mb-2">

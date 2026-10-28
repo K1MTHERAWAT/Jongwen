@@ -37,6 +37,10 @@
   .jw-lbl {
     @apply block font-semibold text-caption text-ink mb-1.5;
   }
+  .gov-form-paper {
+    border: none !important;
+    box-shadow: none !important;
+  }
 }
 
 @media print {
@@ -48,5 +52,37 @@
   html,
   body {
     background: #ffffff !important;
+    color: #000000 !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  aside,
+  header,
+  footer,
+  nav,
+  .no-print {
+    display: none !important;
+  }
+
+  .gov-form-paper {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    box-sizing: border-box !important;
+    border: none !important;
+    border-radius: 0 !important;
+    box-shadow: none !important;
+    margin: 0 !important;
+    padding: 4mm 6mm !important;
+    font-size: 13.5px !important;
+    line-height: 1.55 !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
   }
 }

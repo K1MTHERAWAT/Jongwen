@@ -47,7 +47,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
         ref={openBtn}
         onClick={() => setDrawer(true)}
         aria-label="เปิดเมนู"
-        className="fixed left-3 top-3 z-30 grid size-11 place-items-center rounded-control bg-surface border border-line text-ink-soft hover:bg-hover lg:hidden shadow-xs"
+        className="fixed left-3 top-3 z-30 grid size-11 place-items-center rounded-control bg-surface border border-line text-ink-soft hover:bg-hover lg:hidden shadow-xs print:hidden"
       >
         <Menu className="size-5" />
       </button>
@@ -55,13 +55,14 @@ export function Sidebar({ items }: { items: NavItem[] }) {
       {drawer && (
         <div
           onClick={closeDrawer}
-          className="fixed inset-0 z-40 bg-ink/45 lg:hidden backdrop-blur-xs transition-opacity"
+          className="fixed inset-0 z-40 bg-ink/45 lg:hidden backdrop-blur-xs transition-opacity print:hidden"
         />
       )}
 
       <aside
         aria-label="เมนูหลัก"
         className={[
+          'print:hidden',
           'fixed inset-y-0 left-0 z-50 flex w-drawer flex-col justify-between bg-surface p-3 shadow-pop transition-all duration-200',
           drawer ? 'translate-x-0' : '-translate-x-full',
           'lg:sticky lg:top-3 lg:z-auto lg:m-3 lg:h-[calc(100dvh-24px)] lg:translate-x-0',
