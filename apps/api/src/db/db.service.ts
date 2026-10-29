@@ -51,10 +51,22 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   private seq = { BK: 0, BR: 0, RP: 0, n: 0, l: 0, u: 100, v: 100, e: 100 };
   private resetCronTimer?: NodeJS.Timeout;
   private lastDemoResetDateUtc?: string;
+  dbAvailable = false;
+  private memorySessions = new Map<string, { accountId: string; expiresAt: Date }>();
+  private memoryOtps: {
+    id: string;
+    phone: string;
+    codeHash: string;
+    attempts: number;
+    expiresAt: Date;
+    consumedAt: Date | null;
+    createdAt: Date;
+  }[] = [];
 
   async onModuleInit() {
     try {
       await this.prisma.$connect();
+      this.dbAvailable = true;
       const count = await this.prisma.account.count();
       if (count === 0) {
         if (process.env.DEMO_MODE === 'true' || process.env.SEED_DEMO === 'true') {
@@ -75,8 +87,58 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
         `PostgreSQL connected: ${this.accounts.length} accounts, ${this.venues.length} venues, ${this.equipment.length} equipment, ${this.requests.length} requests`,
       );
     } catch (err) {
-      this.logger.error('Failed to initialize PostgreSQL connection, falling back to in-memory cache', err);
-      throw err;
+      this.dbAvailable = false;
+      if (process.env.REQUIRE_DB === 'true') {
+        this.logger.error('Failed to initialize PostgreSQL connection (REQUIRE_DB=true)', err);
+        throw err;
+      }
+      this.logger.warn(
+        'Failed to initialize PostgreSQL connection at localhost:5433 — falling back to in-memory cache',
+      );
+      await this.seedInMemoryFallback();
+      if (process.env.DEMO_MODE === 'true') {
+        const bkkNow = this.getBangkokTime();
+        this.lastDemoResetDateUtc = new Date(bkkNow.getTime() - 3 * 60 * 60 * 1000).toISOString().slice(0, 10);
+        this.scheduleNightlyReset();
+      }
+      this.logger.log(
+        `In-memory cache ready: ${this.accounts.length} accounts, ${this.venues.length} venues, ${this.equipment.length} equipment, ${this.requests.length} requests`,
+      );
+    }
+  }
+
+  async seedInMemoryFallback() {
+    if (process.env.DEMO_MODE === 'false' && process.env.SEED_DEMO !== 'true') {
+      await this.seedProductionAdmin();
+      return;
+    }
+    const hashedAccounts: Account[] = [];
+    for (const a of clone(mockAccounts)) {
+      const hashedPassword = a.password.startsWith('$argon2') ? a.password : await hashSecret(a.password);
+      const hashedPin = a.pin ? (a.pin.startsWith('$argon2') ? a.pin : await hashSecret(a.pin)) : null;
+      hashedAccounts.push({ ...a, password: hashedPassword, pin: hashedPin });
+    }
+    this.accounts = hashedAccounts;
+    this.venues = clone(mockVenues);
+    this.equipment = clone(mockEquipment);
+    this.requests = clone(mockRequests);
+    this.notifications = clone(mockNotifications);
+    this.activities = clone(mockActivities);
+    this.handovers = [];
+    this.syncMemorySequences();
+  }
+
+  private syncMemorySequences() {
+    for (const prefix of ['BK', 'BR', 'RP'] as const) {
+      let maxVal = 0;
+      for (const r of this.requests) {
+        const m = new RegExp(`^${prefix}-\\d+-(\\d+)$`).exec(r.code);
+        if (m) {
+          const val = Number(m[1]);
+          if (val > maxVal) maxVal = val;
+        }
+      }
+      this.seq[prefix] = Math.max(this.seq[prefix], maxVal);
     }
   }
 
@@ -151,6 +213,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       isDemo: false,
       createdAt: new Date().toISOString(),
     };
+    this.accounts.push(adminAccount);
     await this.persistAccount(adminAccount);
     this.logger.log('Created initial admin account (username: admin) with password from ADMIN_INITIAL_PASSWORD');
   }
@@ -159,7 +222,9 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
     if (this.resetCronTimer) {
       clearTimeout(this.resetCronTimer);
     }
-    await this.prisma.$disconnect().catch(() => {});
+    if (this.dbAvailable) {
+      await this.prisma.$disconnect().catch(() => {});
+    }
   }
 
   // ===================== Session Management (PostgreSQL Backed) =====================
@@ -167,21 +232,36 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   async createSession(accountId: string): Promise<string> {
     const token = randomBytes(32).toString('hex');
     const expiresAt = new Date(Date.now() + 8 * 60 * 60 * 1000);
-    await this.prisma.session.create({
-      data: {
-        token,
-        accountId,
-        expiresAt,
-      },
-    });
+    this.memorySessions.set(token, { accountId, expiresAt });
+    if (this.dbAvailable) {
+      await this.prisma.session.create({
+        data: {
+          token,
+          accountId,
+          expiresAt,
+        },
+      });
+    }
     return token;
   }
 
   async revokeSession(token: string): Promise<void> {
-    await this.prisma.session.delete({ where: { token } }).catch(() => {});
+    this.memorySessions.delete(token);
+    if (this.dbAvailable) {
+      await this.prisma.session.delete({ where: { token } }).catch(() => {});
+    }
   }
 
   async getSession(token: string): Promise<{ accountId: string; expiresAt: Date } | null> {
+    if (!this.dbAvailable) {
+      const mem = this.memorySessions.get(token);
+      if (!mem) return null;
+      if (mem.expiresAt.getTime() < Date.now()) {
+        this.memorySessions.delete(token);
+        return null;
+      }
+      return mem;
+    }
     const session = await this.prisma.session.findUnique({ where: { token } });
     if (!session) return null;
     if (session.expiresAt.getTime() < Date.now()) {
@@ -192,15 +272,25 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async cleanExpiredSessions(): Promise<void> {
-    await this.prisma.session.deleteMany({
-      where: { expiresAt: { lt: new Date() } },
-    }).catch(() => {});
+    const now = Date.now();
+    for (const [token, s] of this.memorySessions.entries()) {
+      if (s.expiresAt.getTime() < now) this.memorySessions.delete(token);
+    }
+    if (this.dbAvailable) {
+      await this.prisma.session.deleteMany({
+        where: { expiresAt: { lt: new Date() } },
+      }).catch(() => {});
+    }
   }
 
   // ===================== Sequence Management (PostgreSQL Atomic) =====================
 
   async nextCode(prefix: 'BK' | 'BR' | 'RP'): Promise<string> {
     const buddhistYear = this.getBuddhistYear();
+    if (!this.dbAvailable) {
+      this.seq[prefix] += 1;
+      return `${prefix}-${buddhistYear}-${String(this.seq[prefix]).padStart(4, '0')}`;
+    }
     const key = `${prefix}-${buddhistYear}`;
     const seq = await this.prisma.sequence.upsert({
       where: { key },
@@ -212,6 +302,10 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async nextId(kind: 'n' | 'l' | 'u' | 'v' | 'e'): Promise<string> {
+    if (!this.dbAvailable) {
+      this.seq[kind] += 1;
+      return `${kind}-${this.seq[kind]}`;
+    }
     const key = `id-${kind}`;
     const seq = await this.prisma.sequence.upsert({
       where: { key },
@@ -222,6 +316,10 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async syncSequences() {
+    if (!this.dbAvailable) {
+      this.syncMemorySequences();
+      return;
+    }
     const buddhistYear = this.getBuddhistYear();
     const requests = await this.prisma.request.findMany({ select: { code: true } });
     for (const prefix of ['BK', 'BR', 'RP'] as const) {
@@ -249,6 +347,11 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
 
   /** ล้างข้อมูลใน PostgreSQL และ Seed ข้อมูลตัวอย่างเริ่มต้นใหม่ทั้งหมด */
   async reset() {
+    this.memorySessions.clear();
+    if (!this.dbAvailable) {
+      await this.seedInMemoryFallback();
+      return;
+    }
     this.accounts = clone(mockAccounts);
     this.venues = clone(mockVenues);
     this.equipment = clone(mockEquipment);
@@ -262,18 +365,21 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
 
   /** ล้างเฉพาะข้อมูลคำขอและประวัติ (requests, handovers, notifications, activities, sessions) */
   async clearTransactions() {
-    await this.prisma.$transaction([
-      this.prisma.session.deleteMany(),
-      this.prisma.handoverRecord.deleteMany(),
-      this.prisma.signatureRecord.deleteMany(),
-      this.prisma.requestItem.deleteMany(),
-      this.prisma.requestPeriod.deleteMany(),
-      this.prisma.requestVenue.deleteMany(),
-      this.prisma.request.deleteMany(),
-      this.prisma.notification.deleteMany(),
-      this.prisma.activityLog.deleteMany(),
-      this.prisma.sequence.deleteMany(),
-    ]);
+    this.memorySessions.clear();
+    if (this.dbAvailable) {
+      await this.prisma.$transaction([
+        this.prisma.session.deleteMany(),
+        this.prisma.handoverRecord.deleteMany(),
+        this.prisma.signatureRecord.deleteMany(),
+        this.prisma.requestItem.deleteMany(),
+        this.prisma.requestPeriod.deleteMany(),
+        this.prisma.requestVenue.deleteMany(),
+        this.prisma.request.deleteMany(),
+        this.prisma.notification.deleteMany(),
+        this.prisma.activityLog.deleteMany(),
+        this.prisma.sequence.deleteMany(),
+      ]);
+    }
     this.requests = [];
     this.notifications = [];
     this.activities = [];
@@ -299,6 +405,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       read: false,
     };
     this.notifications.unshift(item);
+    if (!this.dbAvailable) return;
     void this.prisma.notification
       .create({
         data: {
@@ -320,6 +427,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
 
   markAllNotificationsRead(userId: string) {
     this.notifications.filter((n) => n.userId === userId).forEach((n) => (n.read = true));
+    if (!this.dbAvailable) return;
     void this.prisma.notification
       .updateMany({
         where: { userId, read: false },
@@ -347,6 +455,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
       at: new Date().toISOString(),
     };
     this.activities.unshift(entry);
+    if (!this.dbAvailable) return;
     void this.prisma.activityLog
       .create({
         data: {
@@ -367,6 +476,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   // ===================== Persistence Helpers =====================
 
   async persistAccount(a: Account) {
+    if (!this.dbAvailable) return;
     await this.prisma.account.upsert({
       where: { id: a.id },
       create: {
@@ -409,6 +519,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async persistVenue(v: Venue) {
+    if (!this.dbAvailable) return;
     await this.prisma.venue.upsert({
       where: { id: v.id },
       create: {
@@ -448,6 +559,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async persistEquipment(e: Equipment) {
+    if (!this.dbAvailable) return;
     await this.prisma.equipment.upsert({
       where: { id: e.id },
       create: {
@@ -467,6 +579,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async persistRequest(r: AnyRequest) {
+    if (!this.dbAvailable) return;
     const commonData = {
       code: r.code,
       type: r.type,
@@ -609,6 +722,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async persistHandover(h: HandoverRecord) {
+    if (!this.dbAvailable) return;
     await this.prisma.handoverRecord.upsert({
       where: {
         requestId_phase: {
