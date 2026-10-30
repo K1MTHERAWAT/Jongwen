@@ -20,6 +20,7 @@ import {
   Period,
   RepairRequest,
   RequestType,
+  ROLE_LABEL,
   SIGN_LEVEL_TITLE,
   SignLevel,
   canSignRequest,
@@ -344,8 +345,8 @@ export class RequestsController {
       const requesterSig = requireDrawnSignature(body.requesterSignature, 'ผู้ขอใช้สถานที่');
 
       const isWalkIn =
-        (body.requesterId && body.requesterId !== user.id) ||
-        (body.requesterName && body.requesterName.trim() !== user.name);
+        Boolean(body.createdByStaffSignature) ||
+        Boolean(body.requesterId && body.requesterId !== user.id);
       if (isWalkIn && !hasPermission(user, 'walkIn')) {
         throw new ForbiddenException(
           'ไม่มีสิทธิ์กรอกคำขอแทนผู้มาติดต่อ (Walk-in): ต้องเปิดสิทธิ์ "กรอกคำขอแทนผู้มาติดต่อหน้าเคาน์เตอร์"',
@@ -375,7 +376,7 @@ export class RequestsController {
         status: 'pending_staff',
         approvalRound: 1,
         requesterId: isWalkIn ? body.requesterId ?? user.id : user.id,
-        requesterName: (isWalkIn ? body.requesterName?.trim() : '') || user.name,
+        requesterName: body.requesterName?.trim() || user.name,
         requesterSignature: requesterSig,
         organization: String(body.organization ?? '').slice(0, 200) || user.department,
         createdAt: now,
@@ -430,8 +431,7 @@ export class RequestsController {
 
       const isWalkIn =
         Boolean(body.createdByStaffSignature) ||
-        Boolean(body.requesterId && body.requesterId !== user.id) ||
-        Boolean(body.requesterName && body.requesterName.trim() !== user.name);
+        Boolean(body.requesterId && body.requesterId !== user.id);
 
       if (isWalkIn && !hasPermission(user, 'walkIn')) {
         throw new ForbiddenException('ไม่มีสิทธิ์กรอกคำขอแทนที่เคาน์เตอร์');
@@ -453,7 +453,7 @@ export class RequestsController {
         status: 'pending_staff',
         approvalRound: 1,
         requesterId: isWalkIn ? body.requesterId ?? user.id : user.id,
-        requesterName: (isWalkIn ? body.requesterName?.trim() : '') || user.name,
+        requesterName: body.requesterName?.trim() || user.name,
         requesterSignature: requesterSig,
         organization: String(body.organization ?? '').slice(0, 200) || user.department,
         createdAt: now,
@@ -466,6 +466,19 @@ export class RequestsController {
         purpose: String(body.purpose ?? '').trim().slice(0, 1000) || 'ใช้งานกิจกรรมในพื้นที่',
         attachments: (body.attachments ?? []).slice(0, 10).map((a) => String(a).slice(0, 200)),
         signatures: [],
+        writtenAt: body.writtenAt ? String(body.writtenAt).slice(0, 150) : '',
+        requesterPosition: body.requesterPosition ? String(body.requesterPosition).slice(0, 100) : (user.position || ''),
+        addressHouseNo: body.addressHouseNo ? String(body.addressHouseNo).slice(0, 40) : (user.addressHouseNo ?? ''),
+        addressMoo: body.addressMoo ? String(body.addressMoo).slice(0, 20) : (user.addressMoo ?? ''),
+        addressSubdistrict: body.addressSubdistrict ? String(body.addressSubdistrict).slice(0, 80) : (user.addressSubdistrict ?? ''),
+        addressDistrict: body.addressDistrict ? String(body.addressDistrict).slice(0, 80) : (user.addressDistrict ?? ''),
+        addressProvince: body.addressProvince ? String(body.addressProvince).slice(0, 80) : (user.addressProvince ?? ''),
+        purposeItems: Array.isArray(body.purposeItems)
+          ? body.purposeItems.slice(0, 20).map((pi) => ({
+              item: String(pi?.item ?? '').slice(0, 200),
+              forWhat: String(pi?.forWhat ?? '').slice(0, 300),
+            }))
+          : undefined,
       };
       this.db.requests.unshift(req);
       await this.db.persistRequest(req);
@@ -585,7 +598,7 @@ export class RequestsController {
       round: req.approvalRound || 1,
       signerId: user.id,
       signerName: user.name,
-      title: SIGN_LEVEL_TITLE[level],
+      title: user.position || ROLE_LABEL[user.role] || SIGN_LEVEL_TITLE[level],
       at: now,
       decision: body.decision,
       signature: finalSignature,

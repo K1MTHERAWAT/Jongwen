@@ -73,11 +73,11 @@ export default function BookingWizardPage() {
       ? account.position
       : '',
   );
-  const [addressHouseNo, setAddressHouseNo] = useState('');
-  const [addressMoo, setAddressMoo] = useState('');
-  const [addressSubdistrict, setAddressSubdistrict] = useState('');
-  const [addressDistrict, setAddressDistrict] = useState('');
-  const [addressProvince, setAddressProvince] = useState('');
+  const [addressHouseNo, setAddressHouseNo] = useState(account?.addressHouseNo || '');
+  const [addressMoo, setAddressMoo] = useState(account?.addressMoo || '');
+  const [addressSubdistrict, setAddressSubdistrict] = useState(account?.addressSubdistrict || '');
+  const [addressDistrict, setAddressDistrict] = useState(account?.addressDistrict || '');
+  const [addressProvince, setAddressProvince] = useState(account?.addressProvince || '');
   const [organization, setOrganization] = useState(
     account?.department || '',
   );
@@ -98,6 +98,11 @@ export default function BookingWizardPage() {
     if (account) {
       setRequesterName(account.name);
       setOrganization(account.department);
+      if (account.addressHouseNo) setAddressHouseNo(account.addressHouseNo);
+      if (account.addressMoo) setAddressMoo(account.addressMoo);
+      if (account.addressSubdistrict) setAddressSubdistrict(account.addressSubdistrict);
+      if (account.addressDistrict) setAddressDistrict(account.addressDistrict);
+      if (account.addressProvince) setAddressProvince(account.addressProvince);
     }
   }, [account]);
 
@@ -183,25 +188,16 @@ export default function BookingWizardPage() {
         });
       });
 
-      // หากผู้ใช้เคยพิมพ์ข้อเพิ่มเติมไว้เองเกินจำนวน ให้คงไว้
-      if (prev.length > generated.length) {
-        for (let i = generated.length; i < prev.length; i++) {
-          if (prev[i].item.trim() || prev[i].forWhat.trim()) {
-            generated.push(prev[i]);
-          }
-        }
-      }
-
       return generated.length > 0 ? generated : [{ item: '', forWhat: '' }];
     });
   };
 
-  // ซิงค์รายการลงแบบฟอร์มอัตโนมัติทุกครั้งที่สถานที่เปลี่ยน
+  // ซิงค์รายการลงแบบฟอร์มอัตโนมัติทุกครั้งที่สถานที่หรืออุปกรณ์เสริมเปลี่ยน
   useEffect(() => {
     if (selectedVenues.length > 0) {
       syncFormPurposeItems(selectedVenues, selectedExtraItems);
     }
-  }, [selectedIds, venues]);
+  }, [selectedIds, venues, equipmentQuantities, equipmentList]);
 
   const effectiveConflicts: ConflictInfo[] = conflicts;
 
@@ -984,34 +980,21 @@ export default function BookingWizardPage() {
             </div>
           </div>
 
-          {/* มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ */}
+          {/* มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้ (ล็อกรายการตามที่เลือกไว้) */}
           <div className="rounded-2xl bg-soft/60 border border-line p-4 flex flex-col gap-3">
             <div className="flex items-center justify-between gap-2">
               <b className="text-[14px] text-ink">มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้</b>
-              <button
-                type="button"
-                onClick={() => setPurposeItems((prev) => [...prev, { item: '', forWhat: '' }])}
-                className="text-[12.5px] text-brand font-semibold hover:underline flex items-center gap-1 cursor-pointer bg-brand/10 hover:bg-brand/15 px-3 py-1 rounded-full transition"
-              >
-                <Icon name="plus" className="w-3.5 h-3.5" />
-                เพิ่มข้อ
-              </button>
             </div>
             {purposeItems.map((row, idx) => (
-              <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1.1fr_1fr_auto] gap-2.5 items-center">
+              <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1.15fr_1fr] gap-2.5 items-center">
                 <div className="flex items-center gap-2">
                   <b className="text-[14px] text-ink shrink-0 w-5">{idx + 1}.</b>
                   <input
                     type="text"
                     value={row.item}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setPurposeItems((prev) =>
-                        prev.map((r, i) => (i === idx ? { ...r, item: val } : r)),
-                      );
-                    }}
-                    placeholder={idx === 0 ? 'เช่น อาคารหอประชุม หรือ สนาม' : 'ระบุสถานที่/อุปกรณ์เพิ่มเติม (ถ้ามี)'}
-                    className="jw-in h-10 text-[13.5px]"
+                    readOnly
+                    disabled
+                    className="jw-in h-10 text-[13.5px] bg-soft/80 text-ink-mute cursor-not-allowed select-none"
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -1019,31 +1002,11 @@ export default function BookingWizardPage() {
                   <input
                     type="text"
                     value={row.forWhat}
-                    onChange={(e) => {
-                      const val = e.target.value;
-                      setPurposeItems((prev) =>
-                        prev.map((r, i) => (i === idx ? { ...r, forWhat: val } : r)),
-                      );
-                      if (idx === 0 && val) setActivity(val);
-                    }}
-                    placeholder={idx === 0 ? 'เช่น จัดประชุม สัมมนา หรือกิจกรรมชุมชน' : 'ระบุวัตถุประสงค์'}
-                    className="jw-in h-10 text-[13.5px]"
+                    readOnly
+                    disabled
+                    className="jw-in h-10 text-[13.5px] bg-soft/80 text-ink-mute cursor-not-allowed select-none"
                   />
                 </div>
-                {purposeItems.length > 1 ? (
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setPurposeItems((prev) => prev.filter((_, i) => i !== idx))
-                    }
-                    className="w-8 h-8 rounded-full flex items-center justify-center text-ink-mute hover:text-red-600 hover:bg-red-50 transition shrink-0 cursor-pointer"
-                    title="ลบข้อนี้"
-                  >
-                    <Icon name="x" className="w-4 h-4" />
-                  </button>
-                ) : (
-                  <div className="w-8 shrink-0 hidden sm:block" />
-                )}
               </div>
             ))}
           </div>

@@ -108,6 +108,11 @@ model Account {
   phone       String
   lineName    String?  @map("line_name")
   lineUserId  String?  @map("line_user_id")
+  addressHouseNo     String? @map("address_house_no")
+  addressMoo         String? @map("address_moo")
+  addressSubdistrict String? @map("address_subdistrict")
+  addressDistrict    String? @map("address_district")
+  addressProvince    String? @map("address_province")
   /// { review, handover, walkIn, manageResources, sign, manageUsers }
   permissions Json
   /// ภาพลายเซ็น (data URL)

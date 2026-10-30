@@ -11,6 +11,7 @@ import {
   PenTool,
   Shield,
   Users,
+  UserCircle,
 } from 'lucide-react';
 import { canAccessRoute, PublicAccount, Role } from '@jongwen/shared';
 
@@ -48,6 +49,13 @@ export const NAV: NavItem[] = [
   // แอดมิน
   { href: '/admin/resources', label: 'จัดการทรัพยากร', icon: Shield, roles: ['ADMIN', 'STAFF'] },
   { href: '/admin/permissions', label: 'กำหนดสิทธิ์ผู้ใช้', icon: Users, roles: ['ADMIN'] },
+  // บัญชีของฉัน
+  {
+    href: '/account',
+    label: 'บัญชี',
+    icon: UserCircle,
+    roles: ['USER', 'STAFF', 'APPROVER_L2', 'APPROVER_L1', 'ADMIN'],
+  },
 ];
 
 export function getVisibleNav(account: PublicAccount | null): NavItem[] {

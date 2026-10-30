@@ -8,6 +8,7 @@ import {
   Period,
   RequestStatus,
   RequestWithTimeline,
+  SIGN_LEVEL_TITLE,
   STATUS_META,
   TimelineStep,
   Tone,
@@ -972,29 +973,17 @@ export function OfficialGovFormDocument({
   const sigL2 = !blankMode && req && req.type !== 'repair' ? req.signatures.find((s) => s.level === 'l2') : undefined;
   const sigL1 = !blankMode && req && req.type !== 'repair' ? req.signatures.find((s) => s.level === 'l1') : undefined;
 
-  const staffComment = blankMode
-    ? ''
-    : sigStaff
-    ? sigStaff.decision === 'approve'
-      ? sigStaff.note || 'เห็นควรอนุญาต'
-      : `ไม่เห็นควรอนุญาต (${sigStaff.note || ''})`
-    : '';
+  const resolveRoleTitle = (sig: { title?: string } | undefined, fallback: string) => {
+    const raw = sig?.title?.trim();
+    if (!raw || raw === 'เจ้าหน้าที่ผู้ตรวจสอบ' || raw === 'ผู้พิจารณา' || raw === 'ผู้มีอำนาจอนุมัติ') {
+      return fallback;
+    }
+    return raw;
+  };
 
-  const l2Comment = blankMode
-    ? ''
-    : sigL2
-    ? sigL2.decision === 'approve'
-      ? sigL2.note || 'เห็นควรอนุญาต'
-      : `ไม่เห็นควรอนุญาต (${sigL2.note || ''})`
-    : '';
-
-  const l1Command = blankMode
-    ? ''
-    : sigL1
-    ? sigL1.decision === 'approve'
-      ? sigL1.note || 'อนุญาต'
-      : `ไม่อนุญาต (${sigL1.note || ''})`
-    : '';
+  const staffRoleTitle = resolveRoleTitle(sigStaff, SIGN_LEVEL_TITLE.staff);
+  const l2RoleTitle = resolveRoleTitle(sigL2, SIGN_LEVEL_TITLE.l2);
+  const l1RoleTitle = resolveRoleTitle(sigL1, SIGN_LEVEL_TITLE.l1);
 
   const DottedSpan = ({
     children,
@@ -1126,11 +1115,8 @@ export function OfficialGovFormDocument({
             ความเห็นของเจ้าหน้าที่ผู้ตรวจสอบและผู้พิจารณา
           </b>
           <div className="grid grid-cols-2 gap-5 sm:gap-8">
-            {/* ซ้าย: เจ้าหน้าที่ผู้ตรวจสอบ */}
+            {/* ซ้าย: เจ้าหน้าที่ */}
             <div className="flex flex-col items-center text-center gap-0.5">
-              <div className="w-full mb-0.5">
-                <DottedSpan minW="w-full">{staffComment}</DottedSpan>
-              </div>
               <div className="flex items-baseline justify-center gap-2 w-full">
                 <span className="shrink-0">ลงชื่อ</span>
                 <div className="h-9 flex-1 max-w-[170px] border-b border-dotted border-[#4A4A4A] flex items-center justify-center">
@@ -1138,7 +1124,7 @@ export function OfficialGovFormDocument({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={sigStaff.signature}
-                      alt="ลายเซ็นเจ้าหน้าที่ผู้ตรวจสอบ"
+                      alt="ลายเซ็นเจ้าหน้าที่"
                       className="max-h-8 max-w-full object-contain"
                     />
                   ) : null}
@@ -1147,14 +1133,11 @@ export function OfficialGovFormDocument({
               <div>
                 (<DottedSpan minW="min-w-[160px]">{sigStaff?.signerName}</DottedSpan>)
               </div>
-              <div className="text-[12.5px]">เจ้าหน้าที่ผู้ตรวจสอบ</div>
+              <div className="text-[12.5px]">{staffRoleTitle}</div>
             </div>
 
-            {/* ขวา: ผู้พิจารณา */}
+            {/* ขวา: ปลัดองค์การบริหารส่วนตำบล */}
             <div className="flex flex-col items-center text-center gap-0.5">
-              <div className="w-full mb-0.5">
-                <DottedSpan minW="w-full">{l2Comment}</DottedSpan>
-              </div>
               <div className="flex items-baseline justify-center gap-2 w-full">
                 <span className="shrink-0">ลงชื่อ</span>
                 <div className="h-9 flex-1 max-w-[170px] border-b border-dotted border-[#4A4A4A] flex items-center justify-center">
@@ -1162,7 +1145,7 @@ export function OfficialGovFormDocument({
                     // eslint-disable-next-line @next/next/no-img-element
                     <img
                       src={sigL2.signature}
-                      alt="ลายเซ็นผู้พิจารณา"
+                      alt="ลายเซ็นปลัดองค์การบริหารส่วนตำบล"
                       className="max-h-8 max-w-full object-contain"
                     />
                   ) : null}
@@ -1171,20 +1154,17 @@ export function OfficialGovFormDocument({
               <div>
                 (<DottedSpan minW="min-w-[160px]">{sigL2?.signerName}</DottedSpan>)
               </div>
-              <div className="text-[12.5px]">ผู้พิจารณา</div>
+              <div className="text-[12.5px]">{l2RoleTitle}</div>
             </div>
           </div>
         </div>
 
-        {/* คำสั่งของผู้มีอำนาจอนุมัติ */}
+        {/* คำสั่งของนายกองค์การบริหารส่วนตำบล */}
         <div>
           <b className="block text-[14px] underline underline-offset-4 mb-1.5">
-            คำสั่ง / การพิจารณาของผู้มีอำนาจอนุมัติ
+            คำสั่งของนายกองค์การบริหารส่วนตำบล
           </b>
           <div className="max-w-[340px] mx-auto flex flex-col items-center text-center gap-0.5">
-            <div className="w-full mb-0.5">
-              <DottedSpan minW="w-full">{l1Command}</DottedSpan>
-            </div>
             <div className="flex items-baseline justify-center gap-2 w-full">
               <span className="shrink-0">ลงชื่อ</span>
               <div className="h-9 flex-1 max-w-[180px] border-b border-dotted border-[#4A4A4A] flex items-center justify-center">
@@ -1192,7 +1172,7 @@ export function OfficialGovFormDocument({
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={sigL1.signature}
-                    alt="ลายเซ็นผู้มีอำนาจอนุมัติ"
+                    alt="ลายเซ็นนายกองค์การบริหารส่วนตำบล"
                     className="max-h-8 max-w-full object-contain"
                   />
                 ) : null}
@@ -1201,7 +1181,7 @@ export function OfficialGovFormDocument({
             <div>
               (<DottedSpan minW="min-w-[160px]">{sigL1?.signerName}</DottedSpan>)
             </div>
-            <div className="text-[12.5px]">ผู้มีอำนาจอนุมัติ</div>
+            <div className="text-[12.5px]">{l1RoleTitle}</div>
           </div>
         </div>
       </div>

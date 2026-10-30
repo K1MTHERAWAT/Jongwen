@@ -21,6 +21,11 @@ export interface Account {
   department: string;
   phone: string;
   lineName?: string;
+  addressHouseNo?: string;
+  addressMoo?: string;
+  addressSubdistrict?: string;
+  addressDistrict?: string;
+  addressProvince?: string;
   permissions: Record<PermissionKey, boolean>;
   /** ข้อความ/ภาพลายเซ็น (data URL) — null = ยังไม่ตั้งค่า */
   signature: string | null;

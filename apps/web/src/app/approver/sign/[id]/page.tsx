@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { ROLE_LABEL, RequestWithTimeline, canSignRequest } from '@jongwen/shared';
+import { ROLE_LABEL, RequestWithTimeline, SIGN_LEVEL_TITLE, canSignRequest } from '@jongwen/shared';
 import { useAuth } from '@/components/auth-context';
 import { AppShell } from '@/components/shell';
 import { Icon } from '@/components/icons';
@@ -87,10 +87,10 @@ export default function ApproverSignDocumentPage() {
   const currentStepNum = Math.min(3, signedCount + 1);
   const stepDesc =
     currentStepNum === 1
-      ? 'ลงนามฝ่ายที่ 2 จาก 4 · เจ้าหน้าที่ผู้ตรวจสอบ'
+      ? `ลงนามฝ่ายที่ 2 จาก 4 · ${SIGN_LEVEL_TITLE.staff}`
       : currentStepNum === 2
-      ? 'ลงนามฝ่ายที่ 3 จาก 4 · ผู้พิจารณา'
-      : 'ลงนามฝ่ายที่ 4 จาก 4 · ผู้มีอำนาจอนุมัติ';
+      ? `ลงนามฝ่ายที่ 3 จาก 4 · ${SIGN_LEVEL_TITLE.l2}`
+      : `ลงนามฝ่ายที่ 4 จาก 4 · ${SIGN_LEVEL_TITLE.l1}`;
 
   const sigStaff = req.type !== 'repair' ? req.signatures.find((s) => s.level === 'staff') : undefined;
   const sigL2 = req.type !== 'repair' ? req.signatures.find((s) => s.level === 'l2') : undefined;
@@ -214,21 +214,21 @@ export default function ApproverSignDocumentPage() {
                 status="signed"
               />
               <SignaturePreviewCard
-                roleLabel="2. เจ้าหน้าที่ผู้ตรวจสอบ"
+                roleLabel={`2. ${sigStaff?.title || SIGN_LEVEL_TITLE.staff}`}
                 signerName={sigStaff?.signerName}
                 signature={sigStaff?.signature}
                 signedAt={sigStaff ? formatThaiDateTime(sigStaff.at) : undefined}
                 status={sigStaff ? (sigStaff.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}
               />
               <SignaturePreviewCard
-                roleLabel="3. ผู้พิจารณา"
+                roleLabel={`3. ${sigL2?.title || SIGN_LEVEL_TITLE.l2}`}
                 signerName={sigL2?.signerName}
                 signature={sigL2?.signature}
                 signedAt={sigL2 ? formatThaiDateTime(sigL2.at) : undefined}
                 status={sigL2 ? (sigL2.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}
               />
               <SignaturePreviewCard
-                roleLabel="4. ผู้มีอำนาจอนุมัติ"
+                roleLabel={`4. ${sigL1?.title || SIGN_LEVEL_TITLE.l1}`}
                 signerName={sigL1?.signerName}
                 signature={sigL1?.signature}
                 signedAt={sigL1 ? formatThaiDateTime(sigL1.at) : undefined}

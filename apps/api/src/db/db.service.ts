@@ -67,6 +67,14 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
     try {
       await this.prisma.$connect();
       this.dbAvailable = true;
+      await this.prisma.$executeRawUnsafe(`
+        ALTER TABLE "accounts"
+          ADD COLUMN IF NOT EXISTS "address_house_no" TEXT,
+          ADD COLUMN IF NOT EXISTS "address_moo" TEXT,
+          ADD COLUMN IF NOT EXISTS "address_subdistrict" TEXT,
+          ADD COLUMN IF NOT EXISTS "address_district" TEXT,
+          ADD COLUMN IF NOT EXISTS "address_province" TEXT;
+      `);
       const count = await this.prisma.account.count();
       if (count === 0) {
         if (process.env.DEMO_MODE === 'true' || process.env.SEED_DEMO === 'true') {
@@ -93,7 +101,7 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
         throw err;
       }
       this.logger.warn(
-        'Failed to initialize PostgreSQL connection at localhost:5433 — falling back to in-memory cache',
+        'Failed to initialize PostgreSQL connection — falling back to in-memory cache',
       );
       await this.seedInMemoryFallback();
       if (process.env.DEMO_MODE === 'true') {
@@ -516,6 +524,15 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
         active: a.active ?? true,
       },
     });
+    await this.prisma.$executeRaw`
+      UPDATE "accounts"
+      SET "address_house_no" = ${a.addressHouseNo ?? null},
+          "address_moo" = ${a.addressMoo ?? null},
+          "address_subdistrict" = ${a.addressSubdistrict ?? null},
+          "address_district" = ${a.addressDistrict ?? null},
+          "address_province" = ${a.addressProvince ?? null}
+      WHERE "id" = ${a.id}
+    `;
   }
 
   async persistVenue(v: Venue) {
@@ -826,9 +843,19 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
   }
 
   async loadFromDatabase() {
-    const [dbAccounts, dbVenues, dbEquipment, dbRequests, dbNotifications, dbActivities, dbHandovers] =
+    const [dbAccounts, accountAddresses, dbVenues, dbEquipment, dbRequests, dbNotifications, dbActivities, dbHandovers] =
       await Promise.all([
         this.prisma.account.findMany({ orderBy: { createdAt: 'asc' } }),
+        this.prisma.$queryRaw<
+          {
+            id: string;
+            address_house_no: string | null;
+            address_moo: string | null;
+            address_subdistrict: string | null;
+            address_district: string | null;
+            address_province: string | null;
+          }[]
+        >`SELECT "id", "address_house_no", "address_moo", "address_subdistrict", "address_district", "address_province" FROM "accounts"`,
         this.prisma.venue.findMany({ orderBy: { createdAt: 'asc' } }),
         this.prisma.equipment.findMany({ orderBy: { createdAt: 'asc' } }),
         this.prisma.request.findMany({
@@ -845,28 +872,38 @@ export class DbService implements OnModuleInit, OnModuleDestroy {
         this.prisma.handoverRecord.findMany({ orderBy: { createdAt: 'asc' } }),
       ]);
 
-    this.accounts = dbAccounts.map((a) => ({
-      id: a.id,
-      username: a.username,
-      password: a.password,
-      name: a.name,
-      nickname: a.nickname,
-      initial: a.initial,
-      role: a.role,
-      position: a.position,
-      department: a.department,
-      phone: a.phone,
-      lineName: a.lineName ?? undefined,
-      permissions:
-        a.permissions && typeof a.permissions === 'object'
-          ? (a.permissions as Record<PermissionKey, boolean>)
-          : { ...DEFAULT_PERMISSIONS[a.role] },
-      signature: a.signature,
-      pin: a.pin,
-      isDemo: a.isDemo,
-      active: a.active,
-      createdAt: a.createdAt.toISOString(),
-    }));
+    const addrMap = new Map(accountAddresses.map((r) => [r.id, r]));
+
+    this.accounts = dbAccounts.map((a) => {
+      const addr = addrMap.get(a.id);
+      return {
+        id: a.id,
+        username: a.username,
+        password: a.password,
+        name: a.name,
+        nickname: a.nickname,
+        initial: a.initial,
+        role: a.role,
+        position: a.position,
+        department: a.department,
+        phone: a.phone,
+        lineName: a.lineName ?? undefined,
+        addressHouseNo: addr?.address_house_no ?? undefined,
+        addressMoo: addr?.address_moo ?? undefined,
+        addressSubdistrict: addr?.address_subdistrict ?? undefined,
+        addressDistrict: addr?.address_district ?? undefined,
+        addressProvince: addr?.address_province ?? undefined,
+        permissions:
+          a.permissions && typeof a.permissions === 'object'
+            ? (a.permissions as Record<PermissionKey, boolean>)
+            : { ...DEFAULT_PERMISSIONS[a.role] },
+        signature: a.signature,
+        pin: a.pin,
+        isDemo: a.isDemo,
+        active: a.active,
+        createdAt: a.createdAt.toISOString(),
+      };
+    });
 
     this.venues = dbVenues.map((v) => ({
       id: v.id,

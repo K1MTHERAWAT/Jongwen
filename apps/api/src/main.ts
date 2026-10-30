@@ -1,9 +1,36 @@
 import 'reflect-metadata';
+import * as fs from 'fs';
+import * as path from 'path';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import helmet from 'helmet';
 import * as express from 'express';
+
+// โหลดค่าจากไฟล์ .env ในโฟลเดอร์ apps/api (กรณีรันผ่าน nest start ที่ไม่ได้โหลด .env อัตโนมัติ)
+(() => {
+  const candidates = [
+    path.resolve(process.cwd(), '.env'),
+    path.resolve(__dirname, '../.env'),
+  ];
+  for (const envPath of candidates) {
+    if (fs.existsSync(envPath)) {
+      const content = fs.readFileSync(envPath, 'utf-8');
+      for (const line of content.split(/\r?\n/)) {
+        const m = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(line.trim());
+        if (m && process.env[m[1]] === undefined) {
+          let val = m[2].trim();
+          if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+            val = val.slice(1, -1);
+          }
+          process.env[m[1]] = val;
+        }
+      }
+      break;
+    }
+  }
+})();
+
 import { AppModule } from './app.module';
 
 async function bootstrap() {

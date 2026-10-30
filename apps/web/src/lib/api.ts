@@ -92,6 +92,21 @@ export const api = {
   register: (payload: { name: string; phone: string; password: string; otp?: string; lineName?: string; department?: string }) =>
     request<LoginResponse>('/auth/register', { method: 'POST', body: JSON.stringify(payload) }),
   me: () => request<PublicAccount>('/auth/me'),
+  updateProfile: (payload: {
+    name?: string;
+    nickname?: string;
+    position?: string;
+    department?: string;
+    phone?: string;
+    lineName?: string;
+    addressHouseNo?: string;
+    addressMoo?: string;
+    addressSubdistrict?: string;
+    addressDistrict?: string;
+    addressProvince?: string;
+  }) => request<PublicAccount>('/auth/profile', { method: 'PATCH', body: JSON.stringify(payload) }),
+  changePassword: (payload: { currentPassword: string; newPassword: string }) =>
+    request<{ ok: boolean }>('/auth/password', { method: 'POST', body: JSON.stringify(payload) }),
   saveSignature: (signature: string) =>
     request<PublicAccount>('/auth/signature', { method: 'POST', body: JSON.stringify({ signature }) }),
   savePin: (pin: string) =>
@@ -164,6 +179,14 @@ export const api = {
     requesterName?: string;
     requesterSignature?: string;
     createdByStaffSignature?: string;
+    writtenAt?: string;
+    requesterPosition?: string;
+    addressHouseNo?: string;
+    addressMoo?: string;
+    addressSubdistrict?: string;
+    addressDistrict?: string;
+    addressProvince?: string;
+    purposeItems?: { item: string; forWhat: string }[];
   }) => request<RequestWithTimeline>('/requests/borrow', { method: 'POST', body: JSON.stringify(payload) }),
   createRepair: (payload: {
     building: string;
@@ -216,7 +239,18 @@ export const api = {
   },
   updatePermissions: (
     id: string,
-    payload: { role?: Role; permissions?: Partial<Record<PermissionKey, boolean>>; active?: boolean },
+    payload: {
+      role?: Role;
+      permissions?: Partial<Record<PermissionKey, boolean>>;
+      active?: boolean;
+      name?: string;
+      nickname?: string;
+      position?: string;
+      department?: string;
+      phone?: string;
+      lineName?: string;
+      newPassword?: string;
+    },
   ) => request<PublicAccount>(`/users/${id}/permissions`, { method: 'PATCH', body: JSON.stringify(payload) }),
   adminOverview: () =>
     request<{

@@ -30,12 +30,19 @@ export default function AdminPermissionsPage() {
   const [tab, setTab] = useState<RoleTab>('all');
   const [search, setSearch] = useState('');
   const [selectedId, setSelectedId] = useState('s-suda');
+  const [userDetailTab, setUserDetailTab] = useState<'permissions' | 'account'>('permissions');
   const [roleDraft, setRoleDraft] = useState<Role>('STAFF');
   const [activeDraft, setActiveDraft] = useState<boolean>(true);
   const [permDraft, setPermDraft] = useState<Record<PermissionKey, boolean>>({
     ...DEFAULT_PERMISSIONS.STAFF,
   });
+  const [nameDraft, setNameDraft] = useState('');
+  const [nicknameDraft, setNicknameDraft] = useState('');
+  const [departmentDraft, setDepartmentDraft] = useState('');
+  const [phoneDraft, setPhoneDraft] = useState('');
+  const [newPasswordDraft, setNewPasswordDraft] = useState('');
   const [savedMsg, setSavedMsg] = useState('');
+  const [errorMsg, setErrorMsg] = useState('');
 
   const load = useCallback(() => {
     api.users().then((list) => {
@@ -46,6 +53,11 @@ export default function AdminPermissionsPage() {
         setRoleDraft(current.role);
         setActiveDraft(current.active !== false);
         setPermDraft({ ...DEFAULT_PERMISSIONS[current.role], ...current.permissions });
+        setNameDraft(current.name || '');
+        setNicknameDraft(current.nickname || '');
+        setDepartmentDraft(current.department || '');
+        setPhoneDraft(current.phone || '');
+        setNewPasswordDraft('');
       }
     });
   }, [selectedId]);
@@ -59,6 +71,12 @@ export default function AdminPermissionsPage() {
     setRoleDraft(u.role);
     setActiveDraft(u.active !== false);
     setPermDraft({ ...DEFAULT_PERMISSIONS[u.role], ...u.permissions });
+    setNameDraft(u.name || '');
+    setNicknameDraft(u.nickname || '');
+    setDepartmentDraft(u.department || '');
+    setPhoneDraft(u.phone || '');
+    setNewPasswordDraft('');
+    setErrorMsg('');
   };
 
   const handleRolePick = (r: Role) => {
@@ -67,15 +85,25 @@ export default function AdminPermissionsPage() {
   };
 
   const handleSave = async () => {
-    await api.updatePermissions(selectedId, {
-      role: roleDraft,
-      permissions: permDraft,
-      active: activeDraft,
-    });
-    await refreshMe();
-    load();
-    setSavedMsg('บันทึกบทบาท สถานะบัญชี และสิทธิ์การใช้งานเรียบร้อยแล้ว (มีผลทันทีทั้งหน้าเว็บและ API)');
-    setTimeout(() => setSavedMsg(''), 3000);
+    setErrorMsg('');
+    try {
+      await api.updatePermissions(selectedId, {
+        role: roleDraft,
+        permissions: permDraft,
+        active: activeDraft,
+        name: nameDraft.trim(),
+        nickname: nicknameDraft.trim(),
+        department: departmentDraft.trim(),
+        phone: phoneDraft.trim(),
+        newPassword: newPasswordDraft.trim() ? newPasswordDraft.trim() : undefined,
+      });
+      await refreshMe();
+      load();
+      setSavedMsg('บันทึกข้อมูลบัญชี บทบาท และสิทธิ์การใช้งานเรียบร้อยแล้ว (มีผลทันทีทั้งหน้าเว็บและ API)');
+      setTimeout(() => setSavedMsg(''), 3000);
+    } catch (err) {
+      setErrorMsg((err as Error).message || 'ไม่สามารถบันทึกข้อมูลได้');
+    }
   };
 
   const filtered = users.filter((u) => {
@@ -108,7 +136,7 @@ export default function AdminPermissionsPage() {
               ยกเลิก
             </button>
             <button type="button" onClick={handleSave} className="jw-btn flex-[1.5] sm:w-52">
-              บันทึกสิทธิ์
+              บันทึกการเปลี่ยนแปลง
             </button>
           </div>
         ) : undefined
@@ -179,92 +207,175 @@ export default function AdminPermissionsPage() {
 
                     {active && (
                       <div className="jw-card p-4 sm:p-5 flex flex-col gap-4 border-brand">
-                        <div className="border border-line rounded-2xl p-3.5 bg-white flex items-center justify-between gap-3">
-                          <div>
-                            <b className="block text-[14px] text-ink">สถานะการเปิด/ปิดการใช้งานบัญชี</b>
-                            <span className="text-[12px] text-ink-mute">
-                              {activeDraft
-                                ? 'เปิดใช้งานปกติ (สามารถเข้าสู่ระบบและดำเนินการตามสิทธิ์ได้)'
-                                : 'ปิด/ระงับการใช้งานชั่วคราว (ไม่สามารถเข้าสู่ระบบได้)'}
-                            </span>
-                          </div>
-                          <Toggle checked={activeDraft} onChange={setActiveDraft} />
-                        </div>
+                        <Tabs<'permissions' | 'account'>
+                          value={userDetailTab}
+                          onChange={setUserDetailTab}
+                          options={[
+                            { value: 'permissions', label: 'บทบาท & สิทธิ์การใช้งาน' },
+                            { value: 'account', label: 'บัญชี (แก้ไขชื่อ · หน่วยงาน · รหัสผ่าน)' },
+                          ]}
+                        />
 
-                        <div>
-                          <label className="jw-lbl">1. เลือกบทบาทหลัก (Role)</label>
-                          <div className="flex flex-wrap gap-2">
-                            {ROLES.map((r) => (
-                              <button
-                                key={r}
-                                type="button"
-                                onClick={() => handleRolePick(r)}
-                                className={`h-[38px] px-3.5 rounded-full border-[1.5px] text-[13px] font-semibold transition ${
-                                  roleDraft === r
-                                    ? 'bg-brand border-brand text-white'
-                                    : 'bg-white border-line text-ink hover:border-brand'
-                                }`}
-                              >
-                                {ROLE_META[r].shortLabel}
-                              </button>
-                            ))}
-                          </div>
-                          <div className="mt-2.5 rounded-2xl bg-soft border border-line p-3 text-[13px]">
-                            <b className="text-ink block">{ROLE_META[roleDraft].label}</b>
-                            <span className="text-ink-mute">{ROLE_META[roleDraft].summary}</span>
-                          </div>
-                        </div>
+                        {userDetailTab === 'permissions' ? (
+                          <>
+                            <div className="border border-line rounded-2xl p-3.5 bg-white flex items-center justify-between gap-3">
+                              <div>
+                                <b className="block text-[14px] text-ink">สถานะการเปิด/ปิดการใช้งานบัญชี</b>
+                                <span className="text-[12px] text-ink-mute">
+                                  {activeDraft
+                                    ? 'เปิดใช้งานปกติ (สามารถเข้าสู่ระบบและดำเนินการตามสิทธิ์ได้)'
+                                    : 'ปิด/ระงับการใช้งานชั่วคราว (ไม่สามารถเข้าสู่ระบบได้)'}
+                                </span>
+                              </div>
+                              <Toggle checked={activeDraft} onChange={setActiveDraft} />
+                            </div>
 
-                        <div>
-                          <div className="flex items-center justify-between mb-1">
-                            <label className="jw-lbl mb-0">
-                              2. กำหนดสิทธิ์ย่อยรายเมนูและ API (Permissions 6 รายการ)
-                            </label>
-                            <button
-                              type="button"
-                              onClick={() => setPermDraft({ ...DEFAULT_PERMISSIONS[roleDraft] })}
-                              className="text-[12px] text-brand font-semibold hover:underline"
-                            >
-                              คืนค่ามาตรฐานของบทบาทนี้
-                            </button>
-                          </div>
-                          <div className="divide-y divide-line border border-line rounded-2xl px-3.5 bg-white">
-                            {PERMISSION_KEYS.map((key) => {
-                              const meta = PERMISSION_META[key];
-                              const checked = !!permDraft[key];
-                              return (
-                                <div key={key} className="py-3 flex items-start justify-between gap-3">
-                                  <div className="flex flex-col gap-0.5">
-                                    <div className="flex flex-wrap items-center gap-2">
-                                      <span className="text-[14px] font-semibold text-ink">
-                                        {meta.label}
-                                      </span>
-                                      {meta.routes.map((rt) => (
-                                        <code
-                                          key={rt}
-                                          className="text-[11px] px-1.5 py-0.5 rounded bg-soft border border-line text-ink-mute"
-                                        >
-                                          {rt}
-                                        </code>
-                                      ))}
+                            <div>
+                              <label className="jw-lbl">1. เลือกบทบาทหลัก (Role)</label>
+                              <div className="flex flex-wrap gap-2">
+                                {ROLES.map((r) => (
+                                  <button
+                                    key={r}
+                                    type="button"
+                                    onClick={() => handleRolePick(r)}
+                                    className={`h-[38px] px-3.5 rounded-full border-[1.5px] text-[13px] font-semibold transition ${
+                                      roleDraft === r
+                                        ? 'bg-brand border-brand text-white'
+                                        : 'bg-white border-line text-ink hover:border-brand'
+                                    }`}
+                                  >
+                                    {ROLE_META[r].shortLabel}
+                                  </button>
+                                ))}
+                              </div>
+                              <div className="mt-2.5 rounded-2xl bg-soft border border-line p-3 text-[13px]">
+                                <b className="text-ink block">{ROLE_META[roleDraft].label}</b>
+                                <span className="text-ink-mute">{ROLE_META[roleDraft].summary}</span>
+                              </div>
+                            </div>
+
+                            <div>
+                              <div className="flex items-center justify-between mb-1">
+                                <label className="jw-lbl mb-0">
+                                  2. กำหนดสิทธิ์ย่อยรายเมนูและ API (Permissions 6 รายการ)
+                                </label>
+                                <button
+                                  type="button"
+                                  onClick={() => setPermDraft({ ...DEFAULT_PERMISSIONS[roleDraft] })}
+                                  className="text-[12px] text-brand font-semibold hover:underline"
+                                >
+                                  คืนค่ามาตรฐานของบทบาทนี้
+                                </button>
+                              </div>
+                              <div className="divide-y divide-line border border-line rounded-2xl px-3.5 bg-white">
+                                {PERMISSION_KEYS.map((key) => {
+                                  const meta = PERMISSION_META[key];
+                                  const checked = !!permDraft[key];
+                                  return (
+                                    <div key={key} className="py-3 flex items-start justify-between gap-3">
+                                      <div className="flex flex-col gap-0.5">
+                                        <div className="flex flex-wrap items-center gap-2">
+                                          <span className="text-[14px] font-semibold text-ink">
+                                            {meta.label}
+                                          </span>
+                                          {meta.routes.map((rt) => (
+                                            <code
+                                              key={rt}
+                                              className="text-[11px] px-1.5 py-0.5 rounded bg-soft border border-line text-ink-mute"
+                                            >
+                                              {rt}
+                                            </code>
+                                          ))}
+                                        </div>
+                                        <span className="text-[12.5px] text-ink-mute">{meta.description}</span>
+                                      </div>
+                                      <Toggle
+                                        checked={checked}
+                                        onChange={(val) => setPermDraft((p) => ({ ...p, [key]: val }))}
+                                      />
                                     </div>
-                                    <span className="text-[12.5px] text-ink-mute">{meta.description}</span>
-                                  </div>
-                                  <Toggle
-                                    checked={checked}
-                                    onChange={(val) => setPermDraft((p) => ({ ...p, [key]: val }))}
-                                  />
-                                </div>
-                              );
-                            })}
+                                  );
+                                })}
+                              </div>
+                            </div>
+                          </>
+                        ) : (
+                          <div className="flex flex-col gap-3.5">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                              <div>
+                                <label className="jw-lbl">ชื่อ-นามสกุล</label>
+                                <input
+                                  type="text"
+                                  value={nameDraft}
+                                  onChange={(e) => setNameDraft(e.target.value)}
+                                  placeholder="ชื่อ-นามสกุล"
+                                  className="jw-in"
+                                />
+                              </div>
+                              <div>
+                                <label className="jw-lbl">ชื่อเล่น / ชื่อเรียก</label>
+                                <input
+                                  type="text"
+                                  value={nicknameDraft}
+                                  onChange={(e) => setNicknameDraft(e.target.value)}
+                                  placeholder="ชื่อเล่น"
+                                  className="jw-in"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                              <div>
+                                <label className="jw-lbl">หน่วยงาน / ชุมชน / สังกัด</label>
+                                <input
+                                  type="text"
+                                  value={departmentDraft}
+                                  onChange={(e) => setDepartmentDraft(e.target.value)}
+                                  placeholder="เช่น สำนักปลัด อบต., กองสวัสดิการสังคม"
+                                  className="jw-in"
+                                />
+                              </div>
+                              <div>
+                                <label className="jw-lbl">เบอร์โทรศัพท์</label>
+                                <input
+                                  type="text"
+                                  value={phoneDraft}
+                                  onChange={(e) => setPhoneDraft(e.target.value)}
+                                  placeholder="เช่น 081-234-5678"
+                                  className="jw-in"
+                                />
+                              </div>
+                            </div>
+
+                            <div className="border-t border-line pt-3">
+                              <label className="jw-lbl">
+                                ตั้งรหัสผ่านใหม่ (Password) ·{' '}
+                                <span className="font-normal text-ink-mute">
+                                  เว้นว่างไว้หากไม่ต้องการเปลี่ยนรหัสผ่านของบัญชีนี้
+                                </span>
+                              </label>
+                              <input
+                                type="password"
+                                value={newPasswordDraft}
+                                onChange={(e) => setNewPasswordDraft(e.target.value)}
+                                placeholder="กรอกรหัสผ่านใหม่สำหรับบัญชีนี้ (อย่างน้อย 4 ตัวอักษร)"
+                                className="jw-in"
+                              />
+                            </div>
                           </div>
-                        </div>
+                        )}
                       </div>
                     )}
                   </React.Fragment>
                 );
               })}
             </div>
+
+            {errorMsg && (
+              <div className="rounded-2xl bg-[#FDE8E8] border border-[#f9b4b4] px-4 py-2.5 text-[14px] text-[#7a1010] font-semibold">
+                {errorMsg}
+              </div>
+            )}
 
             {savedMsg && (
               <div className="rounded-2xl bg-brand-mint border border-brand px-4 py-2.5 text-[14px] text-brand font-semibold">
@@ -278,7 +389,7 @@ export default function AdminPermissionsPage() {
                 <div>
                   <b className="text-[16px] text-ink block">สายอนุมัติ 3 ลำดับ (ผู้รับผิดชอบปัจจุบัน)</b>
                   <span className="text-[12.5px] text-ink-mute">
-                    กำหนดโดยการเลือกบทบาทของบัญชีด้านบนให้เป็น เจ้าหน้าที่ตรวจสอบ, ผู้อนุมัติระดับ 2 หรือ ผู้อนุมัติระดับ 1
+                    กำหนดโดยการเลือกบทบาทของบัญชีด้านบนให้เป็น เจ้าหน้าที่ตรวจสอบ, ปลัดองค์การบริหารส่วนตำบล หรือ นายกองค์การบริหารส่วนตำบล
                   </span>
                 </div>
                 <Chip tone="green">3 ลำดับ</Chip>
@@ -292,14 +403,14 @@ export default function AdminPermissionsPage() {
                   <span className="text-[12px] text-ink-mute">ตรวจเอกสาร + ลงนามระดับ 1</span>
                 </div>
                 <div className="border border-line rounded-2xl p-3 bg-white">
-                  <span className="text-[11px] font-bold text-brand block">ลำดับที่ 2 · ผู้อนุมัติระดับ 2 (ปลัด อบต.)</span>
+                  <span className="text-[11px] font-bold text-brand block">ลำดับที่ 2 · ปลัดองค์การบริหารส่วนตำบล</span>
                   <b className="text-[14px] text-ink block mt-0.5">
                     {users.filter((u) => u.role === 'APPROVER_L2' && u.active !== false).map((u) => u.name).join(', ') || '-'}
                   </b>
                   <span className="text-[12px] text-ink-mute">กลั่นกรองเห็นชอบ + ยืนยัน PIN 6 หลัก</span>
                 </div>
                 <div className="border border-line rounded-2xl p-3 bg-white">
-                  <span className="text-[11px] font-bold text-brand block">ลำดับที่ 3 · ผู้อนุมัติระดับ 1 (นายก อบต.)</span>
+                  <span className="text-[11px] font-bold text-brand block">ลำดับที่ 3 · นายกองค์การบริหารส่วนตำบล</span>
                   <b className="text-[14px] text-ink block mt-0.5">
                     {users.filter((u) => u.role === 'APPROVER_L1' && u.active !== false).map((u) => u.name).join(', ') || '-'}
                   </b>

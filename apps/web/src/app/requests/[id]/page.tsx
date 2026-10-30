@@ -257,21 +257,21 @@ export default function RequestDetailPage() {
                 status="signed"
               />
               <SignaturePreviewCard
-                roleLabel={`2. ${SIGN_LEVEL_TITLE.staff}`}
+                roleLabel={`2. ${sigStaff?.title || SIGN_LEVEL_TITLE.staff}`}
                 signerName={sigStaff?.signerName}
                 signature={sigStaff?.signature}
                 signedAt={sigStaff ? formatThaiDateTime(sigStaff.at) : undefined}
                 status={sigStaff ? (sigStaff.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}
               />
               <SignaturePreviewCard
-                roleLabel={`3. ${SIGN_LEVEL_TITLE.l2}`}
+                roleLabel={`3. ${sigL2?.title || SIGN_LEVEL_TITLE.l2}`}
                 signerName={sigL2?.signerName}
                 signature={sigL2?.signature}
                 signedAt={sigL2 ? formatThaiDateTime(sigL2.at) : undefined}
                 status={sigL2 ? (sigL2.decision === 'approve' ? 'signed' : 'rejected') : 'pending'}
               />
               <SignaturePreviewCard
-                roleLabel={`4. ${SIGN_LEVEL_TITLE.l1}`}
+                roleLabel={`4. ${sigL1?.title || SIGN_LEVEL_TITLE.l1}`}
                 signerName={sigL1?.signerName}
                 signature={sigL1?.signature}
                 signedAt={sigL1 ? formatThaiDateTime(sigL1.at) : undefined}

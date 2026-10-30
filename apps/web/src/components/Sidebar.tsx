@@ -128,17 +128,21 @@ export function Sidebar({ items }: { items: NavItem[] }) {
         <div className="border-t border-line-soft pt-3 mt-2 flex flex-col gap-1">
           {account ? (
             <div className="flex items-center justify-between gap-2 p-1.5 rounded-control bg-surface-muted">
-              <div className="flex items-center gap-2.5 min-w-0">
+              <Link
+                href="/account"
+                title="จัดการบัญชีของฉัน"
+                className="flex items-center gap-2.5 min-w-0 flex-1 rounded-control p-1 -m-1 hover:bg-hover transition-colors"
+              >
                 <div className="w-8 h-8 rounded-full bg-brand-tint text-brand-ink font-bold flex items-center justify-center text-caption shrink-0">
                   {account.initial || account.name.charAt(0) || 'ผ'}
                 </div>
                 <div className={['min-w-0 flex-1 leading-tight', open ? '' : 'lg:sr-only'].join(' ')}>
                   <div className="text-caption font-semibold text-ink truncate">{account.name}</div>
                   <div className="text-[11px] text-muted truncate">
-                    {ROLE_META[account.role]?.shortLabel || 'ผู้ใช้'}
+                    {ROLE_META[account.role]?.shortLabel || 'ผู้ใช้'} · {account.department}
                   </div>
                 </div>
-              </div>
+              </Link>
               <button
                 type="button"
                 onClick={logout}

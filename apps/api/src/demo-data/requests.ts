@@ -24,9 +24,9 @@ export const mockRequests: AnyRequest[] = [
     attachments: [],
     extraItems: [],
     signatures: [
-      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่', at: t('2026-10-05', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
-      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัด อบต. เห็นชอบ', at: t('2026-10-06', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
-      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายก อบต. อนุมัติ', at: t('2026-10-07', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
+      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่ธุรการ', at: t('2026-10-05', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
+      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัดองค์การบริหารส่วนตำบล', at: t('2026-10-06', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
+      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายกองค์การบริหารส่วนตำบล', at: t('2026-10-07', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
     ],
   },
   {
@@ -51,9 +51,9 @@ export const mockRequests: AnyRequest[] = [
     attachments: [],
     extraItems: [],
     signatures: [
-      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่', at: t('2026-10-01', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
-      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัด อบต. เห็นชอบ', at: t('2026-10-02', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
-      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายก อบต. อนุมัติ', at: t('2026-10-03', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
+      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่ธุรการ', at: t('2026-10-01', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
+      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัดองค์การบริหารส่วนตำบล', at: t('2026-10-02', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
+      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายกองค์การบริหารส่วนตำบล', at: t('2026-10-03', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
     ],
   },
   {
@@ -90,7 +90,7 @@ export const mockRequests: AnyRequest[] = [
     organization: 'กองสวัสดิการสังคม',
     createdAt: t('2026-10-18', '10:00'),
     updatedAt: t('2026-10-19', '10:30'),
-    venueIds: ['v-pavilion-5'],
+    venueIds: ['v-pavilion'],
     periods: [{ start: t('2026-10-27', '09:00'), end: t('2026-10-27', '16:00') }],
     attendees: 150,
     activity: 'งานบุญประจำปีหมู่ 5',
@@ -98,7 +98,7 @@ export const mockRequests: AnyRequest[] = [
     attachments: [],
     extraItems: [{ equipmentId: 'e-tent', qty: 4 }],
     signatures: [
-      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่', at: t('2026-10-19', '10:30'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
+      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่ธุรการ', at: t('2026-10-19', '10:30'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
     ],
   },
   {
@@ -120,7 +120,7 @@ export const mockRequests: AnyRequest[] = [
     attachments: ['คำขอ_BK-0142.pdf'],
     extraItems: [],
     signatures: [
-      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่', at: t('2026-10-15', '10:30'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
+      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่ธุรการ', at: t('2026-10-15', '10:30'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
     ],
   },
   {
@@ -142,8 +142,8 @@ export const mockRequests: AnyRequest[] = [
     attachments: ['โครงการกีฬาสี.pdf'],
     extraItems: [{ equipmentId: 'e-tent', qty: 8 }],
     signatures: [
-      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่', at: t('2026-10-14', '10:52'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
-      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัด อบต. เห็นชอบ', at: t('2026-10-16', '13:20'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
+      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่ธุรการ', at: t('2026-10-14', '10:52'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
+      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัดองค์การบริหารส่วนตำบล', at: t('2026-10-16', '13:20'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
     ],
   },
   {
@@ -157,7 +157,7 @@ export const mockRequests: AnyRequest[] = [
     organization: 'กลุ่มแม่บ้านบ้านหนองบัว',
     createdAt: t('2026-10-08', '09:00'),
     updatedAt: t('2026-10-08', '14:05'),
-    venueIds: ['v-pavilion-5'],
+    venueIds: ['v-pavilion'],
     periods: [{ start: t('2026-10-30', '09:00'), end: t('2026-10-30', '15:00') }],
     attendees: 70,
     activity: 'ประชุมกลุ่มแม่บ้าน',
@@ -165,9 +165,9 @@ export const mockRequests: AnyRequest[] = [
     attachments: [],
     extraItems: [],
     signatures: [
-      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่', at: t('2026-10-08', '10:52'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
-      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัด อบต. เห็นชอบ', at: t('2026-10-08', '13:20'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
-      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายก อบต. อนุมัติ', at: t('2026-10-08', '14:05'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
+      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่ธุรการ', at: t('2026-10-08', '10:52'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
+      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัดองค์การบริหารส่วนตำบล', at: t('2026-10-08', '13:20'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
+      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายกองค์การบริหารส่วนตำบล', at: t('2026-10-08', '14:05'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
     ],
   },
 
@@ -207,9 +207,9 @@ export const mockRequests: AnyRequest[] = [
     purpose: 'ใช้ประชาสัมพันธ์งานในหมู่บ้าน',
     attachments: [],
     signatures: [
-      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่', at: t('2026-10-10', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
-      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัด อบต. เห็นชอบ', at: t('2026-10-11', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
-      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายก อบต. อนุมัติ', at: t('2026-10-12', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
+      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่ธุรการ', at: t('2026-10-10', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
+      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัดองค์การบริหารส่วนตำบล', at: t('2026-10-11', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
+      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายกองค์การบริหารส่วนตำบล', at: t('2026-10-12', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
     ],
   },
   {
@@ -229,9 +229,9 @@ export const mockRequests: AnyRequest[] = [
     purpose: 'งานทำบุญหมู่บ้าน',
     attachments: [],
     signatures: [
-      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่', at: t('2026-10-12', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
-      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัด อบต. เห็นชอบ', at: t('2026-10-13', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
-      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายก อบต. อนุมัติ', at: t('2026-10-14', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
+      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่ธุรการ', at: t('2026-10-12', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
+      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัดองค์การบริหารส่วนตำบล', at: t('2026-10-13', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
+      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายกองค์การบริหารส่วนตำบล', at: t('2026-10-14', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
     ],
   },
   {
@@ -252,9 +252,9 @@ export const mockRequests: AnyRequest[] = [
     attachments: [],
     returnRequestedAt: t('2026-10-14', '09:00'),
     signatures: [
-      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่', at: t('2026-10-01', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
-      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัด อบต. เห็นชอบ', at: t('2026-10-02', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
-      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายก อบต. อนุมัติ', at: t('2026-10-03', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
+      { level: 'staff', signerId: 's-suda', signerName: 'สุดา มีสุข', title: 'เจ้าหน้าที่ธุรการ', at: t('2026-10-01', '11:00'), decision: 'approve', signature: MOCK_SIGNATURES.suda },
+      { level: 'l2', signerId: 'a-wichai', signerName: 'วิชัย รักถิ่น', title: 'ปลัดองค์การบริหารส่วนตำบล', at: t('2026-10-02', '10:00'), decision: 'approve', signature: MOCK_SIGNATURES.wichai },
+      { level: 'l1', signerId: 'a-prasert', signerName: 'ประเสริฐ ศรีสุข', title: 'นายกองค์การบริหารส่วนตำบล', at: t('2026-10-03', '14:00'), decision: 'approve', signature: MOCK_SIGNATURES.prasert },
     ],
   },
 

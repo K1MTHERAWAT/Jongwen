@@ -115,7 +115,7 @@ export class CreateBorrowDto {
   organization?: string;
 
   @IsOptional()
-  @IsString()
+  @IsArray()
   attachments?: string[];
 
   @IsOptional()
@@ -141,6 +141,30 @@ export class CreateBorrowDto {
   @IsOptional()
   @IsString()
   requesterPosition?: string;
+
+  @IsOptional()
+  @IsString()
+  addressHouseNo?: string;
+
+  @IsOptional()
+  @IsString()
+  addressMoo?: string;
+
+  @IsOptional()
+  @IsString()
+  addressSubdistrict?: string;
+
+  @IsOptional()
+  @IsString()
+  addressDistrict?: string;
+
+  @IsOptional()
+  @IsString()
+  addressProvince?: string;
+
+  @IsOptional()
+  @IsArray()
+  purposeItems?: { item: string; forWhat: string }[];
 }
 
 export class CreateRepairDto {

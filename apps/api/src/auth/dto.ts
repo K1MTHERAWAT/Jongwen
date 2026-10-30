@@ -77,3 +77,59 @@ export class SetSignatureDto {
   @IsNotEmpty({ message: 'กรุณาส่งภาพลายมือชื่อ' })
   signature!: string;
 }
+
+export class UpdateProfileDto {
+  @IsOptional()
+  @IsString()
+  name?: string;
+
+  @IsOptional()
+  @IsString()
+  nickname?: string;
+
+  @IsOptional()
+  @IsString()
+  position?: string;
+
+  @IsOptional()
+  @IsString()
+  department?: string;
+
+  @IsOptional()
+  @IsString()
+  phone?: string;
+
+  @IsOptional()
+  @IsString()
+  lineName?: string;
+
+  @IsOptional()
+  @IsString()
+  addressHouseNo?: string;
+
+  @IsOptional()
+  @IsString()
+  addressMoo?: string;
+
+  @IsOptional()
+  @IsString()
+  addressSubdistrict?: string;
+
+  @IsOptional()
+  @IsString()
+  addressDistrict?: string;
+
+  @IsOptional()
+  @IsString()
+  addressProvince?: string;
+}
+
+export class ChangePasswordDto {
+  @IsString()
+  @IsNotEmpty({ message: 'กรุณากรอกรหัสผ่านปัจจุบัน' })
+  currentPassword!: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'กรุณากรอกรหัสผ่านใหม่' })
+  newPassword!: string;
+}

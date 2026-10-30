@@ -1,3 +1,5 @@
+import fs from 'fs';
+import path from 'path';
 import { PrismaClient, Prisma } from '@prisma/client';
 import {
   mockAccounts,
@@ -8,6 +10,24 @@ import {
   mockVenues,
 } from '../src/demo-data';
 import { hashSecret } from '../src/auth/secret';
+
+if (!process.env.DATABASE_URL) {
+  const envPath = path.resolve(__dirname, '../.env');
+  if (fs.existsSync(envPath)) {
+    const content = fs.readFileSync(envPath, 'utf-8');
+    for (const line of content.split(/\r?\n/)) {
+      const m = /^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/.exec(line.trim());
+      if (m) {
+        const key = m[1];
+        let val = m[2].trim();
+        if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
+          val = val.slice(1, -1);
+        }
+        process.env[key] = val;
+      }
+    }
+  }
+}
 
 const prisma = new PrismaClient();
 
@@ -36,6 +56,7 @@ async function main() {
         permissions: a.permissions as unknown as Prisma.InputJsonValue,
         signature: a.signature ?? null,
         pin: hashedPin,
+        isDemo: a.isDemo ?? true,
         active: a.active ?? true,
         createdAt: new Date(a.createdAt),
       },
@@ -53,6 +74,7 @@ async function main() {
         permissions: a.permissions as unknown as Prisma.InputJsonValue,
         signature: a.signature ?? null,
         pin: hashedPin,
+        isDemo: a.isDemo ?? true,
         active: a.active ?? true,
       },
     });

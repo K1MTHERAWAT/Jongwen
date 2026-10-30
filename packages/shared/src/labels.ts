@@ -5,8 +5,8 @@ export type Tone = 'green' | 'amber' | 'blue' | 'red' | 'gray';
 export const ROLE_LABEL: Record<Role, string> = {
   USER: 'ผู้ใช้งานทั่วไป',
   STAFF: 'เจ้าหน้าที่',
-  APPROVER_L2: 'ผู้อนุมัติระดับ 2 (ปลัด อบต.)',
-  APPROVER_L1: 'ผู้อนุมัติระดับ 1 (นายก อบต.)',
+  APPROVER_L2: 'ปลัดองค์การบริหารส่วนตำบล',
+  APPROVER_L1: 'นายกองค์การบริหารส่วนตำบล',
   ADMIN: 'ผู้ดูแลระบบ (แอดมิน)',
 };
 
@@ -64,14 +64,14 @@ export const ROLE_META: Record<Role, RoleMetaInfo> = {
   },
   APPROVER_L2: {
     role: 'APPROVER_L2',
-    label: 'ผู้อนุมัติระดับ 2 (ปลัด อบต. / หัวหน้าส่วนราชการ)',
-    shortLabel: 'ผู้อนุมัติระดับ 2',
+    label: 'ปลัดองค์การบริหารส่วนตำบล',
+    shortLabel: 'ปลัดองค์การบริหารส่วนตำบล',
     tone: 'amber',
     homePath: '/approver',
     defaultAccountId: 'a-wichai',
     summary: 'กลั่นกรองและลงนาม "เห็นชอบ" (ระดับที่ 2) ด้วยลายเซ็นดิจิทัลและรหัส PIN 6 หลัก',
     capabilities: [
-      'พิจารณาคำขอที่ผ่านการตรวจสอบจากเจ้าหน้าที่แล้ว (สถานะ รอผู้อนุมัติระดับ 2)',
+      'พิจารณาคำขอที่ผ่านการตรวจสอบจากเจ้าหน้าที่แล้ว (สถานะ รอปลัดองค์การบริหารส่วนตำบล)',
       'ลงนาม "เห็นชอบ" (ระดับ 2) ด้วยลายเซ็นดิจิทัล + ยืนยันรหัส PIN 6 หลัก เพื่อส่งต่อนายก อบต.',
       'สั่งไม่ผ่าน / ส่งคืนคำขอ พร้อมระบุเหตุผลแจ้งผู้ยื่น',
       'ตั้งค่าลายเซ็นดิจิทัลประจำตัวและรหัส PIN 6 หลัก',
@@ -79,14 +79,14 @@ export const ROLE_META: Record<Role, RoleMetaInfo> = {
   },
   APPROVER_L1: {
     role: 'APPROVER_L1',
-    label: 'ผู้อนุมัติระดับ 1 (นายก อบต. / ผู้บริหารสูงสุด)',
-    shortLabel: 'ผู้อนุมัติระดับ 1',
+    label: 'นายกองค์การบริหารส่วนตำบล',
+    shortLabel: 'นายกองค์การบริหารส่วนตำบล',
     tone: 'amber',
     homePath: '/approver',
     defaultAccountId: 'a-prasert',
     summary: 'พิจารณาอนุมัติขั้นสุดท้าย (ระดับที่ 3) และออกเอกสารใบอนุญาต PDF อัตโนมัติ',
     capabilities: [
-      'พิจารณาคำขอที่ผ่านความเห็นชอบจากปลัด อบต. แล้ว (สถานะ รอผู้อนุมัติระดับ 1)',
+      'พิจารณาคำขอที่ผ่านความเห็นชอบจากปลัด อบต. แล้ว (สถานะ รอนายกองค์การบริหารส่วนตำบล)',
       'ลงนาม "อนุมัติ" ขั้นสุดท้ายด้วยลายเซ็นดิจิทัล + ยืนยันรหัส PIN 6 หลัก',
       'สร้างและออกเอกสารใบอนุญาต (PDF) ที่มีลายเซ็นครบทั้ง 4 ฝ่ายโดยอัตโนมัติ',
       'สั่งไม่อนุมัติคำขอ พร้อมระบุเหตุผลแจ้งผู้ยื่น',
@@ -231,8 +231,8 @@ export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
 
 export const STATUS_META: Record<RequestStatus, { label: string; tone: Tone }> = {
   pending_staff: { label: 'รอตรวจสอบ', tone: 'amber' },
-  pending_l2: { label: 'รอผู้อนุมัติระดับ 2', tone: 'amber' },
-  pending_l1: { label: 'รอผู้อนุมัติระดับ 1', tone: 'amber' },
+  pending_l2: { label: 'รอปลัดองค์การบริหารส่วนตำบล', tone: 'amber' },
+  pending_l1: { label: 'รอนายกองค์การบริหารส่วนตำบล', tone: 'amber' },
   approved: { label: 'อนุมัติแล้ว', tone: 'green' },
   rejected: { label: 'ไม่ผ่าน', tone: 'red' },
   cancelled: { label: 'ยกเลิกแล้ว', tone: 'gray' },
@@ -264,9 +264,9 @@ export const REPAIR_CATEGORIES = ['ไฟฟ้า', 'ประปา', 'เค�
 export const FACILITIES = ['เครื่องเสียง', 'โปรเจกเตอร์', 'เครื่องปรับอากาศ', 'Wi-Fi', 'ที่จอดรถ'];
 
 export const SIGN_LEVEL_TITLE = {
-  staff: 'เจ้าหน้าที่ผู้ตรวจสอบ',
-  l2: 'ผู้พิจารณา',
-  l1: 'ผู้มีอำนาจอนุมัติ',
+  staff: 'เจ้าหน้าที่',
+  l2: 'ปลัดองค์การบริหารส่วนตำบล',
+  l1: 'นายกองค์การบริหารส่วนตำบล',
 } as const;
 
 export const ACTIVE_BOOKING_STATUSES: RequestStatus[] = ['pending_staff', 'pending_l2', 'pending_l1', 'approved'];

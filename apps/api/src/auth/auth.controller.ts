@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, NotFoundException, Post, Req, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, NotFoundException, Patch, Post, Req, UnauthorizedException } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { DEFAULT_PERMISSIONS, Account, DemoAccountSummary } from '@jongwen/shared';
 import { DbService } from '../db/db.service';
@@ -12,12 +12,14 @@ import {
 } from './auth.guard';
 import { hashSecret, verifySecret } from './secret';
 import {
+  ChangePasswordDto,
   DemoLoginDto,
   LoginDto,
   RegisterDto,
   RequestOtpDto,
   SetPinDto,
   SetSignatureDto,
+  UpdateProfileDto,
   VerifyPinDto,
 } from './dto';
 
@@ -230,6 +232,102 @@ export class AuthController {
   @Get('me')
   me(@CurrentUser() user: Account) {
     return this.db.toPublic(user);
+  }
+
+  @Patch('profile')
+  async updateProfile(@CurrentUser() user: Account, @Body() body: UpdateProfileDto) {
+    if (body.name !== undefined) {
+      const name = String(body.name).trim().slice(0, 100);
+      if (!name) throw new BadRequestException('กรุณากรอกชื่อ-นามสกุล');
+      user.name = name;
+      user.initial = name.charAt(0) || 'ผ';
+    }
+    if (body.nickname !== undefined) {
+      const nickname = String(body.nickname).trim().slice(0, 50);
+      user.nickname = nickname || user.name.split(' ')[0] || user.name;
+    }
+    if (body.position !== undefined) {
+      const position = String(body.position).trim().slice(0, 100);
+      if (position) user.position = position;
+    }
+    if (body.department !== undefined) {
+      const department = String(body.department).trim().slice(0, 100);
+      if (!department) throw new BadRequestException('กรุณาระบุหน่วยงาน/สังกัด');
+      user.department = department;
+    }
+    if (body.phone !== undefined) {
+      const phone = String(body.phone).trim().slice(0, 20);
+      const digits = phone.replace(/\D/g, '');
+      if (!/^0\d{8,9}$/.test(digits)) {
+        throw new BadRequestException('เบอร์โทรศัพท์ไม่ถูกต้อง');
+      }
+      const duplicate = this.db.accounts.some(
+        (a) => a.id !== user.id && a.phone.replace(/\D/g, '') === digits,
+      );
+      if (duplicate) {
+        throw new ConflictException('เบอร์โทรศัพท์นี้ถูกใช้งานโดยบัญชีอื่นแล้ว');
+      }
+      user.phone = phone;
+    }
+    if (body.lineName !== undefined) {
+      user.lineName = String(body.lineName).trim().slice(0, 50) || undefined;
+    }
+    if (body.addressHouseNo !== undefined) {
+      user.addressHouseNo = String(body.addressHouseNo).trim().slice(0, 50) || undefined;
+    }
+    if (body.addressMoo !== undefined) {
+      user.addressMoo = String(body.addressMoo).trim().slice(0, 20) || undefined;
+    }
+    if (body.addressSubdistrict !== undefined) {
+      user.addressSubdistrict = String(body.addressSubdistrict).trim().slice(0, 100) || undefined;
+    }
+    if (body.addressDistrict !== undefined) {
+      user.addressDistrict = String(body.addressDistrict).trim().slice(0, 100) || undefined;
+    }
+    if (body.addressProvince !== undefined) {
+      user.addressProvince = String(body.addressProvince).trim().slice(0, 100) || undefined;
+    }
+
+    await this.db.persistAccount(user);
+    await this.db.log('user', 'แก้ไขข้อมูลโปรไฟล์', user.name, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
+    return this.db.toPublic(user);
+  }
+
+  @Throttle({ auth: { limit: 10, ttl: 60000 } })
+  @Post('password')
+  async changePassword(@CurrentUser() user: Account, @Body() body: ChangePasswordDto) {
+    const currentPassword = String(body.currentPassword ?? '');
+    const newPassword = String(body.newPassword ?? '');
+    if (!currentPassword || !newPassword) {
+      throw new BadRequestException('กรุณากรอกรหัสผ่านปัจจุบันและรหัสผ่านใหม่');
+    }
+
+    const lockKey = `pwd:${user.id}`;
+    assertNotLocked(lockKey);
+
+    const valid = await verifySecret(user.password, currentPassword);
+    if (!valid) {
+      recordFailure(lockKey);
+      throw new UnauthorizedException('รหัสผ่านปัจจุบันไม่ถูกต้อง');
+    }
+    clearFailures(lockKey);
+
+    if (newPassword.length < 4) {
+      throw new BadRequestException('รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 4 ตัวอักษร');
+    }
+
+    user.password = await hashSecret(newPassword);
+    await this.db.persistAccount(user);
+    await this.db.log('user', 'เปลี่ยนรหัสผ่านบัญชี', user.name, {
+      id: user.id,
+      name: user.name,
+      role: user.role,
+    });
+    return { ok: true };
   }
 
   @Post('signature')

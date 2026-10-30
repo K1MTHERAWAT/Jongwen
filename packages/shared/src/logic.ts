@@ -45,9 +45,9 @@ function approvalTimeline(req: Extract<AnyRequest, { signatures: unknown }>): Ti
     { key: 'submit', label: 'ผู้ขอลงนามและส่งคำขอ', at: req.createdAt, state: 'done' },
   ];
   const labels: Record<SignLevel, string> = {
-    staff: 'เจ้าหน้าที่ผู้ตรวจสอบ',
-    l2: 'ผู้พิจารณา',
-    l1: 'ผู้มีอำนาจอนุมัติ',
+    staff: SIGN_LEVEL_TITLE.staff,
+    l2: SIGN_LEVEL_TITLE.l2,
+    l1: SIGN_LEVEL_TITLE.l1,
   };
   let blocked = false;
   let currentAssigned = false;
@@ -56,9 +56,9 @@ function approvalTimeline(req: Extract<AnyRequest, { signatures: unknown }>): Ti
     if (sig) {
       steps.push({
         key: level,
-        label: labels[level],
+        label: sig.title || labels[level],
         at: sig.at,
-        note: sig.decision === 'reject' ? `ไม่ผ่าน${sig.note ? ` · ${sig.note}` : ''}` : `${sig.signerName} · ${SIGN_LEVEL_TITLE[level]}`,
+        note: sig.decision === 'reject' ? `ไม่ผ่าน${sig.note ? ` · ${sig.note}` : ''}` : `${sig.signerName} · ${sig.title || SIGN_LEVEL_TITLE[level]}`,
         state: sig.decision === 'reject' ? 'rejected' : 'done',
       });
       if (sig.decision === 'reject') blocked = true;
@@ -218,7 +218,7 @@ export function canSignRequest(
       requiredPermission: 'sign',
       reason: ok
         ? undefined
-        : 'คำขอนี้อยู่ในขั้นรอเห็นชอบระดับ 2 ต้องลงนามโดย "ผู้อนุมัติระดับ 2 (ปลัด อบต.)" ที่มีสิทธิ์ลงนามอนุมัติเอกสาร',
+        : 'คำขอนี้อยู่ในขั้นรอเห็นชอบระดับ 2 ต้องลงนามโดย "ปลัดองค์การบริหารส่วนตำบล" ที่มีสิทธิ์ลงนามอนุมัติเอกสาร',
     };
   }
   if (req.status === 'pending_l1') {
@@ -230,7 +230,7 @@ export function canSignRequest(
       requiredPermission: 'sign',
       reason: ok
         ? undefined
-        : 'คำขอนี้อยู่ในขั้นรออนุมัติขั้นสุดท้าย (ระดับ 1) ต้องลงนามโดย "ผู้อนุมัติระดับ 1 (นายก อบต.)" ที่มีสิทธิ์ลงนามอนุมัติเอกสาร',
+        : 'คำขอนี้อยู่ในขั้นรออนุมัติขั้นสุดท้าย ต้องลงนามโดย "นายกองค์การบริหารส่วนตำบล" ที่มีสิทธิ์ลงนามอนุมัติเอกสาร',
     };
   }
   return {
@@ -400,12 +400,12 @@ export function canAccessRoute(
       hasPermission(account, 'sign');
     return {
       allowed: ok,
-      title: 'ลงนามอนุมัติเอกสาร (ระดับปลัด / นายก อบต.)',
+      title: 'ลงนามอนุมัติเอกสาร (ปลัด / นายกองค์การบริหารส่วนตำบล)',
       requiredRoles: ['APPROVER_L2', 'APPROVER_L1'],
       requiredPermission: 'sign',
       reason: ok
         ? undefined
-        : `เฉพาะผู้อนุมัติระดับ 2 (ปลัด อบต.) หรือผู้อนุมัติระดับ 1 (นายก อบต.) ที่เปิดสิทธิ์ "${PERMISSION_LABEL.sign}" เท่านั้น`,
+        : `เฉพาะปลัดองค์การบริหารส่วนตำบล หรือนายกองค์การบริหารส่วนตำบล ที่เปิดสิทธิ์ "${PERMISSION_LABEL.sign}" เท่านั้น`,
     };
   }
 

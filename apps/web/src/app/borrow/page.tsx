@@ -3,11 +3,21 @@
 import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { EQUIPMENT_CATEGORY_LABEL, Equipment, EquipmentCategory } from '@jongwen/shared';
+import {
+  EQUIPMENT_CATEGORY_LABEL,
+  Equipment,
+  EquipmentCategory,
+  OfficialFormPurposeItem,
+} from '@jongwen/shared';
 import { useAuth } from '@/components/auth-context';
 import { AppShell } from '@/components/shell';
 import { Icon } from '@/components/icons';
-import { SignatureBox, Stepper, equipmentIconName } from '@/components/ui';
+import {
+  OfficialGovFormDocument,
+  SignatureBox,
+  Stepper,
+  equipmentIconName,
+} from '@/components/ui';
 import { api, formatThaiDate } from '@/lib/api';
 
 const STEPS = ['เลือกอุปกรณ์', 'กรอกคำขอ', 'ลงนามและส่ง'];
@@ -24,8 +34,18 @@ export default function BorrowWizardPage() {
     'e-tent': 2,
   });
 
-  // Step 2
-  const [organization, setOrganization] = useState(account?.department || 'กองสวัสดิการสังคม');
+  // Step 2 (ตามแบบคำขอใช้อุปกรณ์ราชการ)
+  const [writtenAt, setWrittenAt] = useState('');
+  const [requesterName, setRequesterName] = useState(account?.name || '');
+  const [requesterPosition, setRequesterPosition] = useState(
+    account?.position && account.position !== 'ประชาชน' ? account.position : '',
+  );
+  const [addressHouseNo, setAddressHouseNo] = useState(account?.addressHouseNo || '');
+  const [addressMoo, setAddressMoo] = useState(account?.addressMoo || '');
+  const [addressSubdistrict, setAddressSubdistrict] = useState(account?.addressSubdistrict || '');
+  const [addressDistrict, setAddressDistrict] = useState(account?.addressDistrict || '');
+  const [addressProvince, setAddressProvince] = useState(account?.addressProvince || '');
+  const [organization, setOrganization] = useState(account?.department || '');
   const [pickupDate, setPickupDate] = useState(() => {
     const d = new Date();
     d.setDate(d.getDate() + 1);
@@ -36,7 +56,10 @@ export default function BorrowWizardPage() {
     d.setDate(d.getDate() + 4);
     return d.toISOString().slice(0, 10);
   });
-  const [purpose, setPurpose] = useState('ใช้ในงานอบรมกลางแจ้ง หมู่ 5');
+  const [purpose, setPurpose] = useState('');
+  const [purposeItems, setPurposeItems] = useState<OfficialFormPurposeItem[]>([
+    { item: '', forWhat: '' },
+  ]);
   const [attachmentName, setAttachmentName] = useState('');
 
   // Step 3
@@ -50,7 +73,13 @@ export default function BorrowWizardPage() {
 
   useEffect(() => {
     if (account) {
+      setRequesterName(account.name);
       setOrganization(account.department);
+      if (account.addressHouseNo) setAddressHouseNo(account.addressHouseNo);
+      if (account.addressMoo) setAddressMoo(account.addressMoo);
+      if (account.addressSubdistrict) setAddressSubdistrict(account.addressSubdistrict);
+      if (account.addressDistrict) setAddressDistrict(account.addressDistrict);
+      if (account.addressProvince) setAddressProvince(account.addressProvince);
     }
   }, [account]);
 
@@ -62,6 +91,18 @@ export default function BorrowWizardPage() {
   const selectedItems = equipment
     .map((eq) => ({ eq, qty: quantities[eq.id] ?? 0 }))
     .filter((x) => x.qty > 0);
+
+  // ซิงค์รายการอุปกรณ์ที่เลือกลงในแบบคำขอใช้อุปกรณ์ราชการ (ล็อกตามที่เลือกในขั้นตอนที่ 1)
+  useEffect(() => {
+    if (selectedItems.length > 0) {
+      setPurposeItems((prev) =>
+        selectedItems.map((it, idx) => ({
+          item: `${it.eq.name} จำนวน ${it.qty} ชุด/รายการ`,
+          forWhat: prev[idx]?.forWhat || purpose || 'ใช้ในกิจกรรมของหน่วยงาน/ชุมชน',
+        })),
+      );
+    }
+  }, [quantities, equipment]);
 
   const filtered = equipment.filter((e) => {
     if (cat !== 'all' && e.category !== cat) return false;
@@ -76,9 +117,18 @@ export default function BorrowWizardPage() {
         items: selectedItems.map((s) => ({ equipmentId: s.eq.id, qty: s.qty })),
         pickupDate,
         returnDate,
-        purpose,
+        purpose: purpose || purposeItems[0]?.forWhat || 'ใช้ในกิจกรรมของหน่วยงาน/ชุมชน',
         organization,
+        requesterName,
         requesterSignature: signature,
+        writtenAt,
+        requesterPosition,
+        addressHouseNo,
+        addressMoo,
+        addressSubdistrict,
+        addressDistrict,
+        addressProvince,
+        purposeItems: purposeItems.filter((pi) => pi.item.trim() || pi.forWhat.trim()),
         attachments: attachmentName ? [attachmentName] : [],
       });
       router.push(`/requests/${created.id}`);
@@ -221,24 +271,111 @@ export default function BorrowWizardPage() {
 
       {/* STEP 2: กรอกคำขอใช้อุปกรณ์ */}
       {step === 2 && (
-        <div className="max-w-[640px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="max-w-[760px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
+          <div className="pb-3 border-b border-line">
+            <b className="text-[17px] text-ink block">แบบคำขอใช้อุปกรณ์ราชการ</b>
+            <span className="text-[12.5px] text-ink-mute">
+              เรื่อง ขออนุญาตใช้อุปกรณ์ของทางราชการ
+            </span>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
-              <label className="jw-lbl">ผู้ขอใช้อุปกรณ์</label>
-              <input type="text" value={account?.name || 'สมชาย ใจดี'} readOnly className="jw-in bg-soft/40" />
+              <label className="jw-lbl">เขียนที่</label>
+              <input
+                type="text"
+                value={writtenAt}
+                onChange={(e) => setWrittenAt(e.target.value)}
+                className="jw-in"
+                placeholder="ระบุสถานที่เขียนคำขอ"
+              />
             </div>
             <div>
-              <label className="jw-lbl">หน่วยงาน</label>
+              <label className="jw-lbl">ข้าพเจ้า (นาย/นาง/นางสาว)</label>
+              <input
+                type="text"
+                value={requesterName}
+                onChange={(e) => setRequesterName(e.target.value)}
+                className="jw-in"
+                placeholder="ระบุชื่อ-นามสกุล"
+              />
+            </div>
+            <div>
+              <label className="jw-lbl">ตำแหน่ง</label>
+              <input
+                type="text"
+                value={requesterPosition}
+                onChange={(e) => setRequesterPosition(e.target.value)}
+                className="jw-in"
+                placeholder="เช่น ประชาชน / ประธานชุมชน"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div>
+              <label className="jw-lbl">อยู่บ้านเลขที่</label>
+              <input
+                type="text"
+                value={addressHouseNo}
+                onChange={(e) => setAddressHouseNo(e.target.value)}
+                className="jw-in"
+                placeholder="เลขที่"
+              />
+            </div>
+            <div>
+              <label className="jw-lbl">หมู่ที่</label>
+              <input
+                type="text"
+                value={addressMoo}
+                onChange={(e) => setAddressMoo(e.target.value)}
+                className="jw-in"
+                placeholder="หมู่ที่"
+              />
+            </div>
+            <div>
+              <label className="jw-lbl">ตำบล / แขวง</label>
+              <input
+                type="text"
+                value={addressSubdistrict}
+                onChange={(e) => setAddressSubdistrict(e.target.value)}
+                className="jw-in"
+                placeholder="ตำบล / แขวง"
+              />
+            </div>
+            <div>
+              <label className="jw-lbl">อำเภอ / เขต</label>
+              <input
+                type="text"
+                value={addressDistrict}
+                onChange={(e) => setAddressDistrict(e.target.value)}
+                className="jw-in"
+                placeholder="อำเภอ / เขต"
+              />
+            </div>
+            <div className="col-span-2 sm:col-span-1">
+              <label className="jw-lbl">จังหวัด</label>
+              <input
+                type="text"
+                value={addressProvince}
+                onChange={(e) => setAddressProvince(e.target.value)}
+                className="jw-in"
+                placeholder="ระบุจังหวัด"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div>
+              <label className="jw-lbl">หน่วยงาน / ชุมชน</label>
               <input
                 type="text"
                 value={organization}
                 onChange={(e) => setOrganization(e.target.value)}
                 className="jw-in"
+                placeholder="ระบุหน่วยงานหรือกลุ่มชุมชน"
               />
             </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="jw-lbl">วันที่รับ</label>
               <input
@@ -259,18 +396,49 @@ export default function BorrowWizardPage() {
             </div>
           </div>
 
+          {/* มีความประสงค์ขอใช้อุปกรณ์ราชการ ดังนี้ (ล็อกรายการตามที่เลือกไว้) */}
+          <div className="rounded-2xl bg-soft/60 border border-line p-4 flex flex-col gap-3">
+            <div className="flex items-center justify-between gap-2">
+              <b className="text-[14px] text-ink">มีความประสงค์ขอใช้อุปกรณ์ราชการ ดังนี้</b>
+            </div>
+            {purposeItems.map((row, idx) => (
+              <div key={idx} className="grid grid-cols-1 sm:grid-cols-[1.15fr_1fr] gap-2.5 items-center">
+                <div className="flex items-center gap-2">
+                  <b className="text-[14px] text-ink shrink-0 w-5">{idx + 1}.</b>
+                  <input
+                    type="text"
+                    value={row.item}
+                    readOnly
+                    disabled
+                    className="jw-in h-10 text-[13.5px] bg-soft/80 text-ink-mute cursor-not-allowed select-none"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-[13.5px] font-semibold text-ink-mute shrink-0">เพื่อ</span>
+                  <input
+                    type="text"
+                    value={row.forWhat}
+                    readOnly
+                    disabled
+                    className="jw-in h-10 text-[13.5px] bg-soft/80 text-ink-mute cursor-not-allowed select-none"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
           <div>
-            <label className="jw-lbl">วัตถุประสงค์</label>
+            <label className="jw-lbl">รายละเอียด / วัตถุประสงค์เพิ่มเติม</label>
             <textarea
-              rows={3}
+              rows={2}
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
-              className="jw-in h-24 py-2.5"
+              className="jw-in h-20 py-2.5"
             />
           </div>
 
           <div>
-            <label className="jw-lbl">แนบเอกสาร</label>
+            <label className="jw-lbl">แนบเอกสารประกอบคำขอ</label>
             <label className="border-[1.5px] border-dashed border-[#7A7A7A] rounded-2xl p-4 text-center text-ink-mute bg-white cursor-pointer block hover:border-brand">
               <input
                 type="file"
@@ -291,30 +459,34 @@ export default function BorrowWizardPage() {
 
       {/* STEP 3: ลงนามและส่ง */}
       {step === 3 && (
-        <div className="max-w-[640px] mx-auto flex flex-col gap-4">
-          <div className="jw-card p-5 flex flex-col gap-2.5">
-            <b className="text-[16px]">สรุปรายการที่ขอใช้</b>
-            {selectedItems.map(({ eq, qty }) => (
-              <div key={eq.id} className="flex justify-between text-[14px]">
-                <b className="text-ink-mute">{eq.name}</b>
-                <span className="font-semibold">× {qty}</span>
-              </div>
-            ))}
-            <div className="flex justify-between text-[14px] pt-2 border-t border-line">
-              <b className="text-ink-mute">ช่วงขอใช้</b>
-              <span>
-                {formatThaiDate(pickupDate, false)}–{formatThaiDate(returnDate, true)}
-              </span>
-            </div>
-          </div>
+        <div className="max-w-[760px] mx-auto flex flex-col gap-4">
+          <OfficialGovFormDocument
+            customFields={{
+              formTitle: 'แบบคำขอใช้อุปกรณ์ราชการ',
+              subject: 'ขออนุญาตใช้อุปกรณ์ของทางราชการ',
+              desireLabel: 'มีความประสงค์ขอใช้อุปกรณ์ราชการ ดังนี้',
+              requesterRoleCaption: 'ผู้ขออนุญาตใช้อุปกรณ์ราชการ',
+              writtenAt,
+              requesterName,
+              requesterPosition,
+              addressHouseNo,
+              addressMoo,
+              addressSubdistrict,
+              addressDistrict,
+              addressProvince,
+              organization,
+              purposeItems,
+              requesterSignature: signature,
+            }}
+          />
 
           <div className="jw-card p-5 flex flex-col gap-2">
-            <label className="jw-lbl">เขียนลายเซ็นผู้ขอใช้อุปกรณ์ ({account?.name || 'สมชาย ใจดี'})</label>
+            <label className="jw-lbl">เขียนลายเซ็นผู้ขอใช้อุปกรณ์ ({requesterName || account?.name || 'สมชาย ใจดี'})</label>
             <SignatureBox
               value={signature}
               onChange={setSignature}
               savedSignature={account?.signature}
-              signerLabel={`${account?.name || 'สมชาย ใจดี'} · ผู้ยื่นคำขอใช้อุปกรณ์`}
+              signerLabel={`${requesterName || account?.name || 'สมชาย ใจดี'} · ผู้ขออนุญาตใช้อุปกรณ์ราชการ`}
             />
             <p className="text-[13px] text-ink-mute mt-1">
               ต้องลงนามทุกฝ่าย (4 ฝ่าย): (1) ผู้ยื่นคำขอ → (2) เจ้าหน้าที่ผู้ตรวจสอบ → (3) ปลัด อบต. → (4) นายก อบต.
