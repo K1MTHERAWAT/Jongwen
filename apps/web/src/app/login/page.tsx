@@ -14,8 +14,8 @@ const DEFAULT_DEMO_ACCOUNTS: DemoAccountSummary[] = [
   { id: 'u-somchai', name: 'สมชาย ใจดี', role: 'USER', position: 'ประชาชน', department: 'กลุ่มแม่บ้านบ้านหนองบัว', initial: 'ส', nickname: 'สมชาย' },
   { id: 'u-manee', name: 'มานี มีนา', role: 'USER', position: 'ประชาชน', department: 'กองสวัสดิการสังคม', initial: 'ม', nickname: 'มานี' },
   { id: 's-suda', name: 'สุดา มีสุข', role: 'STAFF', position: 'เจ้าหน้าที่ธุรการ', department: 'สำนักปลัด อบต.', initial: 'สุ', nickname: 'สุดา' },
-  { id: 'a-wichai', name: 'วิชัย รักถิ่น', role: 'APPROVER_L2', position: 'ปลัด อบต.', department: 'สำนักปลัด อบต.', initial: 'วิ', nickname: 'วิชัย' },
-  { id: 'a-prasert', name: 'ประเสริฐ ศรีสุข', role: 'APPROVER_L1', position: 'นายก อบต.', department: 'องค์การบริหารส่วนตำบล', initial: 'ป', nickname: 'ประเสริฐ' },
+  { id: 'a-wichai', name: 'วิชัย รักถิ่น', role: 'APPROVER_L2', position: 'ปลัดองค์การบริหารส่วนตำบล', department: 'สำนักปลัด อบต.', initial: 'วิ', nickname: 'วิชัย' },
+  { id: 'a-prasert', name: 'ประเสริฐ ศรีสุข', role: 'APPROVER_L1', position: 'นายกองค์การบริหารส่วนตำบล', department: 'องค์การบริหารส่วนตำบล', initial: 'ป', nickname: 'ประเสริฐ' },
   { id: 'ad-admin', name: 'ผู้ดูแลระบบ', role: 'ADMIN', position: 'ผู้ดูแลระบบ', department: 'ฝ่ายเทคโนโลยีสารสนเทศ', initial: 'อ', nickname: 'แอดมิน' },
 ];
 

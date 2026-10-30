@@ -18,7 +18,7 @@ export function Card({
     padding === 'normal' ? 'p-5' : padding === 'list' ? 'px-6 py-5' : '';
 
   const baseClass = [
-    'rounded-card border border-line bg-surface shadow-xs transition-colors',
+    'rounded-card border border-line bg-surface shadow-sm transition-colors',
     padClass,
     href ? 'hover:border-line-input block' : '',
     className,

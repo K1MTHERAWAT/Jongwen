@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import { LogIn, LogOut, Menu, PanelLeft, X } from 'lucide-react';
 import { useAuth } from './auth-context';
 import type { NavItem } from './nav';
-import { ROLE_META } from '@jongwen/shared';
+import { ROLE_LABEL } from '@jongwen/shared';
 
 export function Sidebar({ items }: { items: NavItem[] }) {
   const path = usePathname();
@@ -41,13 +41,25 @@ export function Sidebar({ items }: { items: NavItem[] }) {
       return !v;
     });
 
+  // จัดกลุ่มเมนูตาม section
+  const sections: { title: string; list: NavItem[] }[] = [];
+  for (const item of items) {
+    const sec = item.section || 'เมนูหลัก';
+    const found = sections.find((s) => s.title === sec);
+    if (found) {
+      found.list.push(item);
+    } else {
+      sections.push({ title: sec, list: [item] });
+    }
+  }
+
   return (
     <>
       <button
         ref={openBtn}
         onClick={() => setDrawer(true)}
         aria-label="เปิดเมนู"
-        className="fixed left-3 top-3 z-30 grid size-11 place-items-center rounded-control bg-surface border border-line text-ink-soft hover:bg-hover lg:hidden shadow-xs print:hidden"
+        className="fixed left-3.5 top-3 z-30 grid size-10 place-items-center rounded-control bg-surface border border-line text-ink-soft hover:bg-hover lg:hidden shadow-sm print:hidden"
       >
         <Menu className="size-5" />
       </button>
@@ -55,7 +67,7 @@ export function Sidebar({ items }: { items: NavItem[] }) {
       {drawer && (
         <div
           onClick={closeDrawer}
-          className="fixed inset-0 z-40 bg-ink/45 lg:hidden backdrop-blur-xs transition-opacity print:hidden"
+          className="fixed inset-0 z-40 bg-ink/40 lg:hidden backdrop-blur-[2px] transition-opacity print:hidden"
         />
       )}
 
@@ -63,18 +75,18 @@ export function Sidebar({ items }: { items: NavItem[] }) {
         aria-label="เมนูหลัก"
         className={[
           'print:hidden',
-          'fixed inset-y-0 left-0 z-50 flex w-drawer flex-col justify-between bg-surface p-3 shadow-pop transition-all duration-200',
+          'fixed inset-y-0 left-0 z-50 flex w-drawer flex-col justify-between bg-surface p-3.5 shadow-pop transition-all duration-200',
           drawer ? 'translate-x-0' : '-translate-x-full',
           'lg:sticky lg:top-3 lg:z-auto lg:m-3 lg:h-[calc(100dvh-24px)] lg:translate-x-0',
-          'lg:rounded-float lg:border lg:border-line lg:shadow-float',
+          'lg:rounded-float lg:border lg:border-line/90 lg:shadow-float',
           open ? 'lg:w-sidebar' : 'lg:w-sidebar-mini',
         ].join(' ')}
       >
-        <div className="flex flex-col gap-1 overflow-y-auto overflow-x-hidden flex-1">
-          {/* Header */}
-          <div className="flex h-11 items-center justify-between pl-2 mb-1">
+        <div className="flex flex-col gap-3 overflow-y-auto overflow-x-hidden flex-1 pr-0.5">
+          {/* Brand Header */}
+          <div className="flex h-12 items-center justify-between pl-1.5 pb-2 border-b border-line-soft">
             <Link href="/" className="flex items-center gap-2.5 min-w-0" title="Jongwen">
-              <div className="size-8 rounded-control overflow-hidden shrink-0 flex items-center justify-center bg-surface-muted border border-line-soft">
+              <div className="size-9 rounded-control overflow-hidden shrink-0 flex items-center justify-center bg-brand-tint border border-brand/20 p-1">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
                   src="/logo.png"
@@ -82,64 +94,100 @@ export function Sidebar({ items }: { items: NavItem[] }) {
                   className="size-full object-contain"
                 />
               </div>
-              <span className={['text-heading text-ink font-bold tracking-tight', open ? '' : 'lg:sr-only'].join(' ')}>
-                Jongwen
-              </span>
+              <div className={['min-w-0 leading-tight', open ? '' : 'lg:sr-only'].join(' ')}>
+                <span className="text-[16px] text-ink font-bold tracking-tight block truncate">
+                  Jongwen
+                </span>
+                <span className="text-[11px] text-muted block truncate">
+                  ระบบบริการออนไลน์ อบต.
+                </span>
+              </div>
             </Link>
             <button
               onClick={toggle}
               aria-label={open ? 'ย่อแถบข้าง' : 'ขยายแถบข้าง'}
-              className="hidden size-9 place-items-center rounded-control hover:bg-hover text-ink-soft lg:grid"
+              className="hidden size-8 place-items-center rounded-control hover:bg-hover text-muted hover:text-ink lg:grid transition-colors"
             >
               <PanelLeft className="size-[18px]" />
             </button>
             <button
               onClick={closeDrawer}
               aria-label="ปิดเมนู"
-              className="grid size-11 place-items-center rounded-control hover:bg-hover text-ink-soft lg:hidden"
+              className="grid size-9 place-items-center rounded-control hover:bg-hover text-ink-soft lg:hidden"
             >
               <X className="size-5" />
             </button>
           </div>
 
-          {/* Navigation Links */}
-          <nav className="flex flex-col gap-1">
-            {items.map((i) => {
-              const active = i.exact || i.href === '/' ? path === i.href : path.startsWith(i.href);
-              return (
-                <Link
-                  key={i.href}
-                  href={i.href}
-                  title={i.label}
-                  aria-current={active ? 'page' : undefined}
-                  className="flex h-11 items-center gap-3 rounded-control px-3 text-ink-soft hover:bg-hover transition-colors aria-[current=page]:bg-brand-tint aria-[current=page]:font-semibold aria-[current=page]:text-brand-ink"
+          {/* Grouped Navigation Links */}
+          <nav className="flex flex-col gap-3.5">
+            {sections.map((sec, sIdx) => (
+              <div key={sec.title} className="flex flex-col gap-0.5">
+                <div
+                  className={[
+                    'px-2.5 pb-1 text-[11px] font-bold uppercase tracking-wider text-muted/80 select-none',
+                    open ? '' : 'lg:hidden',
+                  ].join(' ')}
                 >
-                  <i.icon className="size-5 shrink-0" />
-                  <span className={['text-body truncate', open ? '' : 'lg:sr-only'].join(' ')}>
-                    {i.label}
-                  </span>
-                </Link>
-              );
-            })}
+                  {sec.title}
+                </div>
+                {!open && sIdx > 0 && (
+                  <div className="hidden lg:block h-px bg-line-soft mx-2 my-1" />
+                )}
+                {sec.list.map((i) => {
+                  const active =
+                    i.exact || i.href === '/'
+                      ? path === i.href
+                      : path === i.href || path.startsWith(`${i.href}/`);
+                  return (
+                    <Link
+                      key={i.href}
+                      href={i.href}
+                      title={i.label}
+                      aria-current={active ? 'page' : undefined}
+                      className={[
+                        'relative flex h-10 items-center gap-3 rounded-control px-3 text-[13.5px] transition-all',
+                        active
+                          ? 'bg-brand-tint font-bold text-brand-ink shadow-sm'
+                          : 'text-ink-soft font-medium hover:bg-hover hover:text-ink',
+                      ].join(' ')}
+                    >
+                      {active && (
+                        <span className="absolute left-0 top-2 bottom-2 w-1 rounded-r-full bg-brand" />
+                      )}
+                      <i.icon
+                        className={[
+                          'size-[19px] shrink-0 transition-colors',
+                          active ? 'text-brand' : 'text-muted',
+                        ].join(' ')}
+                      />
+                      <span className={['truncate', open ? '' : 'lg:sr-only'].join(' ')}>
+                        {i.label}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            ))}
           </nav>
         </div>
 
         {/* Footer / User Profile */}
         <div className="border-t border-line-soft pt-3 mt-2 flex flex-col gap-1">
           {account ? (
-            <div className="flex items-center justify-between gap-2 p-1.5 rounded-control bg-surface-muted">
+            <div className="flex items-center justify-between gap-2 p-2 rounded-control bg-surface-muted/80 border border-line/60">
               <Link
                 href="/account"
                 title="จัดการบัญชีของฉัน"
-                className="flex items-center gap-2.5 min-w-0 flex-1 rounded-control p-1 -m-1 hover:bg-hover transition-colors"
+                className="flex items-center gap-2.5 min-w-0 flex-1 rounded-control p-0.5 hover:opacity-90 transition-opacity"
               >
-                <div className="w-8 h-8 rounded-full bg-brand-tint text-brand-ink font-bold flex items-center justify-center text-caption shrink-0">
+                <div className="size-9 rounded-full bg-brand text-white font-bold flex items-center justify-center text-caption shrink-0 shadow-sm">
                   {account.initial || account.name.charAt(0) || 'ผ'}
                 </div>
                 <div className={['min-w-0 flex-1 leading-tight', open ? '' : 'lg:sr-only'].join(' ')}>
-                  <div className="text-caption font-semibold text-ink truncate">{account.name}</div>
-                  <div className="text-[11px] text-muted truncate">
-                    {ROLE_META[account.role]?.shortLabel || 'ผู้ใช้'} · {account.department}
+                  <div className="text-[13px] font-bold text-ink truncate">{account.name}</div>
+                  <div className="text-[11px] text-brand font-semibold truncate">
+                    {ROLE_LABEL[account.role]}
                   </div>
                 </div>
               </Link>
@@ -148,7 +196,10 @@ export function Sidebar({ items }: { items: NavItem[] }) {
                 onClick={logout}
                 title="ออกจากระบบ"
                 aria-label="ออกจากระบบ"
-                className="size-8 grid place-items-center rounded-control hover:bg-hover text-ink-soft hover:text-danger-fg shrink-0"
+                className={[
+                  'size-8 grid place-items-center rounded-control hover:bg-danger-bg text-muted hover:text-danger-fg shrink-0 transition-colors',
+                  open ? '' : 'lg:hidden',
+                ].join(' ')}
               >
                 <LogOut className="size-4" />
               </button>
@@ -157,9 +208,9 @@ export function Sidebar({ items }: { items: NavItem[] }) {
             <Link
               href="/login"
               title="เข้าสู่ระบบ"
-              className="flex h-11 items-center gap-3 rounded-control px-3 text-ink-soft hover:bg-hover transition-colors font-medium text-body"
+              className="flex h-10 items-center gap-3 rounded-control px-3 bg-brand text-white hover:bg-brand-ink transition-colors font-semibold text-body justify-center"
             >
-              <LogIn className="size-5 shrink-0" />
+              <LogIn className="size-4 shrink-0" />
               <span className={open ? '' : 'lg:sr-only'}>เข้าสู่ระบบ</span>
             </Link>
           )}

@@ -11,31 +11,31 @@
 
 @layer components {
   .jw-header {
-    background: #0E7C66;
+    background: linear-gradient(135deg, #0E7C66 0%, #085E4C 100%);
   }
   .jw-card {
-    @apply bg-surface rounded-card border border-line shadow-card;
+    @apply bg-surface rounded-card border border-line/80 shadow-card transition-all;
   }
   .jw-btn {
-    @apply h-11 px-4 rounded-control bg-brand text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-brand-ink disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-5 rounded-control bg-brand text-white font-semibold text-body inline-flex items-center justify-center gap-2 shadow-sm transition-all hover:bg-brand-ink hover:shadow-md active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-sec {
-    @apply h-11 px-4 rounded-control bg-surface text-ink border border-line-input font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-hover disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-4 rounded-control bg-surface text-ink border border-line-input font-semibold text-body inline-flex items-center justify-center gap-2 shadow-sm transition-all hover:bg-hover hover:border-ink-soft/40 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-red {
-    @apply h-11 px-4 rounded-control bg-danger-fg text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-4 rounded-control bg-danger-fg text-white font-semibold text-body inline-flex items-center justify-center gap-2 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-sm {
-    @apply h-9 px-3 text-caption;
+    @apply h-9 px-3.5 text-caption;
   }
   .jw-in {
-    @apply h-11 w-full bg-surface border border-line-input rounded-control px-3.5 text-body text-ink placeholder:text-muted focus:outline-none focus-visible:outline-2 focus-visible:outline-brand;
+    @apply h-11 w-full bg-surface border border-line-input rounded-control px-3.5 text-body text-ink placeholder:text-ink-ph transition-all hover:border-ink-soft/50 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20;
   }
   textarea.jw-in {
     @apply rounded-control py-2.5;
   }
   .jw-lbl {
-    @apply block font-semibold text-caption text-ink mb-1.5;
+    @apply block font-semibold text-[13px] text-ink-soft mb-1.5;
   }
   .gov-form-paper {
     border: none !important;

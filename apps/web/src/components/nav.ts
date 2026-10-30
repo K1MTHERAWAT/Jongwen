@@ -12,6 +12,7 @@ import {
   Shield,
   Users,
   UserCircle,
+  LayoutDashboard,
 } from 'lucide-react';
 import { canAccessRoute, PublicAccount, Role } from '@jongwen/shared';
 
@@ -19,58 +20,66 @@ export type NavItem = {
   href: string;
   label: string;
   icon: LucideIcon;
+  section: string;
   roles?: Role[];
   exact?: boolean;
 };
 
 export const NAV: NavItem[] = [
-  { href: '/', label: 'หน้าแรก', icon: Home, exact: true },
-  { href: '/booking', label: 'สถานที่', icon: Building2 },
-  { href: '/borrow', label: 'อุปกรณ์', icon: Package, exact: true },
+  // บริการประชาชน
+  { href: '/', label: 'หน้าแรกบริการ', icon: Home, section: 'บริการหลัก', exact: true },
+  { href: '/booking', label: 'ขอใช้สถานที่', icon: Building2, section: 'บริการหลัก' },
+  { href: '/borrow', label: 'ยืม–คืนอุปกรณ์', icon: Package, section: 'บริการหลัก', exact: true },
+  { href: '/repair', label: 'แจ้งซ่อม / ปัญหา', icon: Wrench, section: 'บริการหลัก' },
+
+  // รายการและประวัติ
   {
     href: '/borrow/my',
-    label: 'คำขอของฉัน',
+    label: 'รายการยืมของฉัน',
     icon: FileText,
+    section: 'รายการและประวัติ',
     roles: ['USER', 'STAFF', 'APPROVER_L2', 'APPROVER_L1', 'ADMIN'],
   },
-  { href: '/repair', label: 'แจ้งซ่อม', icon: Wrench },
   {
     href: '/history',
-    label: 'ประวัติ',
+    label: 'ประวัติคำขอทั้งหมด',
     icon: Clock,
+    section: 'รายการและประวัติ',
     roles: ['USER', 'STAFF', 'APPROVER_L2', 'APPROVER_L1', 'ADMIN'],
   },
+
   // เจ้าหน้าที่
-  { href: '/staff/review', label: 'ตรวจคำขอ', icon: ClipboardList, roles: ['STAFF', 'ADMIN'] },
-  { href: '/staff/handover', label: 'รับมอบ-คืน', icon: CheckSquare, roles: ['STAFF', 'ADMIN'] },
-  { href: '/staff/walk-in', label: 'กรอกแทน (Walk-in)', icon: PenTool, roles: ['STAFF', 'ADMIN'] },
-  // ผู้อนุมัติ
-  { href: '/approver', label: 'คิวลงนาม/อนุมัติ', icon: CheckSquare, roles: ['APPROVER_L2', 'APPROVER_L1'] },
-  // แอดมิน
-  { href: '/admin/resources', label: 'จัดการทรัพยากร', icon: Shield, roles: ['ADMIN', 'STAFF'] },
-  { href: '/admin/permissions', label: 'กำหนดสิทธิ์ผู้ใช้', icon: Users, roles: ['ADMIN'] },
+  { href: '/staff', label: 'หน้าหลักเจ้าหน้าที่', icon: LayoutDashboard, section: 'งานเจ้าหน้าที่', roles: ['STAFF', 'ADMIN'], exact: true },
+  { href: '/staff/review', label: 'ตรวจคำขอ & งานซ่อม', icon: ClipboardList, section: 'งานเจ้าหน้าที่', roles: ['STAFF', 'ADMIN'] },
+  { href: '/staff/handover', label: 'รับมอบ–รับคืน', icon: CheckSquare, section: 'งานเจ้าหน้าที่', roles: ['STAFF', 'ADMIN'] },
+  { href: '/staff/walk-in', label: 'กรอกคำขอแทน (Walk-in)', icon: PenTool, section: 'งานเจ้าหน้าที่', roles: ['STAFF', 'ADMIN'] },
+
+  // ผู้อนุมัติ (ปลัด / นายก)
+  { href: '/approver', label: 'คิวลงนามอนุมัติ', icon: CheckSquare, section: 'งานผู้บริหาร', roles: ['APPROVER_L2', 'APPROVER_L1'] },
+
+  // แอดมินและทรัพยากร
+  { href: '/admin', label: 'ภาพรวมผู้ดูแลระบบ', icon: LayoutDashboard, section: 'ระบบและผู้ดูแล', roles: ['ADMIN'], exact: true },
+  { href: '/admin/resources', label: 'จัดการสถานที่/อุปกรณ์', icon: Shield, section: 'ระบบและผู้ดูแล', roles: ['ADMIN', 'STAFF'] },
+  { href: '/admin/permissions', label: 'บัญชีผู้ใช้ & สิทธิ์', icon: Users, section: 'ระบบและผู้ดูแล', roles: ['ADMIN'] },
+
   // บัญชีของฉัน
   {
     href: '/account',
-    label: 'บัญชี',
+    label: 'จัดการบัญชีส่วนตัว',
     icon: UserCircle,
+    section: 'บัญชีผู้ใช้งาน',
     roles: ['USER', 'STAFF', 'APPROVER_L2', 'APPROVER_L1', 'ADMIN'],
   },
 ];
 
 export function getVisibleNav(account: PublicAccount | null): NavItem[] {
   return NAV.filter((item) => {
-    // ถ้าเมนูต้องการบทบาทเฉพาะ แต่ผู้ใช้ยังไม่ได้ล็อกอิน -> ไม่แสดง
     if (item.roles && !account) {
       return false;
     }
-
-    // ถ้ามีบัญชีผู้ใช้ ให้ตรวจสอบความถูกต้องของสิทธิ์ผ่าน canAccessRoute().allowed อย่างเข้มงวด
     if (account) {
       return canAccessRoute(account, item.href).allowed;
     }
-
-    // ถ้าไม่ได้ระบุ roles (เมนูสาธารณะ) และยังไม่ได้ล็อกอิน ให้แสดงได้
     return true;
   });
 }
