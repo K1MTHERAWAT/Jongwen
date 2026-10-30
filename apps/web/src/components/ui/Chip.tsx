@@ -1,7 +1,7 @@
 import React from 'react';
-import { RequestStatus, STATUS_META, Tone } from '@jongwen/shared';
+import { REQUEST_TYPE_LABEL, RequestStatus, RequestType, STATUS_META, Tone } from '@jongwen/shared';
 
-export type ChipTone = 'warn' | 'ok' | 'info' | 'danger' | Tone;
+export type ChipTone = 'warn' | 'ok' | 'info' | 'danger' | 'typeBorrow' | 'typeBooking' | 'typeRepair' | Tone;
 
 const TONE_CLASSES: Record<ChipTone, string> = {
   warn: 'bg-warn-bg text-warn-fg',
@@ -9,11 +9,20 @@ const TONE_CLASSES: Record<ChipTone, string> = {
   info: 'bg-info-bg text-info-fg',
   danger: 'bg-danger-bg text-danger-fg',
   // Legacy mappings for backwards compatibility
-  amber: 'bg-warn-bg text-warn-fg',
-  green: 'bg-ok-bg text-ok-fg',
-  blue: 'bg-info-bg text-info-fg',
-  red: 'bg-danger-bg text-danger-fg',
-  gray: 'bg-surface-muted text-muted',
+  amber: 'bg-[#FFF4CC] text-[#765500]',
+  green: 'bg-[#ECF5D8] text-[#405D0A]',
+  blue: 'bg-[#E8F1FF] text-[#2454A6]',
+  red: 'bg-[#FDE7E7] text-[#A32121]',
+  gray: 'bg-[#EEF0F3] text-[#4B5563]',
+  orange: 'bg-[#FFF0E3] text-[#963F08]',
+  purple: 'bg-[#EBDDFB] text-[#5B21B6]',
+  teal: 'bg-[#E5F4EF] text-[#176548]',
+  cyan: 'bg-[#E3FAFD] text-[#0B6572]',
+  indigo: 'bg-[#E2DFFF] text-[#39258C]',
+  pink: 'bg-[#FCE7F1] text-[#972454]',
+  typeBorrow: 'bg-[#DDF5F2] text-[#11645C]',
+  typeBooking: 'bg-[#EEE7FF] text-[#5B3AA7]',
+  typeRepair: 'bg-[#F4EBDD] text-[#79552A]',
 };
 
 export function Chip({
@@ -28,7 +37,7 @@ export function Chip({
   return (
     <span
       className={[
-        'inline-block whitespace-nowrap rounded-full px-2.5 py-0.5 text-caption font-semibold tracking-tight',
+        'inline-block whitespace-nowrap rounded-full px-2.5 py-1 text-caption font-semibold tracking-tight ring-1 ring-inset ring-black/[0.04]',
         TONE_CLASSES[tone] || TONE_CLASSES.info,
         className,
       ].join(' ')}
@@ -65,7 +74,17 @@ export function statusToTone(status: RequestStatus | string): 'warn' | 'ok' | 'i
 export function StatusChip({ status }: { status: RequestStatus }) {
   const meta = STATUS_META[status];
   const label = meta ? meta.label : status;
-  const tone = statusToTone(status);
+  const tone = meta?.tone ?? statusToTone(status);
 
   return <Chip tone={tone}>{label}</Chip>;
+}
+
+const REQUEST_TYPE_TONE: Record<RequestType, ChipTone> = {
+  borrow: 'typeBorrow',
+  booking: 'typeBooking',
+  repair: 'typeRepair',
+};
+
+export function RequestTypeChip({ type }: { type: RequestType }) {
+  return <Chip tone={REQUEST_TYPE_TONE[type]}>{REQUEST_TYPE_LABEL[type]}</Chip>;
 }

@@ -119,7 +119,7 @@ export default function StaffReviewPage() {
       backHref="/staff"
       onBack={pinStep ? () => setPinStep(false) : undefined}
       rightLabel={account?.nickname || 'สุดา'}
-      maxWidth="max-w-[720px]"
+      maxWidth="max-w-[1440px]"
       footer={
         current && !pinStep ? (
           <div className="flex w-full sm:w-auto gap-2.5">
@@ -274,7 +274,7 @@ export default function StaffReviewPage() {
           </div>
         </div>
       ) : (
-        <div className="flex flex-col gap-3.5">
+        <div className="flex flex-col gap-4 sm:gap-5">
           <div className="flex items-center justify-between">
             <Chip tone="amber">
               รอตรวจ {queue.length} · รายการที่ {index + 1}
@@ -304,7 +304,7 @@ export default function StaffReviewPage() {
             <StatusChip status={current.status} />
           </div>
 
-          <div className="jw-card p-4 flex flex-col gap-2 text-[14px]">
+          <div className="jw-card p-4 sm:p-5 flex flex-col gap-3 text-[14px]">
             <div className="flex items-start gap-2">
               <b className="w-24 shrink-0 text-ink">ผู้ยืม/ผู้ขอ</b>
               <span>
@@ -358,6 +358,8 @@ export default function StaffReviewPage() {
             </div>
           </div>
 
+          <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.15fr)_minmax(420px,0.85fr)] gap-4 sm:gap-5 items-start">
+          <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
           {current.type !== 'repair' && showOfficialForm && <OfficialGovFormDocument req={current} />}
 
           {/* สถานะลายมือชื่อทั้ง 4 ฝ่าย / ความคืบหน้าแจ้งซ่อม */}
@@ -403,7 +405,7 @@ export default function StaffReviewPage() {
                 </div>
               </div>
             ) : (
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5">
                 <SignaturePreviewCard
                   roleLabel="1. ผู้ยื่นคำขอ"
                   signerName={current.requesterName}
@@ -432,8 +434,10 @@ export default function StaffReviewPage() {
               </div>
             )}
           </div>
+          </div>
 
           {/* แถบขั้นตอนเหมือนผู้อนุมัติ L2/L1 */}
+          <div className="flex min-w-0 flex-col gap-4 sm:gap-5">
           <div className="flex flex-col gap-1.5">
             <div className="flex gap-1.5">
               {[1, 2, 3].map((n) => (
@@ -580,6 +584,8 @@ export default function StaffReviewPage() {
               </div>
             </div>
           )}
+          </div>
+          </div>
         </div>
       )}
     </AppShell>

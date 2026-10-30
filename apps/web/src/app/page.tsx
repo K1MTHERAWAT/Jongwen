@@ -13,7 +13,6 @@ import {
 } from 'lucide-react';
 import {
   BorrowRequest,
-  REQUEST_TYPE_LABEL,
   ROLE_LABEL,
   RequestType,
   RequestWithTimeline,
@@ -27,6 +26,7 @@ import {
   ListRow,
   ServiceCard,
   StatusChip,
+  RequestTypeChip,
   Tabs,
 } from '@/components/ui';
 import { api, formatPeriodRange, formatThaiDate, formatThaiDateTime } from '@/lib/api';
@@ -67,7 +67,7 @@ export default function HomePage() {
 
   return (
     <AppShell>
-      <div className="flex flex-col gap-6 max-w-[1200px] mx-auto">
+      <div className="flex flex-col gap-7 max-w-[1200px] mx-auto">
         {/* Banner if staff/approver/admin viewing citizen home */}
         {account && account.role !== 'USER' && (
           <Card className="bg-brand-tint border-brand/30 flex flex-wrap items-center justify-between gap-4 p-4">
@@ -136,7 +136,7 @@ export default function HomePage() {
         </section>
 
         {/* 2-Column Dashboard on Desktop */}
-        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-6 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[1.6fr_1fr] gap-7 items-start">
           {/* Left Column: My Requests */}
           <section aria-label="คำขอของฉัน" className="flex flex-col gap-3">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
@@ -184,7 +184,7 @@ export default function HomePage() {
                       <ListRow
                         key={req.id}
                         href={targetHref}
-                        code={`${REQUEST_TYPE_LABEL[req.type]} · ${req.code}`}
+                        code={<><RequestTypeChip type={req.type} /><span className="font-mono">{req.code}</span></>}
                         title={req.title}
                         subtitle={dateText}
                         chip={<StatusChip status={req.status} />}

@@ -6,47 +6,68 @@
   body {
     @apply font-sans text-ink bg-bg antialiased;
     min-height: 100vh;
+    background-image: radial-gradient(ellipse at 92% 0%, rgba(30, 125, 90, .045), transparent 34rem);
   }
 }
 
 @layer components {
   .jw-header {
-    background: linear-gradient(135deg, #0E7C66 0%, #085E4C 100%);
+    background: #1E7D5A;
   }
   .jw-card {
-    @apply bg-surface rounded-card border border-line/80 shadow-card transition-all;
+    @apply bg-surface rounded-card border border-line shadow-card;
+    box-shadow: 0 3px 12px rgba(16, 24, 40, .045);
   }
   .jw-btn {
-    @apply h-11 px-5 rounded-control bg-brand text-white font-semibold text-body inline-flex items-center justify-center gap-2 shadow-sm transition-all hover:bg-brand-ink hover:shadow-md active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-4 rounded-control bg-brand text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-brand-ink disabled:opacity-50 disabled:pointer-events-none;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, .12);
   }
   .jw-btn-sec {
-    @apply h-11 px-4 rounded-control bg-surface text-ink border border-line-input font-semibold text-body inline-flex items-center justify-center gap-2 shadow-sm transition-all hover:bg-hover hover:border-ink-soft/40 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-4 rounded-control bg-surface text-ink border border-line-input font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:bg-hover disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-red {
-    @apply h-11 px-4 rounded-control bg-danger-fg text-white font-semibold text-body inline-flex items-center justify-center gap-2 shadow-sm transition-all hover:opacity-90 active:scale-[0.99] disabled:opacity-50 disabled:pointer-events-none;
+    @apply h-11 px-4 rounded-control bg-danger-fg text-white font-semibold text-body inline-flex items-center justify-center gap-2 transition hover:opacity-90 disabled:opacity-50 disabled:pointer-events-none;
   }
   .jw-btn-sm {
-    @apply h-9 px-3.5 text-caption;
+    @apply h-9 px-3 text-caption;
   }
   .jw-in {
-    @apply h-11 w-full bg-surface border border-line-input rounded-control px-3.5 text-body text-ink placeholder:text-ink-ph transition-all hover:border-ink-soft/50 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20;
+    @apply h-11 w-full bg-surface border border-line-input rounded-control px-3.5 text-body text-ink placeholder:text-ink-ph focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/25 transition;
   }
   textarea.jw-in {
     @apply rounded-control py-2.5;
   }
   .jw-lbl {
-    @apply block font-semibold text-[13px] text-ink-soft mb-1.5;
+    @apply block font-semibold text-body text-ink mb-1;
   }
   .gov-form-paper {
     border: none !important;
     box-shadow: none !important;
+  }
+  .gov-form-paper .gov-form-date-line,
+  .gov-form-paper .gov-form-address,
+  .gov-form-paper .gov-form-purpose,
+  .gov-form-paper .gov-form-requester-signature,
+  .gov-form-paper .gov-form-staff-signature,
+  .gov-form-paper .gov-form-approver-signature {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
   }
 }
 
 @media print {
   @page {
     size: A4 portrait;
-    margin: 8mm 14mm;
+    margin: 12mm 20mm;
   }
 
   html,
@@ -71,7 +92,7 @@
   }
 
   .gov-form-paper {
-    width: 100% !important;
+    width: 170mm !important;
     height: auto !important;
     min-height: 0 !important;
     box-sizing: border-box !important;
@@ -79,9 +100,27 @@
     border-radius: 0 !important;
     box-shadow: none !important;
     margin: 0 !important;
-    padding: 4mm 6mm !important;
-    font-size: 13.5px !important;
-    line-height: 1.55 !important;
+    padding: 0 !important;
+    font-family: 'TH Sarabun New', var(--font-noto-thai), sans-serif !important;
+    font-size: 16px !important;
+    line-height: 1.48 !important;
+    overflow: visible !important;
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  .gov-form-paper h2 {
+    font-size: 22px !important;
+    letter-spacing: 0 !important;
+    margin-bottom: 10px !important;
+  }
+
+  .gov-form-paper .gov-form-requester-signature {
+    margin-bottom: 10px !important;
+  }
+
+  .gov-form-paper > div > div:last-child,
+  .gov-form-paper > div > div:last-child > div:first-child {
     break-inside: avoid;
     page-break-inside: avoid;
   }

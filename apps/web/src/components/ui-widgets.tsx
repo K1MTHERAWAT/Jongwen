@@ -19,11 +19,17 @@ import { api, formatMonthTitle, formatPeriodRange, formatThaiDate, formatThaiDat
 
 // ===== Chip / Status Badge =====
 const TONE_CLASS: Record<Tone, string> = {
-  green: 'bg-[#95c135]/25 text-[#41590A]',
-  amber: 'bg-[#f8842d]/16 text-[#9A4A08]',
-  blue: 'bg-[#8df0ff]/40 text-[#0B5563]',
-  red: 'bg-[#991d1d]/10 text-[#991d1d]',
-  gray: 'bg-soft text-ink-mute',
+  green: 'bg-[#ECF5D8] text-[#405D0A] ring-1 ring-inset ring-[#A8C965]/45',
+  amber: 'bg-[#FFF4CC] text-[#765500] ring-1 ring-inset ring-[#E8C75C]/45',
+  orange: 'bg-[#FFF0E3] text-[#963F08] ring-1 ring-inset ring-[#F3B47E]/45',
+  red: 'bg-[#FDE7E7] text-[#A32121] ring-1 ring-inset ring-[#ECA0A0]/45',
+  purple: 'bg-[#EBDDFB] text-[#5B21B6] ring-1 ring-inset ring-[#B995EA]/55',
+  blue: 'bg-[#E8F1FF] text-[#2454A6] ring-1 ring-inset ring-[#A7C4F2]/45',
+  cyan: 'bg-[#E3FAFD] text-[#0B6572] ring-1 ring-inset ring-[#8DDBE5]/45',
+  indigo: 'bg-[#E2DFFF] text-[#39258C] ring-1 ring-inset ring-[#A99BEA]/60',
+  pink: 'bg-[#FCE7F1] text-[#972454] ring-1 ring-inset ring-[#EBA5C4]/45',
+  teal: 'bg-[#E5F4EF] text-[#176548] ring-1 ring-inset ring-[#99CCB9]/45',
+  gray: 'bg-[#EEF0F3] text-[#4B5563] ring-1 ring-inset ring-[#C5CBD4]/55',
 };
 
 export function Chip({
@@ -37,7 +43,7 @@ export function Chip({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 h-[26px] px-2.5 rounded-full text-[12px] font-semibold shrink-0 ${TONE_CLASS[tone]} ${className}`}
+      className={`inline-flex items-center gap-1 min-h-[26px] px-2.5 rounded-full ring-1 ring-inset ring-black/[0.035] text-[12px] font-semibold shrink-0 ${TONE_CLASS[tone]} ${className}`}
     >
       {children}
     </span>
@@ -60,47 +66,34 @@ export function Stepper({
   onSelect?: (step: number) => void;
 }) {
   return (
-    <div className="jw-card px-3 py-3.5 sm:px-5 sm:py-4 flex items-center justify-between w-full">
+    <div className="flex gap-1.5 w-full">
       {steps.map((label, idx) => {
         const num = idx + 1;
         const done = num < current;
         const active = num === current;
-        const isLast = idx === steps.length - 1;
         return (
-          <React.Fragment key={label}>
-            <button
-              type="button"
-              disabled={!onSelect || num > current}
-              onClick={() => onSelect?.(num)}
-              className={`flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2.5 text-[11px] sm:text-[13px] font-semibold transition shrink-0 ${
-                active
-                  ? 'text-brand-ink'
-                  : done
-                  ? 'text-ink cursor-pointer hover:text-brand'
-                  : 'text-ink-mute'
+          <button
+            key={label}
+            type="button"
+            disabled={!onSelect || num > current}
+            onClick={() => onSelect?.(num)}
+            className={`flex-1 flex flex-col items-center gap-1 text-[11px] sm:text-[12px] font-semibold transition ${
+              active ? 'text-ink' : 'text-ink-mute'
+            }`}
+          >
+            <span
+              className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[13px] font-bold ${
+                done
+                  ? 'bg-brand border-brand text-white'
+                  : active
+                  ? 'bg-brand border-brand text-white'
+                  : 'bg-white border-line text-ink-mute'
               }`}
             >
-              <span
-                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center text-[12.5px] sm:text-[13px] font-bold transition-all ${
-                  done
-                    ? 'bg-brand border-brand text-white'
-                    : active
-                    ? 'bg-brand border-brand text-white ring-4 ring-brand/15'
-                    : 'bg-surface-muted border-line text-ink-mute'
-                }`}
-              >
-                {done ? <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} /> : num}
-              </span>
-              <span className="truncate max-w-[72px] sm:max-w-none">{label}</span>
-            </button>
-            {!isLast && (
-              <div
-                className={`flex-1 h-[2px] mx-1.5 sm:mx-3 rounded-full transition-colors ${
-                  done ? 'bg-brand' : 'bg-line'
-                }`}
-              />
-            )}
-          </React.Fragment>
+              {done ? <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} /> : num}
+            </span>
+            <span className="truncate max-w-full">{label}</span>
+          </button>
         );
       })}
     </div>
@@ -120,7 +113,7 @@ export function Tabs<T extends string>({
   className?: string;
 }) {
   return (
-    <div className={`flex bg-surface-muted border border-line/70 rounded-control p-1 gap-1 overflow-x-auto ${className}`}>
+    <div className={`flex w-full min-w-0 max-w-full overflow-x-auto bg-soft rounded-control p-[3px] ${className}`}>
       {options.map((opt) => {
         const active = opt.value === value;
         return (
@@ -128,10 +121,8 @@ export function Tabs<T extends string>({
             key={opt.value}
             type="button"
             onClick={() => onChange(opt.value)}
-            className={`flex-1 min-w-max h-9 px-3.5 rounded-[9px] text-[13px] font-semibold whitespace-nowrap transition-all ${
-              active
-                ? 'bg-white text-brand-ink shadow-sm border border-line/50'
-                : 'text-ink-mute hover:text-ink hover:bg-white/50'
+            className={`flex-1 min-w-max h-9 px-3 rounded-[8px] text-[13px] font-semibold whitespace-nowrap transition ${
+              active ? 'bg-white text-ink shadow-xs' : 'text-ink-mute hover:text-ink'
             }`}
           >
             {opt.label}
@@ -594,16 +585,16 @@ export function SignatureBox({
           hasDrawnSignature ? 'border-brand' : 'border-line'
         }`}
       >
-        <div className="absolute left-3.5 right-3.5 top-2.5 flex items-center justify-between pointer-events-none z-10">
-          <span className="text-[12px] text-ink-mute">
+        <div className="absolute left-3.5 right-3.5 top-2.5 grid grid-cols-[minmax(0,1fr)_max-content] items-start gap-2 pointer-events-none z-10">
+          <span className="min-w-0 text-[11px] leading-4 text-ink-mute">
             {signerLabel ? `ลายเซ็น: ${signerLabel}` : 'ใช้นิ้วหรือเมาส์ลากเขียนลายเซ็นในกรอบนี้ หรือดึงลายเซ็นที่บันทึกไว้'}
           </span>
           {hasDrawnSignature ? (
-            <span className="text-[11px] font-semibold text-brand bg-brand-mint px-2 py-0.5 rounded-full">
+            <span className="shrink-0 whitespace-nowrap text-[11px] font-semibold text-brand bg-brand-mint px-2 py-0.5 rounded-full">
               {usedSavedWithPin ? '✓ ใช้ลายเซ็นที่บันทึกไว้ (ยืนยัน PIN)' : '✓ ลงลายมือชื่อแล้ว'}
             </span>
           ) : (
-            <span className="text-[11px] font-semibold text-[#9A4A08] bg-[#f8842d]/15 px-2 py-0.5 rounded-full">
+            <span className="shrink-0 whitespace-nowrap text-[11px] font-semibold text-[#9A4A08] bg-[#f8842d]/15 px-2 py-0.5 rounded-full">
               ยังไม่ได้ลงลายเซ็น
             </span>
           )}
@@ -611,8 +602,8 @@ export function SignatureBox({
 
         {!hasDrawnSignature && (
           <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <span className="text-[15px] text-ink-ph">
-              ลากเมาส์เขียนลายมือชื่อ หรือกดปุ่ม &ldquo;ใช้ลายเซ็นที่บันทึกไว้&rdquo; ด้านล่าง
+            <span className="max-w-[280px] px-5 text-center text-[14px] leading-relaxed text-ink-ph">
+              ใช้นิ้วหรือเมาส์ลากเซ็นชื่อในช่องนี้
             </span>
           </div>
         )}
@@ -1019,17 +1010,15 @@ export function OfficialGovFormDocument({
   return (
     <div className="gov-form-paper bg-white p-5 sm:p-8 text-black text-[13.5px] sm:text-[14.5px] leading-[1.65] relative">
       <div>
-        {/* หัวเรื่องกลางหน้ากระดาษ */}
-        <h2 className="text-center text-[18px] sm:text-[20px] font-bold text-black tracking-wide mb-2">
+        <h2 className="text-center text-[18px] sm:text-[20px] font-bold text-black tracking-wide mb-5">
           {formTitle}
         </h2>
 
-        {/* เขียนที่ / วันที่ เดือน พ.ศ. (ชิดขวาตามแบบฟอร์มราชการ) */}
-        <div className="flex flex-col items-end gap-1 mb-2.5 text-[13.5px] sm:text-[14px]">
+        <div className="flex flex-col items-end gap-1.5 mb-4 text-[13.5px] sm:text-[14px]">
           <div>
-            เขียนที่ <DottedSpan minW="min-w-[170px] sm:min-w-[210px]">{writtenAt}</DottedSpan>
+            เขียนที่ <DottedSpan minW="min-w-[190px] sm:min-w-[230px]">{writtenAt}</DottedSpan>
           </div>
-          <div>
+          <div className="gov-form-date-line">
             วันที่ <DottedSpan minW="min-w-[44px]">{day}</DottedSpan> เดือน{' '}
             <DottedSpan minW="min-w-[100px]">{month}</DottedSpan> พ.ศ.{' '}
             <DottedSpan minW="min-w-[60px]">{year}</DottedSpan>
@@ -1037,7 +1026,7 @@ export function OfficialGovFormDocument({
         </div>
 
         {/* เรื่อง / เรียน */}
-        <div className="flex flex-col gap-0.5 mb-2">
+        <div className="flex flex-col gap-1 mb-3">
           <div>
             <b>เรื่อง</b>&nbsp;&nbsp;{subject}
           </div>
@@ -1047,14 +1036,14 @@ export function OfficialGovFormDocument({
         </div>
 
         {/* ย่อหน้าเนื้อความตามแบบขอใช้สถานที่ราชการ */}
-        <div className="flex flex-col gap-1 text-left leading-[1.75] mb-2">
+        <div className="flex flex-col gap-1.5 text-left leading-[1.8] mb-3">
           <div className="pl-6 sm:pl-10 flex flex-wrap items-baseline gap-x-2 gap-y-1">
             <span>ข้าพเจ้า&nbsp;&nbsp;นาย/นาง/นางสาว</span>
             <DottedSpan minW="min-w-[170px] sm:min-w-[210px] flex-1">{requesterName}</DottedSpan>
             <span>ตำแหน่ง</span>
             <DottedSpan minW="min-w-[150px] sm:min-w-[180px] flex-1">{requesterPosition}</DottedSpan>
           </div>
-          <div className="flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
+          <div className="gov-form-address flex flex-wrap items-baseline gap-x-1.5 gap-y-1">
             <span>อยู่บ้านเลขที่</span>
             <DottedSpan minW="min-w-[48px]">{addressHouseNo}</DottedSpan>
             <span>หมู่ที่</span>
@@ -1072,11 +1061,11 @@ export function OfficialGovFormDocument({
         </div>
 
         {/* รายการ 1..N เพื่อ... */}
-        <div className="flex flex-col gap-1 pl-5 sm:pl-10 mb-2.5">
+        <div className="flex flex-col gap-2 pl-5 sm:pl-10 mb-3">
           {items.map((row, idx) => (
             <div
               key={idx}
-              className="grid grid-cols-[1.15fr_1fr] gap-2 sm:gap-3 items-baseline"
+              className="gov-form-purpose grid grid-cols-[1.15fr_1fr] gap-2 sm:gap-3 items-baseline"
             >
               <div className="flex items-baseline gap-1.5">
                 <span className="font-semibold shrink-0">{idx + 1}.</span>
@@ -1095,10 +1084,10 @@ export function OfficialGovFormDocument({
         </div>
 
         {/* จึงเรียนมาเพื่อพิจารณาอนุญาต */}
-        <div className="pl-6 sm:pl-10 mb-2">จึงเรียนมาเพื่อพิจารณาอนุญาต</div>
+        <div className="pl-6 sm:pl-10 mb-3">จึงเรียนมาเพื่อพิจารณาอนุญาต</div>
 
         {/* ขอแสดงความนับถือ + ลายมือชื่อผู้ขออนุญาตใช้สถานที่ราชการ (ฝ่ายที่ 1) */}
-        <div className="flex justify-end pr-4 sm:pr-8 mb-3">
+        <div className="gov-form-requester-signature flex justify-end pr-4 sm:pr-8 mb-4">
           <div className="w-[240px] sm:w-[270px] flex flex-col items-center text-center gap-0.5">
             <div>ขอแสดงความนับถือ</div>
             <div className="h-10 w-48 border-b border-dotted border-[#4A4A4A] flex items-center justify-center">
@@ -1132,7 +1121,7 @@ export function OfficialGovFormDocument({
           <div className="grid grid-cols-2 gap-5 sm:gap-8">
             {/* ซ้าย: เจ้าหน้าที่ */}
             <div className="flex flex-col items-center text-center gap-0.5">
-              <div className="flex items-baseline justify-center gap-2 w-full">
+              <div className="gov-form-staff-signature flex items-baseline justify-center gap-2 w-full">
                 <span className="shrink-0">ลงชื่อ</span>
                 <div className="h-9 flex-1 max-w-[170px] border-b border-dotted border-[#4A4A4A] flex items-center justify-center">
                   {sigStaff?.signature && sigStaff.signature.startsWith('data:image/') ? (
@@ -1153,7 +1142,7 @@ export function OfficialGovFormDocument({
 
             {/* ขวา: ปลัดองค์การบริหารส่วนตำบล */}
             <div className="flex flex-col items-center text-center gap-0.5">
-              <div className="flex items-baseline justify-center gap-2 w-full">
+              <div className="gov-form-staff-signature flex items-baseline justify-center gap-2 w-full">
                 <span className="shrink-0">ลงชื่อ</span>
                 <div className="h-9 flex-1 max-w-[170px] border-b border-dotted border-[#4A4A4A] flex items-center justify-center">
                   {sigL2?.signature && sigL2.signature.startsWith('data:image/') ? (
@@ -1180,7 +1169,7 @@ export function OfficialGovFormDocument({
             คำสั่งของนายกองค์การบริหารส่วนตำบล
           </b>
           <div className="max-w-[340px] mx-auto flex flex-col items-center text-center gap-0.5">
-            <div className="flex items-baseline justify-center gap-2 w-full">
+            <div className="gov-form-approver-signature flex items-baseline justify-center gap-2 w-full">
               <span className="shrink-0">ลงชื่อ</span>
               <div className="h-9 flex-1 max-w-[180px] border-b border-dotted border-[#4A4A4A] flex items-center justify-center">
                 {sigL1?.signature && sigL1.signature.startsWith('data:image/') ? (

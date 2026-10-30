@@ -4,22 +4,19 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import {
-  ArrowLeft,
   Lock,
   ShieldAlert,
-  UserCircle,
 } from 'lucide-react';
 import {
   PERMISSION_LABEL,
   ROLE_LABEL,
-  ROLE_TONE,
   Role,
   canAccessRoute,
 } from '@jongwen/shared';
 import { useAuth } from './auth-context';
 import { Sidebar } from './Sidebar';
 import { getVisibleNav } from './nav';
-import { Button, Card, Chip } from './ui';
+import { Button, Card } from './ui';
 
 export function roleHomePath(role?: Role): string {
   switch (role) {
@@ -46,11 +43,8 @@ export interface AppShellProps {
 }
 
 export function AppShell({
-  title,
   maxWidth = 'max-w-[1200px]',
   footer,
-  onBack,
-  backHref,
   children,
 }: AppShellProps) {
   const pathname = usePathname();
@@ -77,50 +71,8 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Main Content Area */}
         <main
-          className={`flex-1 w-full ${maxWidth} mx-auto p-4 pt-16 md:p-6 md:pt-16 lg:p-7 min-w-0 print:p-0 print:max-w-none flex flex-col`}
+          className={`flex-1 w-full ${maxWidth} mx-auto p-4 pt-16 md:p-6 md:pt-16 lg:p-8 min-w-0 print:p-0 print:max-w-none`}
         >
-          {/* Top Page Header Bar (when title or back button is provided) */}
-          {(title || onBack || backHref) && (
-            <header className="print:hidden mb-5 flex items-center justify-between gap-3 pb-3.5 border-b border-line/80">
-              <div className="flex items-center gap-3 min-w-0">
-                {onBack ? (
-                  <button
-                    type="button"
-                    onClick={onBack}
-                    className="size-9 rounded-control bg-surface border border-line hover:bg-hover text-ink-soft flex items-center justify-center shrink-0 shadow-sm transition-colors"
-                    title="ย้อนกลับ"
-                  >
-                    <ArrowLeft className="size-4" />
-                  </button>
-                ) : backHref ? (
-                  <Link
-                    href={backHref}
-                    className="size-9 rounded-control bg-surface border border-line hover:bg-hover text-ink-soft flex items-center justify-center shrink-0 shadow-sm transition-colors"
-                    title="ย้อนกลับ"
-                  >
-                    <ArrowLeft className="size-4" />
-                  </Link>
-                ) : null}
-                {title && (
-                  <h1 className="text-[19px] sm:text-title font-bold text-ink tracking-tight truncate">
-                    {title}
-                  </h1>
-                )}
-              </div>
-
-              {account && (
-                <Link
-                  href="/account"
-                  className="hidden sm:inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-surface border border-line hover:border-brand/40 shadow-sm transition-colors shrink-0"
-                >
-                  <UserCircle className="size-4 text-brand" />
-                  <span className="text-caption font-semibold text-ink">{account.name}</span>
-                  <Chip tone={ROLE_TONE[account.role]}>{ROLE_LABEL[account.role]}</Chip>
-                </Link>
-              )}
-            </header>
-          )}
-
           {loading ? (
             <Card className="p-8 max-w-[480px] mx-auto my-8 text-center text-body text-muted flex flex-col items-center justify-center gap-3">
               <div className="size-6 border-2 border-brand border-t-transparent rounded-full animate-spin" />
@@ -203,14 +155,14 @@ export function AppShell({
               </div>
             </Card>
           ) : (
-            <div className="flex-1 flex flex-col justify-between gap-6">
-              <div>{children}</div>
+            <>
+              {children}
               {footer && (
-                <div className="print:hidden sticky bottom-3 z-20 mt-2 rounded-card bg-surface/95 backdrop-blur-md border border-line shadow-float px-4 py-3 flex items-center justify-end">
+                <div className="print:hidden mt-5 flex justify-end">
                   {footer}
                 </div>
               )}
-            </div>
+            </>
           )}
         </main>
       </div>

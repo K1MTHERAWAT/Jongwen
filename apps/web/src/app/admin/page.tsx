@@ -44,7 +44,7 @@ export default function AdminHomePage() {
   };
 
   return (
-    <AppShell title="หน้าแรกผู้ดูแลระบบ" maxWidth="max-w-[960px]">
+    <AppShell title="หน้าแรกผู้ดูแลระบบ" maxWidth="max-w-[1100px]">
       <div className="flex flex-col gap-5">
         {/* KPI ภาพรวมระบบและคำขอวันนี้ (6.3.1) */}
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">

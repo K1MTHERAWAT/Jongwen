@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { CalendarDays, ChevronDown, Clock3 } from 'lucide-react';
 import {
   ConflictInfo,
   DayAvailability,
@@ -30,6 +31,91 @@ import {
 import { api, formatPeriodRange, formatThaiDate, formatThaiDateTime } from '@/lib/api';
 
 const STEPS = ['เลือกสถานที่', 'วัน-เวลา', 'อุปกรณ์เสริม', 'กรอกคำขอ', 'ลงนามและส่ง'];
+
+function DatePickerField({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+}) {
+  return (
+    <div className="relative min-w-0">
+      <button type="button" className="jw-in flex items-center justify-between gap-2 px-3 text-left">
+        <span className="truncate text-[13px] font-semibold text-ink">{formatThaiDate(value, false)}</span>
+        <CalendarDays className="size-4 shrink-0 text-brand" />
+      </button>
+      <input
+        type="date"
+        aria-label={label}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
+      />
+    </div>
+  );
+}
+
+const TIME_OPTIONS = Array.from({ length: 96 }, (_, index) => {
+  const hour = String(Math.floor(index / 4)).padStart(2, '0');
+  const minute = String((index % 4) * 15).padStart(2, '0');
+  return `${hour}:${minute}`;
+});
+
+function TimePickerField({
+  value,
+  onChange,
+  label,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  label: string;
+}) {
+  const [open, setOpen] = useState(false);
+  const listRef = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    listRef.current?.querySelector<HTMLElement>('[data-selected="true"]')?.scrollIntoView({ block: 'center' });
+  }, [open]);
+
+  return (
+    <div className="relative min-w-0">
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={() => setOpen((current) => !current)}
+        className="jw-in flex items-center justify-between gap-1 px-2.5 text-[13px] font-semibold tabular-nums"
+      >
+        <span>{value}</span>
+        <span className="flex items-center gap-1 text-brand"><Clock3 className="size-4" /><ChevronDown className="size-3.5" /></span>
+      </button>
+      {open && (
+        <>
+          <button type="button" aria-label="ปิดตัวเลือกเวลา" className="fixed inset-0 z-20 cursor-default" onClick={() => setOpen(false)} />
+          <div ref={listRef} role="listbox" aria-label={label} className="absolute right-0 top-[calc(100%+6px)] z-30 max-h-52 w-28 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-white p-1.5 shadow-high">
+            {TIME_OPTIONS.map((time) => (
+              <button
+                key={time}
+                type="button"
+                role="option"
+                aria-selected={time === value}
+                data-selected={time === value}
+                onClick={() => { onChange(time); setOpen(false); }}
+                className={`flex h-9 w-full items-center justify-center rounded-xl text-[13px] font-semibold tabular-nums transition ${time === value ? 'bg-brand text-white' : 'text-ink hover:bg-brand-tint'}`}
+              >
+                {time}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
 
 export default function BookingWizardPage() {
   const router = useRouter();
@@ -290,13 +376,14 @@ export default function BookingWizardPage() {
       backHref={step === 1 ? '/' : undefined}
       onBack={step > 1 ? () => setStep((s) => s - 1) : undefined}
       rightLabel={account?.name}
+      maxWidth="max-w-[1440px]"
       footer={
         step === 1 ? (
           <button
             type="button"
             disabled={selectedIds.length === 0}
             onClick={() => setStep(2)}
-            className="jw-btn w-full sm:w-auto min-w-[260px]"
+            className="jw-btn w-full sm:w-auto sm:min-w-[260px]"
           >
             ถัดไป · เลือกวัน-เวลา ({selectedIds.length} รายการ)
           </button>
@@ -368,13 +455,13 @@ export default function BookingWizardPage() {
         )
       }
     >
-      <div className="max-w-[760px] mx-auto mb-5">
+      <div className="max-w-5xl mx-auto mb-5">
         <Stepper steps={STEPS} current={step} onSelect={setStep} />
       </div>
 
       {/* ================= STEP 1: เลือกสถานที่ ================= */}
       {step === 1 && (
-        <div className="grid grid-cols-1 lg:grid-cols-[240px_1fr_320px] gap-5 items-start">
+        <div className="grid grid-cols-1 lg:grid-cols-[220px_minmax(0,1fr)] 2xl:grid-cols-[240px_minmax(0,1fr)_320px] gap-4 lg:gap-5 items-start">
           {/* ตัวกรองด้านซ้าย (Desktop) */}
           <aside className="hidden lg:flex jw-card p-5 flex-col gap-4">
             <b className="text-[16px] flex items-center gap-2">
@@ -459,34 +546,61 @@ export default function BookingWizardPage() {
             </div>
 
             {/* ปุ่มหมวดหมู่ (Mobile/Tablet) */}
-            <div className="grid grid-cols-4 gap-2 text-center text-[12px] font-semibold lg:hidden">
+            <div className="flex gap-2 overflow-x-auto pb-1 lg:hidden">
               {(
                 [
-                  ['all', 'ทั้งหมด', 'layout-grid'],
-                  ['meeting', 'ห้องประชุม', 'building-community'],
-                  ['pavilion', 'ศาลา', 'building-pavilion'],
-                  ['field', 'สนาม', 'ball-football'],
+                  ['all', 'ทั้งหมด'],
+                  ['meeting', 'ห้องประชุม'],
+                  ['pavilion', 'ศาลา'],
+                  ['field', 'สนาม'],
+                  ['yard', 'ลานกิจกรรม'],
                 ] as const
-              ).map(([val, label, ic]) => (
-                <button key={val} type="button" onClick={() => setCatFilter(val)}>
-                  <div
-                    className={`w-11 h-11 rounded-full mx-auto mb-1 flex items-center justify-center transition ${
-                      catFilter === val ? 'bg-brand text-white' : 'bg-brand-mint text-brand'
-                    }`}
-                  >
-                    <Icon name={ic} className="w-5 h-5" />
-                  </div>
-                  <span>{label}</span>
+              ).map(([val, label]) => (
+                <button
+                  key={val}
+                  type="button"
+                  onClick={() => setCatFilter(val)}
+                  className={`shrink-0 rounded-full border px-3.5 py-2 text-[12px] font-semibold transition ${
+                    catFilter === val ? 'border-brand bg-brand text-white' : 'border-line bg-white text-ink-soft hover:bg-hover'
+                  }`}
+                >
+                  {label}
                 </button>
               ))}
             </div>
+
+            <details className="lg:hidden jw-card p-3.5">
+              <summary className="cursor-pointer text-[13px] font-semibold text-ink">ตัวกรองเพิ่มเติม</summary>
+              <div className="mt-3 flex flex-col gap-3">
+                <label className="text-caption font-semibold text-ink-soft" htmlFor="mobile-building-filter">อาคาร</label>
+                <select
+                  id="mobile-building-filter"
+                  value={buildingFilter}
+                  onChange={(e) => setBuildingFilter(e.target.value)}
+                  className="jw-in"
+                >
+                  <option value="all">ทั้งหมด</option>
+                  {buildings.map((b) => <option key={b} value={b}>{b}</option>)}
+                </select>
+                <button
+                  type="button"
+                  onClick={() => setOnlyAvailable((v) => !v)}
+                  className="flex min-h-11 items-center gap-2.5 text-left text-[14px]"
+                >
+                  <i className={`w-[18px] h-[18px] rounded-[5px] border-[1.5px] flex items-center justify-center ${onlyAvailable ? 'bg-brand border-brand text-white' : 'border-line bg-white'}`}>
+                    {onlyAvailable && <Icon name="check" className="w-3 h-3" strokeWidth={3} />}
+                  </i>
+                  <span>เฉพาะที่พร้อมใช้งาน</span>
+                </button>
+              </div>
+            </details>
 
             <div className="flex items-center justify-between">
               <b className="text-[16px] sm:text-[18px]">สถานที่ทั้งหมด</b>
               <span className="text-[13px] text-ink-mute">{filteredVenues.length} แห่ง</span>
             </div>
 
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3.5">
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 2xl:grid-cols-3 gap-3 sm:gap-3.5">
               {filteredVenues.map((v) => {
                 const isSelected = selectedIds.includes(v.id);
                 const disabled = v.status !== 'available' || !v.enabled;
@@ -528,7 +642,7 @@ export default function BookingWizardPage() {
           </div>
 
           {/* ขวา: รายการที่เลือก (Desktop) */}
-          <aside className="jw-card p-5 flex flex-col gap-3.5">
+          <aside className="jw-card p-4 sm:p-5 flex flex-col gap-3.5 lg:col-span-2 2xl:col-span-1">
             <b className="text-[17px]">รายการที่เลือก ({selectedVenues.length})</b>
             {selectedVenues.length === 0 ? (
               <div className="text-[13px] text-ink-mute py-4">กรุณาแตะเลือกสถานที่อย่างน้อย 1 แห่ง</div>
@@ -621,19 +735,9 @@ export default function BookingWizardPage() {
                         <span className="text-[11px] text-ink-mute">เริ่มต้น</span>
                         <span className="text-[11px] text-brand font-semibold">{formatThaiDate(sd, false)}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="date"
-                          value={sd}
-                          onChange={(e) => updatePeriodPart(idx, 'startDate', e.target.value)}
-                          className="text-[13px] font-bold bg-transparent focus:outline-none"
-                        />
-                        <input
-                          type="time"
-                          value={st}
-                          onChange={(e) => updatePeriodPart(idx, 'startTime', e.target.value)}
-                          className="text-[13px] font-bold bg-transparent focus:outline-none"
-                        />
+                      <div className="grid grid-cols-[minmax(0,1fr)_94px] gap-2">
+                        <DatePickerField value={sd} label={`วันที่เริ่มต้น ช่วงที่ ${idx + 1}`} onChange={(value) => updatePeriodPart(idx, 'startDate', value)} />
+                        <TimePickerField value={st} label={`เวลาเริ่มต้น ช่วงที่ ${idx + 1}`} onChange={(value) => updatePeriodPart(idx, 'startTime', value)} />
                       </div>
                     </div>
 
@@ -646,19 +750,9 @@ export default function BookingWizardPage() {
                         <span className="text-[11px] text-ink-mute">สิ้นสุด</span>
                         <span className="text-[11px] text-brand font-semibold">{formatThaiDate(ed, false)}</span>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <input
-                          type="date"
-                          value={ed}
-                          onChange={(e) => updatePeriodPart(idx, 'endDate', e.target.value)}
-                          className="text-[13px] font-bold bg-transparent focus:outline-none"
-                        />
-                        <input
-                          type="time"
-                          value={et}
-                          onChange={(e) => updatePeriodPart(idx, 'endTime', e.target.value)}
-                          className="text-[13px] font-bold bg-transparent focus:outline-none"
-                        />
+                      <div className="grid grid-cols-[minmax(0,1fr)_94px] gap-2">
+                        <DatePickerField value={ed} label={`วันที่สิ้นสุด ช่วงที่ ${idx + 1}`} onChange={(value) => updatePeriodPart(idx, 'endDate', value)} />
+                        <TimePickerField value={et} label={`เวลาสิ้นสุด ช่วงที่ ${idx + 1}`} onChange={(value) => updatePeriodPart(idx, 'endTime', value)} />
                       </div>
                     </div>
                   </div>
@@ -716,7 +810,7 @@ export default function BookingWizardPage() {
 
       {/* ================= STEP 3: เลือกอุปกรณ์เสริม ================= */}
       {step === 3 && (
-        <div className="max-w-[720px] mx-auto flex flex-col gap-4">
+        <div className="max-w-[900px] mx-auto flex flex-col gap-4">
           <div className="jw-card p-4 sm:p-5 flex flex-col gap-2 bg-gradient-to-r from-soft to-white">
             <div className="flex items-center justify-between">
               <div>
@@ -864,7 +958,7 @@ export default function BookingWizardPage() {
 
       {/* ================= STEP 4: กรอกคำขอ (แบบขอใช้สถานที่ราชการ) ================= */}
       {step === 4 && (
-        <div className="max-w-[760px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
+        <div className="max-w-[960px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
           <div className="pb-3 border-b border-line">
             <b className="text-[17px] text-ink block">แบบขอใช้สถานที่ราชการ</b>
             <span className="text-[12.5px] text-ink-mute">
@@ -1043,7 +1137,7 @@ export default function BookingWizardPage() {
 
       {/* ================= STEP 5: ลงนามและส่ง ================= */}
       {step === 5 && (
-        <div className="max-w-[760px] mx-auto flex flex-col gap-4">
+        <div className="max-w-[960px] mx-auto flex flex-col gap-4">
           {/* แสดงเอกสารจริงตามแบบขอใช้สถานที่ราชการ */}
           <OfficialGovFormDocument
             customFields={{

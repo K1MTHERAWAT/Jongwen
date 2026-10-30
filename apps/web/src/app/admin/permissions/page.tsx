@@ -128,7 +128,7 @@ export default function AdminPermissionsPage() {
       title="จัดการสิทธิ์และบทบาท"
       backHref="/admin"
       rightLabel="แอดมิน"
-      maxWidth="max-w-[920px]"
+      maxWidth="max-w-[1120px]"
       footer={
         viewMode === 'users' ? (
           <div className="flex w-full sm:w-auto gap-2.5">

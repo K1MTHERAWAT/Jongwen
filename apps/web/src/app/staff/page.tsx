@@ -25,10 +25,10 @@ export default function StaffHomePage() {
   const reviewCount = queue.filter((r) => r.type !== 'repair').length;
 
   return (
-    <AppShell title="หน้าหลักเจ้าหน้าที่" maxWidth="max-w-[960px]">
+    <AppShell title="หน้าหลักเจ้าหน้าที่" maxWidth="max-w-[1100px]">
       <div className="flex flex-col gap-5">
         {/* KPI 3 การ์ด */}
-        <div className="grid grid-cols-3 gap-3 sm:gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           <div className="jw-card p-3.5 sm:p-5 flex flex-col gap-1">
             <span className="text-[12px] sm:text-[13px] text-ink-mute">รอตรวจคำขอ</span>
             <b className="text-[26px] sm:text-[32px] text-status-crit leading-tight">{reviewCount || queue.length}</b>

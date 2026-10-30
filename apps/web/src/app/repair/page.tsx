@@ -106,7 +106,7 @@ export default function RepairPage() {
     <AppShell
       title={mode === 'form' ? 'แจ้งปัญหา / ซ่อมบำรุง' : 'แจ้งซ่อมของฉัน'}
       backHref="/"
-      maxWidth="max-w-[780px]"
+      maxWidth="max-w-[1000px]"
       footer={
         mode === 'form' ? (
           <div className="flex w-full sm:w-auto gap-2.5">
@@ -163,7 +163,7 @@ export default function RepairPage() {
 
         {mode === 'form' ? (
           <div className="jw-card p-5 sm:p-6 flex flex-col gap-4">
-            <div className="grid grid-cols-2 gap-3.5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
               <div>
                 <label className="jw-lbl">อาคาร</label>
                 <select value={building} onChange={(e) => setBuilding(e.target.value)} className="jw-in">

@@ -3,7 +3,7 @@ import Link from 'next/link';
 
 export interface ListRowProps {
   href?: string;
-  code?: string;
+  code?: React.ReactNode;
   title: string;
   subtitle?: string;
   chip?: React.ReactNode;
@@ -29,7 +29,7 @@ export function ListRow({
       ].join(' ')}
     >
       <div className="min-w-0 flex-1">
-        {code && <div className="text-caption text-muted font-mono">{code}</div>}
+        {code && <div className="flex items-center gap-2 text-caption text-muted">{code}</div>}
         <div className="text-body font-medium text-ink truncate">{title}</div>
         {subtitle && <div className="text-caption text-muted truncate mt-0.5">{subtitle}</div>}
       </div>

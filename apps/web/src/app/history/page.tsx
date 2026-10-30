@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
-  REQUEST_TYPE_LABEL,
   ROLE_META,
   RequestType,
   RequestWithTimeline,
@@ -12,7 +11,7 @@ import {
 import { useAuth } from '@/components/auth-context';
 import { AppShell, roleHomePath } from '@/components/shell';
 import { Icon } from '@/components/icons';
-import { Chip, StatusChip, Tabs } from '@/components/ui';
+import { Chip, RequestTypeChip, StatusChip, Tabs } from '@/components/ui';
 import { api, formatPeriodRange, formatThaiDate, formatThaiDateTime } from '@/lib/api';
 
 type TypeFilter = 'all' | RequestType;
@@ -77,7 +76,7 @@ export default function RequestHistoryPage() {
     <AppShell
       title="ประวัติคำขอ"
       backHref={roleHomePath(account?.role)}
-      maxWidth="max-w-[920px]"
+      maxWidth="max-w-[1120px]"
     >
       <div className="flex flex-col gap-4">
         {/* ส่วนหัวและสรุปจำนวน */}
@@ -226,9 +225,7 @@ export default function RequestHistoryPage() {
                 >
                   <div className="flex flex-col gap-1 min-w-0 flex-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="text-[12px] font-bold text-brand bg-brand-mint px-2.5 py-0.5 rounded-full">
-                        {REQUEST_TYPE_LABEL[req.type]}
-                      </span>
+                      <RequestTypeChip type={req.type} />
                       <b className="text-[14px] text-ink">{req.code}</b>
                       {req.type !== 'repair' &&
                         req.signatures.some((s) => s.signerId === account?.id) && (

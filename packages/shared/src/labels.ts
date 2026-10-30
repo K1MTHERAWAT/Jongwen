@@ -1,6 +1,6 @@
 import type { EquipmentCategory, PermissionKey, RequestStatus, RequestType, Role, VenueType } from './types';
 
-export type Tone = 'green' | 'amber' | 'blue' | 'red' | 'gray';
+export type Tone = 'green' | 'amber' | 'blue' | 'red' | 'gray' | 'orange' | 'purple' | 'teal' | 'cyan' | 'indigo' | 'pink';
 
 export const ROLE_LABEL: Record<Role, string> = {
   USER: 'ผู้ใช้งานทั่วไป',
@@ -230,17 +230,17 @@ export const REQUEST_TYPE_LABEL: Record<RequestType, string> = {
 };
 
 export const STATUS_META: Record<RequestStatus, { label: string; tone: Tone }> = {
-  pending_staff: { label: 'รอตรวจสอบ', tone: 'amber' },
-  pending_l2: { label: 'รอปลัดองค์การบริหารส่วนตำบล', tone: 'amber' },
-  pending_l1: { label: 'รอนายกองค์การบริหารส่วนตำบล', tone: 'amber' },
+  pending_staff: { label: 'รอตรวจสอบ', tone: 'blue' },
+  pending_l2: { label: 'รอปลัดองค์การบริหารส่วนตำบล', tone: 'purple' },
+  pending_l1: { label: 'รอนายกองค์การบริหารส่วนตำบล', tone: 'orange' },
   approved: { label: 'อนุมัติแล้ว', tone: 'green' },
-  rejected: { label: 'ไม่ผ่าน', tone: 'red' },
+  rejected: { label: 'ไม่อนุมัติ', tone: 'red' },
   cancelled: { label: 'ยกเลิกแล้ว', tone: 'gray' },
-  borrowing: { label: 'กำลังยืม', tone: 'green' },
-  return_inspect: { label: 'รอตรวจสภาพ', tone: 'blue' },
-  returned: { label: 'คืนแล้ว', tone: 'gray' },
-  repair_submitted: { label: 'รอรับเรื่อง', tone: 'amber' },
-  repair_in_progress: { label: 'กำลังดำเนินการ', tone: 'blue' },
+  borrowing: { label: 'กำลังใช้งาน', tone: 'pink' },
+  return_inspect: { label: 'รอตรวจรับ', tone: 'amber' },
+  returned: { label: 'เสร็จสิ้น', tone: 'green' },
+  repair_submitted: { label: 'รอตรวจสอบ', tone: 'blue' },
+  repair_in_progress: { label: 'กำลังดำเนินการ', tone: 'teal' },
   repair_awaiting_acceptance: { label: 'รอตรวจรับ', tone: 'amber' },
   repair_done: { label: 'เสร็จสิ้น', tone: 'green' },
 };

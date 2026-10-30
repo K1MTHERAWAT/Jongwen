@@ -99,7 +99,7 @@ export default function StaffHandoverPage() {
       title="รับมอบ-คืน"
       backHref="/staff"
       rightLabel={account?.nickname || 'สุดา'}
-      maxWidth="max-w-[720px]"
+      maxWidth="max-w-[1440px]"
       footer={
         <div className="flex w-full sm:w-auto gap-2.5">
           <button
@@ -123,7 +123,7 @@ export default function StaffHandoverPage() {
         </div>
       }
     >
-      <div className="flex flex-col gap-3.5">
+      <div className="flex flex-col gap-4 sm:gap-5">
         {list.length > 1 && (
           <div>
             <label className="jw-lbl">เลือกรายการใบอนุญาต / อุปกรณ์</label>
@@ -199,7 +199,9 @@ export default function StaffHandoverPage() {
         )}
 
         {/* เช็คลิสต์ ปกติ / ผิดปกติ */}
-        <div className="jw-card px-4 divide-y divide-line">
+        <div className="grid grid-cols-1 2xl:grid-cols-[minmax(0,1.1fr)_minmax(500px,0.9fr)] gap-4 sm:gap-5 items-start">
+        <div className="flex flex-col gap-4 sm:gap-5">
+        <div className="jw-card px-4 sm:px-5 divide-y divide-line">
           {items.map((item, idx) => (
             <div
               key={item.label}
@@ -250,16 +252,18 @@ export default function StaffHandoverPage() {
             )}
           </label>
           <textarea
-            rows={2}
+            rows={3}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             placeholder={hasAbnormal ? 'ระบุเหตุผลของรายการที่ผิดปกติ (จำเป็นต้องกรอก)' : 'หมายเหตุเพิ่มเติม (ถ้ามี)'}
-            className={`jw-in h-20 py-2.5 ${hasAbnormal && !note.trim() ? 'border-status-crit' : ''}`}
+            className={`jw-in min-h-24 py-2.5 ${hasAbnormal && !note.trim() ? 'border-status-crit' : ''}`}
           />
         </div>
 
+        </div>
+
         {/* ลงนามทั้ง 2 ฝ่าย: ผู้รับมอบ/ส่งคืน และ เจ้าหน้าที่ผู้ตรวจ */}
-        <div className="jw-card p-4 sm:p-5 flex flex-col gap-4">
+        <div className="jw-card p-4 sm:p-6 flex flex-col gap-5">
           <div>
             <b className="text-[15px] text-ink block">
               ลงลายมือชื่อทั้ง 2 ฝ่าย ({phase === 'before' ? 'การส่งมอบก่อนใช้งาน' : 'การตรวจรับคืนหลังใช้งาน'})
@@ -269,7 +273,7 @@ export default function StaffHandoverPage() {
             </span>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 2xl:grid-cols-2 gap-4">
             <div className="flex flex-col gap-1.5">
               <label className="jw-lbl">
                 1. ลายเซ็น{phase === 'before' ? 'ผู้รับมอบ' : 'ผู้ส่งคืน'} ({current?.requesterName || 'สมชาย ใจดี'})
@@ -282,7 +286,7 @@ export default function StaffHandoverPage() {
                 signerLabel={`${current?.requesterName || 'สมชาย ใจดี'} · ${
                   phase === 'before' ? 'ผู้รับมอบ' : 'ผู้ส่งคืน'
                 }`}
-                height={135}
+                height={160}
               />
             </div>
 
@@ -296,10 +300,12 @@ export default function StaffHandoverPage() {
                 onChange={setStaffSignature}
                 savedSignature={account?.signature}
                 signerLabel={`${account?.name || 'นางสาวสุดา รอบคอบ'} · เจ้าหน้าที่ผู้ตรวจรับ`}
-                height={135}
+                height={160}
               />
             </div>
           </div>
+        </div>
+
         </div>
 
         {savedMsg && (

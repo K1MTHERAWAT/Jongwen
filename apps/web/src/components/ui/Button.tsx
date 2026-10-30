@@ -9,9 +9,9 @@ export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElemen
 
 const VARIANTS: Record<ButtonVariant, string> = {
   primary:
-    'inline-flex h-11 items-center justify-center gap-2 rounded-control bg-brand px-4 font-semibold text-white hover:bg-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+    'inline-flex h-11 items-center justify-center gap-2 rounded-control bg-brand px-4 font-semibold text-white shadow-sm hover:bg-brand-ink focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
   secondary:
-    'inline-flex h-11 items-center justify-center gap-2 rounded-control border border-line-input bg-surface px-4 font-semibold text-ink hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
+    'inline-flex h-11 items-center justify-center gap-2 rounded-control border border-line-input bg-surface px-4 font-semibold text-ink shadow-sm hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
   ghost:
     'inline-flex h-11 items-center justify-center gap-2 rounded-control px-3 font-semibold text-ink-soft hover:bg-hover focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand',
   icon:

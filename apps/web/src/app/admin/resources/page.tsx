@@ -47,7 +47,7 @@ export default function ManageResourcesPage() {
       title="ทรัพยากรและแบบฟอร์ม"
       backHref={roleHomePath(account?.role)}
       rightLabel={account?.nickname || 'สุดา'}
-      maxWidth="max-w-[760px]"
+      maxWidth="max-w-[960px]"
       footer={
         <Link href="/admin/resources/new" className="jw-btn w-full sm:w-56">
           + เพิ่มรายการ

@@ -36,7 +36,7 @@ export default function ApproverHomePage() {
   const stepLabel = account?.role === 'APPROVER_L1' ? 'ลงนามที่ 3 (อนุมัติ)' : 'ลงนามที่ 2';
 
   return (
-    <AppShell title="หน้าหลักผู้มีอำนาจ" maxWidth="max-w-[820px]">
+    <AppShell title="หน้าหลักผู้มีอำนาจ" maxWidth="max-w-[1000px]">
       <div className="flex flex-col gap-4">
         {/* Banner รอคุณลงนาม */}
         <div className="jw-card p-5 bg-brand-mint flex items-center justify-between gap-4">

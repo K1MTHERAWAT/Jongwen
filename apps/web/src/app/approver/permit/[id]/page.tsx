@@ -27,7 +27,7 @@ export default function PermitPdfPage() {
     <AppShell
       title="ลงนามครบทุกฝ่ายแล้ว"
       backHref={homeHref}
-      maxWidth="max-w-[780px]"
+      maxWidth="max-w-[900px]"
       footer={
         <div className="flex w-full sm:w-auto gap-2.5">
           <button

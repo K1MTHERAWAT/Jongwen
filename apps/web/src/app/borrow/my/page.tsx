@@ -39,7 +39,7 @@ export default function MyBorrowsPage() {
   });
 
   return (
-    <AppShell title="อุปกรณ์" backHref="/" maxWidth="max-w-[760px]">
+    <AppShell title="อุปกรณ์" backHref="/" maxWidth="max-w-[960px]">
       <div className="flex flex-col gap-4">
         <Tabs<BorrowTab>
           value={tab}

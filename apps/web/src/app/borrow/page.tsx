@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -27,6 +27,8 @@ export default function BorrowWizardPage() {
   const { account } = useAuth();
   const [step, setStep] = useState(1);
   const [equipment, setEquipment] = useState<Equipment[]>([]);
+  const [equipmentLoading, setEquipmentLoading] = useState(true);
+  const [equipmentError, setEquipmentError] = useState('');
   const [cat, setCat] = useState<'all' | EquipmentCategory>('all');
   const [search, setSearch] = useState('');
   const [quantities, setQuantities] = useState<Record<string, number>>({
@@ -68,7 +70,13 @@ export default function BorrowWizardPage() {
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    api.equipment().then(setEquipment).catch(() => {});
+    api.equipment()
+      .then((items) => {
+        setEquipment(items);
+        setEquipmentError('');
+      })
+      .catch(() => setEquipmentError('โหลดรายการอุปกรณ์ไม่สำเร็จ ลองโหลดรายการอีกครั้ง'))
+      .finally(() => setEquipmentLoading(false));
   }, []);
 
   useEffect(() => {
@@ -104,11 +112,12 @@ export default function BorrowWizardPage() {
     }
   }, [quantities, equipment]);
 
-  const filtered = equipment.filter((e) => {
+  const filtered = useMemo(() => equipment.filter((e) => {
+    if (!e.enabled || e.stock <= 0) return false;
     if (cat !== 'all' && e.category !== cat) return false;
     if (search.trim() && !e.name.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
-  });
+  }), [equipment, cat, search]);
 
   const handleSubmit = async () => {
     setSubmitting(true);
@@ -190,13 +199,13 @@ export default function BorrowWizardPage() {
         )
       }
     >
-      <div className="max-w-[680px] mx-auto mb-5">
+      <div className="max-w-[820px] mx-auto mb-5">
         <Stepper steps={STEPS} current={step} onSelect={setStep} />
       </div>
 
       {/* STEP 1: เลือกอุปกรณ์ */}
       {step === 1 && (
-        <div className="max-w-[680px] mx-auto flex flex-col gap-3.5">
+        <div className="max-w-[820px] mx-auto flex flex-col gap-3.5">
           <input
             type="text"
             value={search}
@@ -230,6 +239,36 @@ export default function BorrowWizardPage() {
           </div>
 
           <div className="flex flex-col gap-3">
+            {equipmentError && (
+              <div role="alert" className="rounded-2xl border border-[#F1B8B8] bg-[#FFF1F1] p-4 text-[13px] text-[#8A2424]">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <span>{equipmentError}</span>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setEquipmentLoading(true);
+                      setEquipmentError('');
+                      api.equipment()
+                        .then(setEquipment)
+                        .catch(() => setEquipmentError('โหลดรายการอุปกรณ์ไม่สำเร็จ ลองโหลดรายการอีกครั้ง'))
+                        .finally(() => setEquipmentLoading(false));
+                    }}
+                    className="font-semibold underline underline-offset-2"
+                  >
+                    ลองอีกครั้ง
+                  </button>
+                </div>
+              </div>
+            )}
+            {equipmentLoading ? (
+              <div role="status" className="jw-card p-6 text-center text-[13px] text-ink-mute">กำลังโหลดรายการอุปกรณ์…</div>
+            ) : null}
+            {!equipmentLoading && !equipmentError && filtered.length === 0 && (
+              <div className="jw-card p-6 text-center">
+                <b className="block text-[14px] text-ink">ยังไม่มีอุปกรณ์ในหมวดนี้</b>
+                <span className="mt-1 block text-[13px] text-ink-mute">ลองเปลี่ยนหมวดหรือคำค้นหา อุปกรณ์ที่พร้อมยืมจะแสดงที่นี่</span>
+              </div>
+            )}
             {filtered.map((eq) => {
               const qty = quantities[eq.id] ?? 0;
               return (
@@ -271,7 +310,7 @@ export default function BorrowWizardPage() {
 
       {/* STEP 2: กรอกคำขอใช้อุปกรณ์ */}
       {step === 2 && (
-        <div className="max-w-[760px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
+        <div className="max-w-[820px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
           <div className="pb-3 border-b border-line">
             <b className="text-[17px] text-ink block">แบบคำขอใช้อุปกรณ์ราชการ</b>
             <span className="text-[12.5px] text-ink-mute">
@@ -459,7 +498,7 @@ export default function BorrowWizardPage() {
 
       {/* STEP 3: ลงนามและส่ง */}
       {step === 3 && (
-        <div className="max-w-[760px] mx-auto flex flex-col gap-4">
+        <div className="max-w-[820px] mx-auto flex flex-col gap-4">
           <OfficialGovFormDocument
             customFields={{
               formTitle: 'แบบคำขอใช้อุปกรณ์ราชการ',

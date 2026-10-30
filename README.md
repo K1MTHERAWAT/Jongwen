@@ -1,17 +1,19 @@
 # Jongwen · ระบบขอใช้สถานที่ ขอใช้อุปกรณ์ และแจ้งซ่อม (Monorepo)
 
-ระบบบริหารจัดการคำขอใช้สถานที่ราชการ ขอยืม–คืนครุภัณฑ์ และแจ้งซ่อมบำรุง ผ่านเว็บแอปพลิเคชันระดับ Production-ready พัฒนาด้วยสถาปัตยกรรม Monorepo โดยใช้ **Next.js 15 + NestJS 11 + Tailwind CSS + PostgreSQL (Prisma ORM) + Docker Compose** ตามมาตรฐาน **GovCenter Design Tokens**
+ระบบบริหารจัดการคำขอใช้สถานที่ราชการ ขอยืม–คืนครุภัณฑ์ และแจ้งซ่อมบำรุง สำหรับองค์การบริหารส่วนตำบล (อบต.) พัฒนาด้วยสถาปัตยกรรม Monorepo ระดับ Production-ready โดยใช้ **Next.js 15 + NestJS 11 + Tailwind CSS + PostgreSQL (Supabase / Docker + Prisma ORM)**
+
+> 📖 **คู่มือการใช้งานสำหรับประชาชนและผู้ใช้งานทั่วไป:** อ่านได้ที่ไฟล์ **[`USER_MANUAL.md`](./USER_MANUAL.md)**
 
 ---
 
 ## สถาปัตยกรรมระบบ (Architecture)
 
-* **Frontend**: Next.js 15 (App Router) + Tailwind CSS + GovCenter Tokens (Responsive Desktop / Tablet / Mobile)
+* **Frontend**: Next.js 15 (App Router) + Tailwind CSS (Responsive Desktop / Tablet / Mobile + Print A4 ใบอนุญาตราชการ)
 * **Backend API**: NestJS 11 + Express + RESTful API + ValidationPipe (`class-validator`)
-* **Database**: PostgreSQL 16 (Alpine) ผ่าน Docker Compose
-* **ORM & Migrations**: Prisma ORM v6
+* **Database**: รองรับทั้ง **Supabase PostgreSQL (Cloud)** และ **PostgreSQL 16 (Docker Compose)**
+* **ORM & Migrations**: Prisma ORM v6 + สคริปต์อัปเดตโครงสร้างฐานข้อมูลอัตโนมัติ (`migrate-supabase.ts`)
 * **Shared Package**: `@jongwen/shared` (TypeScript Types, Labels, RBAC Logic, Date Helpers, Period Conflict Checks)
-* **Testing & CI/CD**: Vitest (Unit Tests 100% Pass) + GitHub Actions CI Pipeline + Multi-stage Dockerfile
+* **Testing & CI/CD**: Vitest (Unit Tests) + GitHub Actions CI Pipeline + Multi-stage Dockerfile
 
 ---
 
@@ -22,7 +24,7 @@ BookingV1/
 ├── .github/
 │   └── workflows/
 │       └── ci.yml              # CI Pipeline: Lint, Typecheck, Test (Vitest) & Build All
-├── docker-compose.yml          # PostgreSQL 16 Service (Port 5433:5432, Healthcheck, Volume)
+├── docker-compose.yml          # Local PostgreSQL 16 Service (ตัวเลือกสำรองกรณีรันในเครื่อง)
 ├── Dockerfile                  # Multi-stage Dockerfile สำหรับ Production Deployment
 ├── .dockerignore               # กำหนดไฟล์ที่ไม่ต้องส่งเข้า Docker build context
 ├── LICENSE                     # MIT License
@@ -30,55 +32,66 @@ BookingV1/
 ├── packages/
 │   └── shared/                 # @jongwen/shared — Types, Labels, RBAC Logic, Business Logic
 │       └── src/
-│           ├── types.ts          # Shared Models, PublicAccount, Enums, Request Types
-│           ├── labels.ts         # ข้อความ/ป้ายกำกับภาษาไทยสำหรับบทบาท สถานะ และประเภทคำขอ
+│           ├── types.ts          # Shared Models, Account (รวมที่อยู่), PublicAccount, Request Types
+│           ├── labels.ts         # ป้ายกำกับภาษาไทยสำหรับบทบาท สถานะ และประเภทคำขอ
 │           ├── logic.ts          # RBAC (canAccessRoute), ตรวจจองซ้อน (Conflict Checks), SoD
 │           ├── logic.test.ts     # Unit Tests ทดสอบเงื่อนไขทางธุรกิจ
 │           └── index.ts
 ├── apps/
 │   ├── api/                    # @jongwen/api — NestJS REST API (:4000/api)
 │   │   ├── prisma/
-│   │   │   ├── schema.prisma     # Prisma Data Model (13 ตาราง รวม sessions, sequences, otp_codes)
-│   │   │   ├── migrations/       # SQL Migration Files (Prisma Migrate)
-│   │   │   └── seed.ts           # Standalone Seed Script (รองรับ argon2 hash)
+│   │   │   ├── schema.prisma       # Prisma Data Model (14 ตาราง รวม sessions, sequences, otp_codes)
+│   │   │   ├── migrations/         # SQL Migration Files
+│   │   │   ├── migrate-supabase.ts # สคริปต์สร้างและอัปเดตตารางบน Supabase PostgreSQL
+│   │   │   └── seed.ts             # Standalone Seed Script (รองรับ argon2id hash)
 │   │   └── src/
-│   │       ├── auth/             # Login, Register, Request-OTP, Signature, PIN, Session, argon2
+│   │       ├── auth/             # Login, Register, OTP, Profile & Address, Password, Signature, PIN
 │   │       ├── resources/        # Venues, Equipment, Monthly Availability, Conflict & Stock Check
 │   │       ├── requests/         # Booking, Borrow, Repair, 3-Level Sign, Handover, Reschedule
-│   │       ├── admin/            # Users & Permissions, Overview, Notifications, Activity Logs
+│   │       ├── admin/            # Users & Permissions, Account Management, Overview, Activity Logs
 │   │       └── db/               # Prisma Database Service (Persistent DB Sessions & Sequences)
 │   └── web/                    # @jongwen/web — Next.js 15 (App Router) + Tailwind CSS (:3000)
-│       ├── public/               # Static Assets (โลโก้, ไอคอน, รูปภาพ Avatar)
+│       ├── public/               # Static Assets (โลโก้, ไอคอน)
 │       └── src/
 │           ├── app/              # หน้าจอทั้งหมดตามบทบาท (Responsive Phone/Tablet/Desktop)
-│           │   ├── (auth)/       # /login, /register
-│           │   ├── booking/      # สถานที่ (5 ขั้นตอน: เลือกสถานที่, วัน-เวลา, อุปกรณ์เสริม, ฟอร์ม, ลงนาม)
-│           │   ├── borrow/       # อุปกรณ์ และ /borrow/my (รายการอุปกรณ์ของฉัน)
-│           │   ├── repair/       # แจ้งซ่อมบำรุงและติดตามสถานะ (ไม่ต้องลงนาม)
-│           │   ├── requests/     # รายละเอียดคำขอและขอเลื่อนวัน/ยกเลิก
+│           │   ├── login/        # เข้าสู่ระบบ + โหมดคลิกเดียว (One-Click Demo)
+│           │   ├── register/     # ลงทะเบียนผู้ใช้งานใหม่พร้อมยืนยัน OTP
+│           │   ├── account/      # จัดการบัญชีผู้ใช้งาน (โปรไฟล์, ที่อยู่, เปลี่ยนรหัสผ่าน, ลายเซ็น & PIN)
+│           │   ├── booking/      # ขอใช้สถานที่ราชการ (5 ขั้นตอน + ล็อกรายการตามที่เลือกจริง)
+│           │   ├── borrow/       # ขอยืม–คืนอุปกรณ์ราชการ (3 ขั้นตอน + แบบคำขอราชการ) และ /borrow/my
+│           │   ├── repair/       # แจ้งซ่อมบำรุงและติดตามสถานะ (Fast-ticket ไม่บังคับลงนาม)
+│           │   ├── requests/     # รายละเอียดคำขอ เอกสารราชการ A4 และขอเลื่อนวัน/ยกเลิก
 │           │   ├── history/      # ประวัติคำขอและการดำเนินการ (แยกตามบทบาทและฟิลเตอร์ครบชุด)
-│           │   ├── staff/        # เจ้าหน้าที่ (ตรวจคำขอ, รับมอบ-คืน, Walk-in)
-│           │   ├── approver/     # ผู้อนุมัติ L2/L1 (ลงนาม PIN 6 หลัก, ใบอนุญาต PDF)
-│           │   └── admin/        # แอดมิน (จัดการทรัพยากร/แบบฟอร์ม, จัดการสิทธิ์)
-│           ├── components/       # AppShell (GovCenter Navbar & Left Sidebar), UI Components
-│           └── lib/api.ts        # Client API SDK (มี Timeout และ Error handling)
+│           │   ├── staff/        # เจ้าหน้าที่ (แดชบอร์ด, ตรวจคำขอ, รับมอบ–รับคืน, กรอกแทน Walk-in)
+│           │   ├── approver/     # ปลัด อบต. / นายก อบต. (คิวลงนามอนุมัติด้วย PIN 6 หลัก, ใบอนุญาต PDF)
+│           │   └── admin/        # แอดมิน (ภาพรวมระบบ, จัดการทรัพยากร/แบบฟอร์ม, บัญชีผู้ใช้ & สิทธิ์)
+│           ├── components/       # AppShell, Sidebar (แยกหมวดหมู่), UI Primitives & OfficialGovFormDocument
+│           └── lib/api.ts        # Client API SDK
 ├── package.json
 └── pnpm-workspace.yaml
 ```
 
 ---
 
-## การเชื่อมต่อฐานข้อมูล (PostgreSQL & Docker)
+## การเชื่อมต่อฐานข้อมูล (Supabase PostgreSQL / Local Docker)
 
-ระบบใช้งาน PostgreSQL 16 บน Docker โดย Map พอร์ตภายนอกเป็น **`5433`** *(เพื่อไม่ให้ชนกับ PostgreSQL เดิมของเครื่องที่รันบนพอร์ต 5432)*
+### ทางเลือกที่ 1: ใช้งานร่วมกับ Supabase Cloud (แนะนำ — ไม่ต้องเปิด Docker)
+1. ตั้งค่า `DATABASE_URL` ในไฟล์ `apps/api/.env` และ `.env` ชี้ไปยังฐานข้อมูล Supabase PostgreSQL ของคุณ:
+   ```env
+   DATABASE_URL="postgresql://postgres:<PASSWORD>@db.<PROJECT_REF>.supabase.co:5432/postgres?schema=public"
+   ```
+   *(หมายเหตุ: หากรหัสผ่านมีอักขระพิเศษ เช่น `+` หรือ `/` ให้เข้ารหัสเป็น `%2B` และ `%2F`)*
+2. รันสคริปต์สร้างตารางและนำเข้าข้อมูลเริ่มต้นขึ้น Supabase:
+   ```powershell
+   pnpm --filter @jongwen/api exec tsx prisma/migrate-supabase.ts
+   pnpm db:seed
+   ```
 
+### ทางเลือกที่ 2: ใช้งาน PostgreSQL บน Docker ในเครื่อง
 | รายการ | ค่าการเชื่อมต่อ |
 | :--- | :--- |
-| **Host** | `localhost` |
-| **Port** | `5433` |
-| **Database** | `jongwen` |
-| **Username** | `jongwen` |
-| **Password** | `jongwen_dev` |
+| **Host / Port** | `localhost:5433` |
+| **Database / User / Password** | `jongwen` / `jongwen` / `jongwen_dev` |
 | **DATABASE_URL** | `postgresql://jongwen:jongwen_dev@localhost:5433/jongwen?schema=public` |
 
 ---
@@ -87,17 +100,14 @@ BookingV1/
 
 | คำสั่ง | คำอธิบาย |
 | :--- | :--- |
-| `pnpm dev` | สตาร์ททั้ง Shared, Web (:3000) และ API (:4000) พร้อมกัน |
+| `pnpm dev` | สตาร์ททั้ง Shared, Web (`:3000`) และ API (`:4000`) พร้อมกัน |
 | `pnpm test` | รัน Unit Tests ด้วย **Vitest** ทั้งหมดใน Monorepo |
 | `pnpm typecheck` | ตรวจสอบความถูกต้องของ Type ด้วย TypeScript (`tsc --noEmit`) ทุกแพ็กเกจ |
 | `pnpm build` | คอมไพล์และสร้าง Production Bundle ของทั้ง Shared, API และ Web |
-| `pnpm db:up` | เริ่มรัน PostgreSQL container ในแบ็กกราวด์ (`docker compose up -d`) |
-| `pnpm db:down` | หยุดและปิด container (`docker compose down`) |
-| `pnpm db:logs` | ดู Logs แบบ Real-time ของ PostgreSQL |
-| `pnpm db:seed` | นำเข้าข้อมูลเริ่มต้น (Mock Data 6 บัญชี, 6 สถานที่, 5 อุปกรณ์, 14 คำขอ) |
+| `pnpm db:seed` | นำเข้าข้อมูลเริ่มต้น (6 บัญชีผู้ใช้, 6 สถานที่, 5 อุปกรณ์, 14 คำขอตัวอย่าง) |
 | `pnpm db:clear` | ล้างเฉพาะข้อมูลคำขอและประวัติทั้งหมด (เหลือเฉพาะบัญชีผู้ใช้และทรัพยากร) |
 | `pnpm db:studio` | เปิด **Prisma Studio** (Web GUI บริหารจัดการข้อมูลผ่าน Browser ที่ `http://localhost:5555`) |
-| `pnpm db:psql` | เข้าสู่ Terminal Interactive PSQL ใน container |
+| `pnpm db:up` / `pnpm db:down` | เปิด / ปิด PostgreSQL container กรณีใช้งานผ่าน Docker ในเครื่อง |
 
 ---
 
@@ -108,83 +118,68 @@ BookingV1/
 pnpm install
 ```
 
-### 2. สตาร์ท PostgreSQL บน Docker
-เปิดโปรแกรม **Docker Desktop** ให้พร้อมใช้งาน จากนั้นรัน:
+### 2. เตรียมฐานข้อมูล (Supabase หรือ Docker)
 ```powershell
-pnpm db:up
-```
-
-### 3. รัน Migration และ Seed ข้อมูลเริ่มต้น
-```powershell
+# กรณีใช้ Supabase (ตั้งค่า DATABASE_URL ใน apps/api/.env แล้ว):
+pnpm --filter @jongwen/api exec tsx prisma/migrate-supabase.ts
 pnpm db:seed
 ```
 
-### 4. รันระบบทั้งหมด
+### 3. รันระบบทั้งหมด
 ```powershell
 pnpm dev
 ```
 - **Web App (Next.js)**: http://localhost:3000
 - **API Server (NestJS)**: http://localhost:4000/api
-- **Prisma Studio**: รัน `pnpm db:studio` เปิดที่ http://localhost:5555
 
 ---
 
-## บัญชีทดสอบในระบบ
+## บัญชีทดสอบในระบบ (Demo Accounts)
 
-สามารถคลิกสลับบทบาทได้ทันทีจากแผงเลือกบทบาทที่หน้า `/login`:
+สามารถคลิกสลับบทบาทได้ทันทีจากแผง **One-Click Demo** ที่หน้า `/login`:
 
-| ชื่อผู้ใช้ (`username`) | ชื่อ-นามสกุล | บทบาท (`role`) | รหัสผ่าน | PIN ลงนาม | หน้าเริ่มต้น |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| `somchai` | สมชาย ใจดี | ผู้ใช้งานทั่วไป (`USER`) | `1234` | `123456` | `/` |
-| `manee` | มานี มีนา | ผู้ใช้งานทั่วไป (`USER`) | `1234` | `123456` | `/` |
-| `suda` | สุดา มีสุข | เจ้าหน้าที่ผู้ตรวจสอบ (`STAFF`) | `1234` | `123456` | `/staff` |
-| `wichai` | วิชัย รักถิ่น | ผู้พิจารณา (`APPROVER_L2`) | `1234` | `123456` | `/approver` |
-| `prasert` | ประเสริฐ ศรีสุข | ผู้มีอำนาจอนุมัติ (`APPROVER_L1`) | `1234` | `123456` | `/approver` |
-| `admin` | ผู้ดูแลระบบ | แอดมิน (`ADMIN`) | `1234` | `123456` | `/admin` |
-
----
-
-## เลย์เอาต์และดีไซน์ (GovCenter Layout & Sidebar)
-
-แอปพลิเคชันได้รับการออกแบบตาม **GovCenter Design Tokens** (`library.govcenter.co`):
-
-1. **แถบส่วนหัวด้านบน (UserNavbar):**
-   - แถบสีเขียวเข้มแบบ Gradient (`#175C4C` ถึง `#2B7D66`)
-   - ด้านซ้าย: รูป Avatar วงกลม + ข้อความทักทาย `สวัสดี, {ชื่อผู้ใช้}` + บทบาทผู้ใช้
-   - ด้านขวา: กระดิ่งแจ้งเตือนพร้อมตัวเลขนับ (Badge สีแดง) + ปุ่มแฮมเบอร์เกอร์ `≡`
-2. **แถบเมนูด้านข้าง (UserSidebar Drawer):**
-   - สไลด์เปิดออกมาจาก **ฝั่งซ้ายของหน้าจอ** เมื่อกดปุ่ม `≡` หรือกดที่ส่วนหัว
-   - **เมนูการใช้งานจริง:**
-     - หน้าแรก
-     - ขอใช้สถานที่
-     - ขอยืมอุปกรณ์
-     - แจ้งซ่อม (แจ้งปัญหาได้ทันที ไม่บังคับลงลายมือชื่อ)
-     - ประวัติคำขอ
-     - *(เมนูเฉพาะตามบทบาท: งานเจ้าหน้าที่ / งานพิจารณาอนุมัติ / การจัดการระบบ)*
-   - **ส่วนล่าง:** ข้อมูลส่วนตัว (ป๊อปอัปดูโปรไฟล์และสิทธิ์), ตั้งค่าระบบ (ลายเซ็น/PIN), และปุ่ม `ออกจากระบบ` สีแดง
+| ชื่อผู้ใช้ (`username`) | ชื่อ-นามสกุล | บทบาท (`role`) | ตำแหน่งแสดงผล | รหัสผ่าน | PIN ลงนาม | หน้าเริ่มต้น |
+| :--- | :--- | :--- | :--- | :--- | :--- | :--- |
+| `somchai` | สมชาย ใจดี | ผู้ใช้งานทั่วไป (`USER`) | ประชาชน | `1234` | `123456` | `/` |
+| `manee` | มานี มีนา | ผู้ใช้งานทั่วไป (`USER`) | ประชาชน | `1234` | `123456` | `/` |
+| `suda` | สุดา มีสุข | เจ้าหน้าที่ผู้ตรวจสอบ (`STAFF`) | เจ้าหน้าที่ธุรการ | `1234` | `123456` | `/staff` |
+| `wichai` | วิชัย รักถิ่น | ปลัดองค์การบริหารส่วนตำบล (`APPROVER_L2`) | ปลัดองค์การบริหารส่วนตำบล | `1234` | `123456` | `/approver` |
+| `prasert` | ประเสริฐ ศรีสุข | นายกองค์การบริหารส่วนตำบล (`APPROVER_L1`) | นายกองค์การบริหารส่วนตำบล | `1234` | `123456` | `/approver` |
+| `admin` | ผู้ดูแลระบบ | แอดมิน (`ADMIN`) | ผู้ดูแลระบบ | `1234` | `123456` | `/admin` |
 
 ---
 
-## คุณสมบัติความมั่นคงปลอดภัยและสถาปัตยกรรมองค์กร (Enterprise Features)
+## จุดเด่นของระบบและประสบการณ์ผู้ใช้งาน (UI/UX & Workflow Highlights)
 
-1. **Persistent Sessions ในฐานข้อมูล:**
-   - ย้ายการเก็บ Session Token จากหน่วยความจำ In-memory มาบันทึกลงตาราง `sessions` ใน PostgreSQL
-   - รองรับการรีสตาร์ทเซิร์ฟเวอร์หรือรันแบบ Multi-instance ได้โดยเซสชันไม่หลุด
-2. **Atomic Sequence Generator:**
-   - ใช้ตาราง `sequences` ในฐานข้อมูลเพื่อออกเลขที่คำขอ (เช่น `REQ-2569-0001`) และไอดีแบบ Atomic ป้องกันเลขซ้ำในการใช้งานพร้อมกัน (Concurrency Safe)
-3. **หลักฐานการลงนามแบบไม่สูญหาย (Immutable Signature Audit):**
-   - ลายมือชื่อดิจิทัลและบันทึกการลงนาม (`signature_records`) จะถูกบันทึกอย่างถาวร ไม่มีการสั่งลบทิ้ง
-   - บันทึกประวัติกิจกรรม (`activity_logs`) เก็บข้อมูลผู้กระทำ (`actorId`, `actorName`, `actorRole`) และหมายเลข `ip` อย่างครบถ้วน
-4. **การแบ่งแยกหน้าที่อย่างโปร่งใส (Separation of Duties - SoD):**
-   - ผู้ขอใช้บริการไม่สามารถลงนามอนุมัติคำขอของตนเองได้ (Prevent Self-Approval)
-   - ผู้อนุมัติคนเดียวกันไม่สามารถลงนามซ้ำข้ามระดับได้ (L2 และ L1 ต้องเป็นคนละท่าน)
-   - เจ้าหน้าที่ไม่สามารถรับมอบ-คืนสิ่งของให้ตนเองได้
-5. **แจ้งซ่อมบำรุงโดยไม่ต้องลงนาม:**
-   - ปรับลดขั้นตอนของคำขอแจ้งซ่อม (`repair`) ให้ผู้แจ้งสามารถส่งเรื่องได้ทันทีโดยไม่ต้องลงลายมือชื่อดิจิทัล เพื่อความสะดวกรวดเร็ว
-6. **การเข้ารหัสระดับสูงด้วย Argon2id:**
-   - ทั้งรหัสผ่านบัญชีและรหัส PIN 6 หลัก ได้รับการแฮชด้วยอัลกอริทึม **`argon2id`**
-7. **Input Validation:**
-   - ฝั่ง NestJS API ใช้งาน `ValidationPipe` พร้อม `class-validator` และ `class-transformer` ป้องกัน Injection และรับส่งเฉพาะฟิลด์ที่กำหนด (Whitelist)
+1. **ระบบจัดการบัญชีส่วนตัวและที่อยู่อัตโนมัติ (`/account`):**
+   - ผู้ใช้ทุกบทบาทสามารถแก้ไขชื่อ-นามสกุล, ชื่อเล่น, หน่วยงาน/ชุมชน, เบอร์โทรศัพท์ และ **ที่อยู่ตามทะเบียน/ที่ติดต่อ** (`บ้านเลขที่`, `หมู่ที่`, `ตำบล/แขวง`, `อำเภอ/เขต`, `จังหวัด`)
+   - เปลี่ยนรหัสผ่านด้วยตนเอง และตั้งค่าลายมือชื่อดิจิทัลพร้อมรหัส PIN 6 หลักสำหรับยืนยันการลงนาม
+   - ข้อมูลชื่อ หน่วยงาน และที่อยู่จากโปรไฟล์จะถูกดึงไปกรอกใน **แบบขอใช้สถานที่ราชการ** และ **แบบคำขอใช้อุปกรณ์ราชการ** โดยอัตโนมัติ
+2. **การจองสถานที่ (5 ขั้นตอน) และการยืมอุปกรณ์ (3 ขั้นตอน) พร้อมล็อกรายการอัตโนมัติ:**
+   - ตรวจสอบคิวว่างและป้องกันการจองสถานที่ซ้อนทับช่วงเวลา รวมถึงตัดสต็อกอุปกรณ์ตามช่วงวันที่ใช้งานจริง
+   - ในขั้นตอนกรอกคำขอ รายการภายใต้หัวข้อ **"มีความประสงค์ขอใช้สถานที่ราชการ ดังนี้"** และ **"มีความประสงค์ขอใช้อุปกรณ์ราชการ ดังนี้"** จะถูกล็อกตามสถานที่และอุปกรณ์ที่เลือกไว้ในขั้นตอนก่อนหน้า ป้องกันการพิมพ์แก้ไขรายการเองโดยไม่ผ่านการตรวจคิว/สต็อก
+3. **เอกสารราชการอิเล็กทรอนิกส์ 4 ฝ่าย (`OfficialGovFormDocument`):**
+   - แสดงผลและสั่งพิมพ์ใบอนุญาตขนาด A4 ตามรูปแบบหนังสือราชการ:
+     1. **ผู้ขออนุญาตใช้สถานที่/อุปกรณ์ราชการ**
+     2. **ความเห็นของเจ้าหน้าที่ผู้ตรวจสอบ** (แสดงตำแหน่งจริงของผู้ลงนาม)
+     3. **ความเห็นของปลัดองค์การบริหารส่วนตำบล**
+     4. **คำสั่งของนายกองค์การบริหารส่วนตำบล**
+4. **Sidebar แยกหมวดหมู่ & Sticky Action Bar:**
+   - แถบเมนูด้านซ้ายจัดหมวดหมู่ตามบทบาทชัดเจน (*บริการหลัก, รายการและประวัติ, งานเจ้าหน้าที่, งานผู้บริหาร, ระบบและผู้ดูแล, บัญชีผู้ใช้งาน*) ย่อ/ขยายได้ และรองรับ Mobile Drawer
+   - มีแถบหัวข้อหน้า (Top Page Header) พร้อมปุ่มย้อนกลับ และแถบปุ่มดำเนินการด้านล่างแบบลอยตัว (Sticky Footer Action Bar) ในหน้าฟอร์มหลายขั้นตอน
+
+---
+
+## คุณสมบัติความมั่นคงปลอดภัยและสถาปัตยกรรมองค์กร (Enterprise Security)
+
+1. **Persistent Sessions ในฐานข้อมูล:** เก็บ Session Token ในตาราง `sessions` บน PostgreSQL รองรับการรีสตาร์ทเซิร์ฟเวอร์โดยเซสชันไม่หลุด
+2. **Atomic Sequence Generator:** ใช้ตาราง `sequences` ออกเลขที่คำขอ (เช่น `BK-2569-0001`, `BR-2569-0001`, `RP-2569-0001`) แบบ Atomic ป้องกันเลขซ้ำ
+3. **Immutable Signature Audit:** บันทึกลายมือชื่อดิจิทัลและประวัติการลงนามแยกตามรอบการอนุมัติ (`round`) อย่างถาวร พร้อม `activity_logs`
+4. **การแบ่งแยกหน้าที่ (Separation of Duties - SoD):**
+   - ผู้ขอใช้บริการไม่สามารถลงนามอนุมัติคำขอของตนเองได้
+   - ปลัด อบต. (`APPROVER_L2`) และ นายก อบต. (`APPROVER_L1`) ต้องเป็นคนละบัญชีในการลงนามคำขอเดียวกัน
+   - เจ้าหน้าที่ไม่สามารถตรวจรับมอบ–รับคืนอุปกรณ์ให้คำขอของตนเองได้
+5. **การเข้ารหัสด้วย Argon2id:** รหัสผ่านบัญชี, รหัส PIN 6 หลัก และรหัส OTP ได้รับการแฮชด้วย `argon2id`
 
 ---
 
@@ -221,6 +216,11 @@ erDiagram
         string department
         string phone
         string line_name
+        string address_house_no
+        string address_moo
+        string address_subdistrict
+        string address_district
+        string address_province
         text signature
         string pin "argon2id"
         jsonb permissions
@@ -274,12 +274,18 @@ erDiagram
         string code UK
         string type "booking, borrow, repair"
         string status "pending_staff, pending_l2, pending_l1, approved, rejected, etc"
+        int approval_round
         string requester_id FK
         string requester_name
         string organization
         text requester_signature
         string written_at
         string requester_position
+        string address_house_no
+        string address_moo
+        string address_subdistrict
+        string address_district
+        string address_province
         jsonb purpose_items
         text purpose
         string activity
@@ -318,6 +324,7 @@ erDiagram
         serial id PK
         string request_id FK
         string level "staff, l2, l1"
+        int round
         string signer_id FK
         string signer_name
         string title

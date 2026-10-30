@@ -102,7 +102,7 @@ export default function ApproverSignDocumentPage() {
       backHref="/approver"
       onBack={pinStep ? () => setPinStep(false) : undefined}
       rightLabel={account?.position || 'ปลัด อบต.'}
-      maxWidth="max-w-[640px]"
+      maxWidth="max-w-[960px]"
       footer={
         !pinStep && !completedL2 && signCheck.allowed ? (
           <div className="flex w-full sm:w-auto gap-2.5">
@@ -205,7 +205,7 @@ export default function ApproverSignDocumentPage() {
           {/* ลายเซ็นของฝ่ายที่ลงนามมาแล้ว */}
           <div className="jw-card p-4 flex flex-col gap-2.5">
             <b className="text-[14px] text-ink">สถานะลายมือชื่อทั้ง 4 ฝ่ายบนเอกสารนี้</b>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            <div className="grid grid-cols-1 min-[420px]:grid-cols-2 sm:grid-cols-4 gap-2">
               <SignaturePreviewCard
                 roleLabel="1. ผู้ยื่นคำขอ"
                 signerName={req.requesterName}

@@ -27,7 +27,7 @@ export const Input = React.forwardRef<HTMLInputElement, InputProps>(
           aria-describedby={error ? errorId : helperText ? helperId : undefined}
           className={[
             'h-11 w-full rounded-control border bg-surface px-3.5 text-body text-ink placeholder:text-muted',
-            'transition-colors focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-brand',
+            'transition-colors shadow-sm focus-visible:outline-2 focus-visible:outline-offset-0 focus-visible:outline-brand',
             error ? 'border-danger-fg' : 'border-line-input hover:border-ink-soft',
             'disabled:bg-surface-muted disabled:opacity-60 disabled:cursor-not-allowed',
             className,

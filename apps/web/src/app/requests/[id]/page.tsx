@@ -3,10 +3,10 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Equipment, REQUEST_TYPE_LABEL, RequestWithTimeline, SIGN_LEVEL_TITLE } from '@jongwen/shared';
+import { Equipment, RequestWithTimeline, SIGN_LEVEL_TITLE } from '@jongwen/shared';
 import { useAuth } from '@/components/auth-context';
 import { AppShell, roleHomePath } from '@/components/shell';
-import { OfficialGovFormDocument, SignaturePreviewCard, StatusChip, Timeline } from '@/components/ui';
+import { OfficialGovFormDocument, RequestTypeChip, SignaturePreviewCard, StatusChip, Timeline } from '@/components/ui';
 import { api, formatPeriodRange, formatThaiDate, formatThaiDateTime } from '@/lib/api';
 
 export default function RequestDetailPage() {
@@ -53,7 +53,7 @@ export default function RequestDetailPage() {
     <AppShell
       title={`คำขอ ${req.code}`}
       backHref={backHref}
-      maxWidth="max-w-[720px]"
+      maxWidth="max-w-[1080px]"
       footer={
         canStaffReview ? (
           <Link href={`/staff/review?id=${req.id}`} className="jw-btn w-full sm:w-64">
@@ -108,7 +108,7 @@ export default function RequestDetailPage() {
           </div>
           <div className="flex gap-2">
             <b className="w-24 shrink-0 text-ink-mute">ประเภท</b>
-            <span>{REQUEST_TYPE_LABEL[req.type]}</span>
+            <RequestTypeChip type={req.type} />
           </div>
           <div className="flex gap-2">
             <b className="w-24 shrink-0 text-ink-mute">รายการ</b>
