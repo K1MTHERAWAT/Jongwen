@@ -376,7 +376,47 @@ export function CalendarC4({
 }
 
 // ===== Timeline =====
-export function Timeline({ steps }: { steps: TimelineStep[] }) {
+export function Timeline({ steps, orientation = 'vertical' }: { steps: TimelineStep[]; orientation?: 'vertical' | 'horizontal' }) {
+  if (orientation === 'horizontal') {
+    return (
+      <div className="w-full overflow-x-auto pb-2 [scrollbar-width:thin]">
+        <div className="flex min-w-max sm:min-w-full">
+          {steps.map((s, i) => {
+            const isLast = i === steps.length - 1;
+            return (
+              <div key={s.key} className="relative flex min-w-[156px] flex-1 flex-col items-center px-2 text-center sm:min-w-0">
+                <div className="relative flex h-[30px] w-full items-center justify-center">
+                  {!isLast && <div className="absolute left-[calc(50%+15px)] right-0 top-1/2 h-[2px] -translate-y-1/2 bg-line" />}
+                  {s.state === 'done' ? (
+                    <div className="relative z-10 flex size-[30px] shrink-0 items-center justify-center rounded-full bg-brand text-white">
+                      <Icon name="check" className="size-4" strokeWidth={3} />
+                    </div>
+                  ) : s.state === 'current' ? (
+                    <div className="relative z-10 flex size-[30px] shrink-0 items-center justify-center rounded-full border-2 border-[#D9A53A] bg-white text-[12px] font-bold text-[#8A6200]">{i + 1}</div>
+                  ) : s.state === 'rejected' ? (
+                    <div className="relative z-10 flex size-[30px] shrink-0 items-center justify-center rounded-full border-2 border-status-crit bg-[#FDE8E8] text-status-crit">
+                      <Icon name="x" className="size-4" strokeWidth={3} />
+                    </div>
+                  ) : (
+                    <div className="relative z-10 flex size-[30px] shrink-0 items-center justify-center rounded-full border-2 border-line bg-white text-[12px] font-semibold text-[#9A9A9A]">{i + 1}</div>
+                  )}
+                </div>
+                <div className="mt-2 w-full px-1">
+                  <div className="text-[13px] font-semibold leading-snug text-ink">{s.label}</div>
+                  <div className="mt-0.5 text-[11px] leading-snug text-ink-mute">
+                    {s.at ? formatThaiDateTime(s.at) : ''}
+                    {s.at && s.note ? ' · ' : ''}
+                    {s.note ?? (!s.at ? 'รอดำเนินการ' : '')}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col">
       {steps.map((s, i) => {

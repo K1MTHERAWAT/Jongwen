@@ -287,7 +287,7 @@ export default function RepairPage() {
                   <StatusChip status={activeRepair.status} />
                 </div>
 
-                <Timeline steps={activeRepair.timeline} />
+                <Timeline steps={activeRepair.timeline} orientation="horizontal" />
 
                 <div className="pt-2 border-t border-line flex flex-col gap-2.5">
                   <b className="text-[14px] text-ink">ความคืบหน้าการดำเนินงาน (3 ขั้นตอน)</b>

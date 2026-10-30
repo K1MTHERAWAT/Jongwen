@@ -207,13 +207,13 @@ export default function AccountPage() {
   };
 
   return (
-    <AppShell title="จัดการบัญชีผู้ใช้งาน" maxWidth="max-w-[920px]">
+    <AppShell title="จัดการบัญชีผู้ใช้งาน" maxWidth="max-w-[1440px]">
       {account && (
-        <div className="flex flex-col gap-5">
+        <div className="mx-auto flex w-full max-w-[1180px] flex-col gap-4 sm:gap-5">
           {/* Header Card Summary */}
-          <Card className="p-5 sm:p-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <Card className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between sm:gap-5 sm:p-6">
             <div className="flex items-center gap-4 min-w-0">
-              <div className="size-16 rounded-full bg-brand-tint text-brand-ink font-bold text-title flex items-center justify-center shrink-0 border border-brand/20">
+              <div className="size-14 rounded-full bg-brand-tint text-brand-ink font-bold text-title flex items-center justify-center shrink-0 border border-brand/20 sm:size-16">
                 {account.initial || account.name.charAt(0) || 'ผ'}
               </div>
               <div className="min-w-0">
@@ -242,7 +242,7 @@ export default function AccountPage() {
               </div>
             </div>
 
-            <div className="flex flex-col sm:items-end gap-1 text-caption text-muted shrink-0">
+            <div className="flex flex-col gap-1 text-caption text-muted sm:shrink-0 sm:items-end">
               <span>วันที่สร้างบัญชี: {formatThaiDate(account.createdAt)}</span>
               <div className="flex items-center gap-1.5">
                 <Chip tone={account.signature ? 'green' : 'gray'}>
@@ -257,6 +257,7 @@ export default function AccountPage() {
 
           {/* Navigation Tabs */}
           <Tabs<AccountTab>
+            className="flex-wrap sm:flex-nowrap"
             value={activeTab}
             onChange={setActiveTab}
             options={[
@@ -268,8 +269,8 @@ export default function AccountPage() {
 
           {/* TAB 1: Profile & Department */}
           {activeTab === 'profile' && (
-            <Card className="p-5 sm:p-6">
-              <form onSubmit={handleSaveProfile} className="flex flex-col gap-4">
+            <Card className="p-4 sm:p-6">
+              <form onSubmit={handleSaveProfile} className="flex flex-col gap-4 sm:gap-5">
                 <div className="flex items-center gap-2.5 border-b border-line-soft pb-3">
                   <UserCircle className="size-5 text-brand" />
                   <div>
@@ -282,7 +283,7 @@ export default function AccountPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
                   <Input
                     label="ชื่อ-นามสกุล *"
                     value={name}
@@ -298,7 +299,7 @@ export default function AccountPage() {
                   />
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-5">
                   <Input
                     label="หน่วยงาน / ชุมชน / สังกัด *"
                     value={department}
@@ -323,7 +324,7 @@ export default function AccountPage() {
                       ข้อมูลที่อยู่นี้จะถูกดึงไปกรอกในแบบขอใช้สถานที่ราชการอัตโนมัติ
                     </span>
                   </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
                     <Input
                       label="อยู่บ้านเลขที่"
                       value={addressHouseNo}
@@ -348,7 +349,7 @@ export default function AccountPage() {
                       onChange={(e) => setAddressDistrict(e.target.value)}
                       placeholder="อำเภอ / เขต"
                     />
-                    <div className="col-span-2 sm:col-span-1">
+                    <div className="sm:col-span-2 xl:col-span-1">
                       <Input
                         label="จังหวัด"
                         value={addressProvince}
@@ -359,7 +360,7 @@ export default function AccountPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                <div className="grid grid-cols-1 gap-4 pt-1 sm:grid-cols-2 sm:gap-5">
                   <Input
                     label="ชื่อผู้ใช้งาน (Username)"
                     value={account.username}
@@ -388,7 +389,7 @@ export default function AccountPage() {
                   </div>
                 )}
 
-                <div className="flex flex-col sm:flex-row justify-end gap-2.5 pt-2 border-t border-line-soft">
+                <div className="flex flex-col-reverse gap-2.5 border-t border-line-soft pt-3 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="secondary"
@@ -407,8 +408,8 @@ export default function AccountPage() {
 
           {/* TAB 2: Change Password */}
           {activeTab === 'password' && (
-            <Card className="p-5 sm:p-6 max-w-[560px]">
-              <form onSubmit={handleChangePassword} className="flex flex-col gap-4">
+            <Card className="w-full max-w-[720px] self-center p-4 sm:p-6 lg:p-7">
+              <form onSubmit={handleChangePassword} className="flex flex-col gap-4 sm:gap-5">
                 <div className="flex items-center gap-2.5 border-b border-line-soft pb-3">
                   <KeyRound className="size-5 text-brand" />
                   <div>
@@ -461,7 +462,7 @@ export default function AccountPage() {
                   </div>
                 )}
 
-                <div className="flex justify-end gap-2.5 pt-2 border-t border-line-soft">
+                <div className="flex flex-col-reverse gap-2.5 border-t border-line-soft pt-3 sm:flex-row sm:justify-end">
                   <Button
                     type="button"
                     variant="secondary"
@@ -486,9 +487,9 @@ export default function AccountPage() {
 
           {/* TAB 3: Signature & PIN */}
           {activeTab === 'signature' && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+            <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-2 lg:gap-5">
               {/* Signature Card */}
-              <Card className="p-5 sm:p-6 flex flex-col gap-4">
+              <Card className="flex min-w-0 flex-col gap-4 p-4 sm:p-6">
                 <div className="flex items-center gap-2.5 border-b border-line-soft pb-3">
                   <PenTool className="size-5 text-brand" />
                   <div>
@@ -505,7 +506,7 @@ export default function AccountPage() {
                   value={signature}
                   onChange={setSignature}
                   signerLabel={`${account.name} · ${account.position}`}
-                  height={200}
+                  height={240}
                   skipPinPrompt
                 />
 
@@ -521,7 +522,7 @@ export default function AccountPage() {
               </Card>
 
               {/* PIN Card */}
-              <Card className="p-5 sm:p-6 flex flex-col items-center gap-4">
+              <Card className="flex min-w-0 flex-col items-center gap-4 p-4 sm:p-6">
                 <div className="w-full text-center border-b border-line-soft pb-3">
                   <h2 className="text-heading font-bold text-ink">
                     ตั้งค่า / เปลี่ยนรหัส PIN 6 หลัก

@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
-import { CalendarDays, ChevronDown, Clock3 } from 'lucide-react';
+import { CalendarDays, ChevronDown, ChevronLeft, ChevronRight, Clock3, Eye, FileText, Upload, X } from 'lucide-react';
 import {
   ConflictInfo,
   DayAvailability,
@@ -28,7 +29,7 @@ import {
   equipmentIconName,
   venueIconName,
 } from '@/components/ui';
-import { api, formatPeriodRange, formatThaiDate, formatThaiDateTime } from '@/lib/api';
+import { api, formatMonthTitle, formatPeriodRange, formatThaiDate, formatThaiDateTime } from '@/lib/api';
 
 const STEPS = ['เลือกสถานที่', 'วัน-เวลา', 'อุปกรณ์เสริม', 'กรอกคำขอ', 'ลงนามและส่ง'];
 
@@ -41,28 +42,77 @@ function DatePickerField({
   onChange: (value: string) => void;
   label: string;
 }) {
+  const [open, setOpen] = useState(false);
+  const [viewMonth, setViewMonth] = useState(value.slice(0, 7));
+  const [year, monthNumber] = viewMonth.split('-').map(Number);
+  const firstWeekday = new Date(year, monthNumber - 1, 1).getDay();
+  const daysInMonth = new Date(year, monthNumber, 0).getDate();
+  const today = new Date();
+  const todayString = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+  const shiftMonth = (amount: number) => {
+    const next = new Date(year, monthNumber - 1 + amount, 1);
+    setViewMonth(`${next.getFullYear()}-${String(next.getMonth() + 1).padStart(2, '0')}`);
+  };
+
   return (
     <div className="relative min-w-0">
-      <button type="button" className="jw-in flex items-center justify-between gap-2 px-3 text-left">
-        <span className="truncate text-[13px] font-semibold text-ink">{formatThaiDate(value, false)}</span>
+      <button
+        type="button"
+        aria-label={label}
+        aria-expanded={open}
+        onClick={() => {
+          if (!open) setViewMonth(value.slice(0, 7));
+          setOpen((current) => !current);
+        }}
+        className="jw-in flex w-full items-center justify-between gap-2 px-3 text-left"
+      >
+        <span className="truncate text-[13px] font-semibold text-ink">{formatThaiDate(value, true)}</span>
         <CalendarDays className="size-4 shrink-0 text-brand" />
       </button>
-      <input
-        type="date"
-        aria-label={label}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="absolute inset-0 h-full w-full cursor-pointer opacity-0"
-      />
+      {open && (
+        <>
+          <button type="button" aria-label="ปิดปฏิทิน" className="fixed inset-0 z-40 cursor-default" onClick={() => setOpen(false)} />
+          <div className="absolute right-0 top-[calc(100%+6px)] z-50 w-[280px] rounded-2xl border border-line bg-white p-3 shadow-high sm:w-[300px]">
+            <div className="mb-2 flex items-center justify-between">
+              <b className="text-[14px] font-bold text-ink">{formatMonthTitle(viewMonth)}</b>
+              <div className="flex gap-1">
+                <button type="button" aria-label="เดือนก่อนหน้า" onClick={() => shiftMonth(-1)} className="flex size-8 items-center justify-center rounded-full border border-line text-ink hover:bg-soft"><ChevronLeft className="size-4" /></button>
+                <button type="button" aria-label="เดือนถัดไป" onClick={() => shiftMonth(1)} className="flex size-8 items-center justify-center rounded-full border border-line text-ink hover:bg-soft"><ChevronRight className="size-4" /></button>
+              </div>
+            </div>
+            <div className="grid grid-cols-7 text-center">
+              {['อา', 'จ', 'อ', 'พ', 'พฤ', 'ศ', 'ส'].map((weekday) => (
+                <span key={weekday} className="flex h-8 items-center justify-center text-[11px] font-semibold text-ink-mute">{weekday}</span>
+              ))}
+              {Array.from({ length: firstWeekday }, (_, index) => <span key={`blank-${index}`} />)}
+              {Array.from({ length: daysInMonth }, (_, index) => {
+                const day = index + 1;
+                const date = `${viewMonth}-${String(day).padStart(2, '0')}`;
+                const selected = date === value;
+                const isToday = date === todayString;
+                return (
+                  <button
+                    key={date}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() => { onChange(date); setOpen(false); }}
+                    className={`mx-auto flex size-9 items-center justify-center rounded-full text-[13px] transition ${selected ? 'bg-brand font-bold text-white' : isToday ? 'border border-brand font-semibold text-brand-ink' : 'text-ink hover:bg-brand-tint'}`}
+                  >
+                    {day}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
 
-const TIME_OPTIONS = Array.from({ length: 96 }, (_, index) => {
-  const hour = String(Math.floor(index / 4)).padStart(2, '0');
-  const minute = String((index % 4) * 15).padStart(2, '0');
-  return `${hour}:${minute}`;
-});
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, index) => String(index).padStart(2, '0'));
+const MINUTE_OPTIONS = Array.from({ length: 60 }, (_, index) => String(index).padStart(2, '0'));
 
 function TimePickerField({
   value,
@@ -74,12 +124,63 @@ function TimePickerField({
   label: string;
 }) {
   const [open, setOpen] = useState(false);
-  const listRef = React.useRef<HTMLDivElement>(null);
+  const hourWheelRef = React.useRef<HTMLDivElement>(null);
+  const minuteWheelRef = React.useRef<HTMLDivElement>(null);
+  const initialTimeRef = React.useRef(value);
+  const [selectedHour, selectedMinute] = value.split(':');
 
   useEffect(() => {
     if (!open) return;
-    listRef.current?.querySelector<HTMLElement>('[data-selected="true"]')?.scrollIntoView({ block: 'center' });
+    const frame = requestAnimationFrame(() => {
+      const [hour, minute] = initialTimeRef.current.split(':');
+      if (hourWheelRef.current) hourWheelRef.current.scrollTop = Number(hour) * 36;
+      if (minuteWheelRef.current) minuteWheelRef.current.scrollTop = Number(minute) * 36;
+    });
+    return () => cancelAnimationFrame(frame);
   }, [open]);
+
+  const updateHour = (hour: string) => onChange(`${hour}:${selectedMinute}`);
+  const updateMinute = (minute: string) => onChange(`${selectedHour}:${minute}`);
+
+  const handleWheelScroll = (kind: 'hour' | 'minute', event: React.UIEvent<HTMLDivElement>) => {
+    const options = kind === 'hour' ? HOUR_OPTIONS : MINUTE_OPTIONS;
+    const index = Math.max(0, Math.min(options.length - 1, Math.round(event.currentTarget.scrollTop / 36)));
+    if (kind === 'hour') updateHour(options[index]);
+    else updateMinute(options[index]);
+  };
+
+  const renderWheel = (kind: 'hour' | 'minute', options: string[], selected: string, ref: React.RefObject<HTMLDivElement | null>) => (
+    <div className="relative h-[180px] min-w-0 flex-1 overflow-hidden rounded-2xl bg-[#F7F8F6]">
+      <div className="pointer-events-none absolute inset-x-1 top-[72px] z-10 h-9 rounded-xl border border-brand/20 bg-brand/10" />
+      <div
+        ref={ref}
+        role="listbox"
+        aria-label={kind === 'hour' ? 'เลือกชั่วโมง' : 'เลือกนาที'}
+        onScroll={(event) => handleWheelScroll(kind, event)}
+        className="relative z-0 h-full snap-y snap-mandatory overflow-y-auto overscroll-contain [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      >
+        <div aria-hidden="true" className="h-[72px]" />
+        {options.map((option) => (
+          <button
+            key={option}
+            type="button"
+            role="option"
+            aria-selected={option === selected}
+            onClick={() => {
+              const wheel = kind === 'hour' ? hourWheelRef.current : minuteWheelRef.current;
+              wheel?.scrollTo({ top: Number(option) * 36, behavior: 'smooth' });
+              if (kind === 'hour') updateHour(option);
+              else updateMinute(option);
+            }}
+            className={`flex h-9 w-full snap-center items-center justify-center text-[16px] tabular-nums transition-colors ${option === selected ? 'font-bold text-brand-ink' : 'font-medium text-ink-mute'}`}
+          >
+            {option}
+          </button>
+        ))}
+        <div aria-hidden="true" className="h-[72px]" />
+      </div>
+    </div>
+  );
 
   return (
     <div className="relative min-w-0">
@@ -87,7 +188,10 @@ function TimePickerField({
         type="button"
         aria-label={label}
         aria-expanded={open}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          if (!open) initialTimeRef.current = value;
+          setOpen((current) => !current);
+        }}
         className="jw-in flex items-center justify-between gap-1 px-2.5 text-[13px] font-semibold tabular-nums"
       >
         <span>{value}</span>
@@ -96,20 +200,15 @@ function TimePickerField({
       {open && (
         <>
           <button type="button" aria-label="ปิดตัวเลือกเวลา" className="fixed inset-0 z-20 cursor-default" onClick={() => setOpen(false)} />
-          <div ref={listRef} role="listbox" aria-label={label} className="absolute right-0 top-[calc(100%+6px)] z-30 max-h-52 w-28 overflow-y-auto overscroll-contain rounded-2xl border border-line bg-white p-1.5 shadow-high">
-            {TIME_OPTIONS.map((time) => (
-              <button
-                key={time}
-                type="button"
-                role="option"
-                aria-selected={time === value}
-                data-selected={time === value}
-                onClick={() => { onChange(time); setOpen(false); }}
-                className={`flex h-9 w-full items-center justify-center rounded-xl text-[13px] font-semibold tabular-nums transition ${time === value ? 'bg-brand text-white' : 'text-ink hover:bg-brand-tint'}`}
-              >
-                {time}
-              </button>
-            ))}
+          <div className="absolute right-0 top-[calc(100%+6px)] z-30 w-56 rounded-2xl border border-line bg-white p-3 shadow-high">
+            <div className="mb-2 flex justify-around text-[11px] font-medium text-ink-mute">
+              <span>ชั่วโมง</span><span>นาที</span>
+            </div>
+            <div className="flex items-center gap-2">
+              {renderWheel('hour', HOUR_OPTIONS, selectedHour, hourWheelRef)}
+              <span className="text-lg font-bold text-ink">:</span>
+              {renderWheel('minute', MINUTE_OPTIONS, selectedMinute, minuteWheelRef)}
+            </div>
           </div>
         </>
       )}
@@ -173,7 +272,39 @@ export default function BookingWizardPage() {
   const [purposeItems, setPurposeItems] = useState<OfficialFormPurposeItem[]>([
     { item: '', forWhat: '' },
   ]);
-  const [attachmentName, setAttachmentName] = useState('');
+  const [attachmentFiles, setAttachmentFiles] = useState<File[]>([]);
+  const [attachmentPanelOpen, setAttachmentPanelOpen] = useState(false);
+  const [attachmentPreview, setAttachmentPreview] = useState<{ file: File; url: string } | null>(null);
+  const [attachmentError, setAttachmentError] = useState('');
+  const [showRequestErrors, setShowRequestErrors] = useState(false);
+
+  useEffect(() => {
+    if (!attachmentPreview) return;
+    return () => URL.revokeObjectURL(attachmentPreview.url);
+  }, [attachmentPreview]);
+
+  const missingRequestFields = [
+    ...[
+      ['สถานที่เขียนคำขอ', writtenAt],
+      ['ชื่อ-นามสกุลผู้ยื่นคำขอ', requesterName],
+      ['ตำแหน่ง', requesterPosition],
+      ['บ้านเลขที่', addressHouseNo],
+      ['หมู่ที่', addressMoo],
+      ['ตำบล / แขวง', addressSubdistrict],
+      ['อำเภอ / เขต', addressDistrict],
+      ['จังหวัด', addressProvince],
+      ['หน่วยงาน / ชุมชน', organization],
+      ['รายละเอียด / วัตถุประสงค์เพิ่มเติม', purpose],
+    ]
+      .filter(([, value]) => !String(value).trim())
+      .map(([label]) => label),
+    ...(attendees < 1 ? ['จำนวนผู้เข้าร่วม'] : []),
+    ...(attachmentFiles.length === 0 ? ['เอกสารประกอบคำขอ'] : []),
+    ...purposeItems.flatMap((item, index) => [
+      ...(!item.item.trim() ? [`รายการที่ ${index + 1}`] : []),
+      ...(!item.forWhat.trim() ? [`วัตถุประสงค์ของรายการที่ ${index + 1}`] : []),
+    ]),
+  ];
 
   // Step 5 state (ต้องวาดลายเซ็นบนหน้าจอ ไม่ใช้การพิมพ์)
   const [signature, setSignature] = useState('');
@@ -341,7 +472,7 @@ export default function BookingWizardPage() {
         activity: purposeItems[0]?.forWhat || activity,
         purpose,
         organization,
-        attachments: attachmentName ? [attachmentName] : [],
+        attachments: attachmentFiles.map((file) => file.name),
         extraItems: selectedExtraItems.map((s) => ({ equipmentId: s.eq.id, qty: s.qty })),
         requesterName,
         requesterSignature: signature,
@@ -424,7 +555,19 @@ export default function BookingWizardPage() {
             <button type="button" onClick={() => setStep(3)} className="jw-btn-sec flex-1 sm:w-36">
               ย้อนกลับ
             </button>
-            <button type="button" onClick={() => setStep(5)} className="jw-btn flex-[1.5] sm:w-56">
+            <button
+              type="button"
+              onClick={() => {
+                if (missingRequestFields.length > 0) {
+                  setShowRequestErrors(true);
+                  window.setTimeout(() => document.getElementById('request-form-errors')?.scrollIntoView({ behavior: 'smooth', block: 'center' }), 0);
+                  return;
+                }
+                setShowRequestErrors(false);
+                setStep(5);
+              }}
+              className="jw-btn flex-[1.5] sm:w-56"
+            >
               ถัดไป · ลงนามและส่ง
             </button>
           </div>
@@ -959,6 +1102,12 @@ export default function BookingWizardPage() {
       {/* ================= STEP 4: กรอกคำขอ (แบบขอใช้สถานที่ราชการ) ================= */}
       {step === 4 && (
         <div className="max-w-[960px] mx-auto jw-card p-5 sm:p-7 flex flex-col gap-4">
+          {showRequestErrors && missingRequestFields.length > 0 && (
+            <div id="request-form-errors" role="alert" className="rounded-2xl border border-status-crit/30 bg-status-crit/5 p-4 text-[13px] text-status-crit">
+              <b className="mb-1 block">กรุณากรอกข้อมูลและแนบเอกสารให้ครบก่อนดำเนินการต่อ</b>
+              <span>ยังขาด: {missingRequestFields.join(' · ')}</span>
+            </div>
+          )}
           <div className="pb-3 border-b border-line">
             <b className="text-[17px] text-ink block">แบบขอใช้สถานที่ราชการ</b>
             <span className="text-[12.5px] text-ink-mute">
@@ -968,108 +1117,119 @@ export default function BookingWizardPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
             <div>
-              <label className="jw-lbl">เขียนที่</label>
+              <label className="jw-lbl">เขียนที่<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="text"
                 value={writtenAt}
                 onChange={(e) => setWrittenAt(e.target.value)}
                 className="jw-in"
                 placeholder="ระบุสถานที่เขียนคำขอ"
+                required
               />
             </div>
             <div>
-              <label className="jw-lbl">ข้าพเจ้า (นาย/นาง/นางสาว)</label>
+              <label className="jw-lbl">ข้าพเจ้า (นาย/นาง/นางสาว)<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="text"
                 value={requesterName}
                 onChange={(e) => setRequesterName(e.target.value)}
                 className="jw-in"
                 placeholder="ระบุชื่อ-นามสกุล"
+                required
               />
             </div>
             <div>
-              <label className="jw-lbl">ตำแหน่ง</label>
+              <label className="jw-lbl">ตำแหน่ง<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="text"
                 value={requesterPosition}
                 onChange={(e) => setRequesterPosition(e.target.value)}
                 className="jw-in"
                 placeholder="เช่น ประชาชน / ประธานชุมชน"
+                required
               />
             </div>
           </div>
 
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
             <div>
-              <label className="jw-lbl">อยู่บ้านเลขที่</label>
+              <label className="jw-lbl">อยู่บ้านเลขที่<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="text"
                 value={addressHouseNo}
                 onChange={(e) => setAddressHouseNo(e.target.value)}
                 className="jw-in"
                 placeholder="เลขที่"
+                required
               />
             </div>
             <div>
-              <label className="jw-lbl">หมู่ที่</label>
+              <label className="jw-lbl">หมู่ที่<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="text"
                 value={addressMoo}
                 onChange={(e) => setAddressMoo(e.target.value)}
                 className="jw-in"
                 placeholder="หมู่ที่"
+                required
               />
             </div>
             <div>
-              <label className="jw-lbl">ตำบล / แขวง</label>
+              <label className="jw-lbl">ตำบล / แขวง<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="text"
                 value={addressSubdistrict}
                 onChange={(e) => setAddressSubdistrict(e.target.value)}
                 className="jw-in"
                 placeholder="ตำบล / แขวง"
+                required
               />
             </div>
             <div>
-              <label className="jw-lbl">อำเภอ / เขต</label>
+              <label className="jw-lbl">อำเภอ / เขต<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="text"
                 value={addressDistrict}
                 onChange={(e) => setAddressDistrict(e.target.value)}
                 className="jw-in"
                 placeholder="อำเภอ / เขต"
+                required
               />
             </div>
             <div className="col-span-2 sm:col-span-1">
-              <label className="jw-lbl">จังหวัด</label>
+              <label className="jw-lbl">จังหวัด<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="text"
                 value={addressProvince}
                 onChange={(e) => setAddressProvince(e.target.value)}
                 className="jw-in"
                 placeholder="ระบุจังหวัด"
+                required
               />
             </div>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
-              <label className="jw-lbl">หน่วยงาน / ชุมชน</label>
+              <label className="jw-lbl">หน่วยงาน / ชุมชน<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="text"
                 value={organization}
                 onChange={(e) => setOrganization(e.target.value)}
                 className="jw-in"
                 placeholder="ระบุหน่วยงานหรือกลุ่มชุมชน"
+                required
               />
             </div>
             <div>
-              <label className="jw-lbl">จำนวนผู้เข้าร่วม (คน)</label>
+              <label className="jw-lbl">จำนวนผู้เข้าร่วม (คน)<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
               <input
                 type="number"
                 value={attendees}
                 onChange={(e) => setAttendees(Number(e.target.value))}
                 className="jw-in"
+                min={1}
+                required
               />
             </div>
           </div>
@@ -1106,31 +1266,120 @@ export default function BookingWizardPage() {
           </div>
 
           <div>
-            <label className="jw-lbl">รายละเอียด / วัตถุประสงค์เพิ่มเติม</label>
+            <label className="jw-lbl">รายละเอียด / วัตถุประสงค์เพิ่มเติม<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
             <textarea
               rows={2}
               value={purpose}
               onChange={(e) => setPurpose(e.target.value)}
               className="jw-in h-20 py-2.5"
+              required
+              placeholder="ระบุรายละเอียดการใช้งานและวัตถุประสงค์ให้ชัดเจน"
             />
           </div>
 
           <div>
-            <label className="jw-lbl">แนบเอกสารประกอบคำขอ</label>
-            <label className="border-[1.5px] border-dashed border-[#7A7A7A] rounded-2xl p-4 text-center text-ink-mute bg-white cursor-pointer block hover:border-brand">
-              <input
-                type="file"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) setAttachmentName(f.name);
-                }}
-              />
-              <div className="font-medium text-ink">
-                {attachmentName ? `ไฟล์ที่แนบ: ${attachmentName}` : 'ลากไฟล์มาวางหรือเลือกไฟล์'}
+            <label className="jw-lbl">แนบเอกสารประกอบคำขอ<span className="text-[9px] font-semibold leading-none text-status-crit">*</span></label>
+            <input
+              type="file"
+              className="hidden"
+              id="booking-attachment"
+              multiple
+              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+              required={attachmentFiles.length === 0}
+              onChange={(e) => {
+                const picked = Array.from(e.target.files ?? []);
+                if (picked.length) {
+                  const unique = picked.filter((file) => !attachmentFiles.some((existing) => existing.name === file.name && existing.size === file.size && existing.lastModified === file.lastModified));
+                  const combined = [...attachmentFiles, ...unique];
+                  setAttachmentError(combined.length > 3 ? 'แนบเอกสารได้สูงสุด 3 ไฟล์' : '');
+                  setAttachmentFiles(combined.slice(0, 3));
+                }
+                e.target.value = '';
+              }}
+            />
+            <div className="rounded-2xl border-[1.5px] border-dashed border-brand/70 bg-white p-3">
+              {attachmentFiles.length ? (
+                <div className="flex flex-col gap-2">
+                  {attachmentFiles.map((file) => (
+                    <div key={`${file.name}-${file.size}-${file.lastModified}`} className="flex min-w-0 items-center gap-3 rounded-xl border border-line bg-canvas px-3 py-2.5">
+                      <div className="flex size-9 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-ink"><FileText className="size-[18px]" /></div>
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-[13px] font-semibold text-ink" title={file.name}>{file.name}</div>
+                        <div className="text-[11px] text-ink-mute">{(file.size / (1024 * 1024)).toFixed(2)} MB</div>
+                      </div>
+                      <button type="button" aria-label={`ดูไฟล์ ${file.name}`} title="ดูไฟล์" onClick={() => setAttachmentPreview({ file, url: URL.createObjectURL(file) })} className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-white text-brand-ink transition hover:bg-brand-tint"><Eye className="size-[18px]" /></button>
+                      <button type="button" aria-label={`นำไฟล์ ${file.name} ออก`} title="นำไฟล์ออก" onClick={() => setAttachmentFiles((current) => current.filter((item) => item !== file))} className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-mute transition hover:bg-danger-bg hover:text-danger-fg"><X className="size-4" /></button>
+                    </div>
+                  ))}
+                  {attachmentFiles.length < 3 && <button type="button" onClick={() => setAttachmentPanelOpen(true)} className="self-start px-2 pt-1 text-[12px] font-semibold text-brand-ink hover:underline">+ เพิ่มไฟล์ ({attachmentFiles.length}/3)</button>}
+                </div>
+              ) : (
+                <button type="button" onClick={() => setAttachmentPanelOpen(true)} className="flex min-h-16 w-full items-center justify-center gap-2 rounded-xl px-3 py-4 text-center text-ink-mute transition hover:bg-canvas">
+                  <Upload className="size-4 text-brand" />
+                  <span><span className="font-medium text-ink">คลิกเพื่อเลือกเอกสารประกอบคำขอ</span><span className="mt-0.5 block text-[12px]">PDF / JPG / PNG ไม่เกิน 10 MB ต่อไฟล์</span></span>
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {attachmentPanelOpen && createPortal((
+        <div className="fixed inset-0 z-[90] flex items-center justify-center bg-black/45 p-3 sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) setAttachmentPanelOpen(false); }}>
+          <section role="dialog" aria-modal="true" aria-labelledby="attachment-dialog-title" className="flex max-h-[min(86dvh,680px)] w-full max-w-xl flex-col overflow-hidden rounded-2xl bg-white shadow-high">
+            <header className="flex items-center gap-3 border-b border-line px-4 py-3.5 sm:px-5">
+              <span className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-ink"><FileText className="size-5" /></span>
+              <div className="min-w-0 flex-1">
+                <h2 id="attachment-dialog-title" className="text-[16px] font-bold text-ink">เอกสารประกอบคำขอ</h2>
+                <p className="text-[12px] text-ink-mute">แนบได้สูงสุด 3 ไฟล์ · {attachmentFiles.length}/3</p>
               </div>
-              <div className="text-[12px] text-ink-mute mt-0.5">PDF / JPG ไม่เกิน 10 MB</div>
-            </label>
+              <button type="button" aria-label="ปิดหน้าต่างเอกสาร" onClick={() => setAttachmentPanelOpen(false)} className="flex size-9 items-center justify-center rounded-full text-ink-mute hover:bg-soft hover:text-ink"><X className="size-5" /></button>
+            </header>
+            <div className="flex-1 space-y-2 overflow-y-auto p-4 sm:p-5">
+              {attachmentFiles.length ? attachmentFiles.map((file, index) => (
+                <div key={`${file.name}-${file.size}-${file.lastModified}`} className="flex min-w-0 items-center gap-3 rounded-xl border border-line bg-canvas px-3 py-2.5">
+                  <div className="flex size-10 shrink-0 items-center justify-center rounded-xl bg-brand-tint text-brand-ink"><FileText className="size-5" /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-[13px] font-semibold text-ink" title={file.name}>{file.name}</div>
+                    <div className="text-[11px] text-ink-mute">{(file.size / (1024 * 1024)).toFixed(2)} MB</div>
+                  </div>
+                  <button type="button" aria-label={`ดูไฟล์ ${file.name}`} title="ดูไฟล์" onClick={() => setAttachmentPreview({ file, url: URL.createObjectURL(file) })} className="flex size-9 shrink-0 items-center justify-center rounded-full border border-line bg-white text-brand-ink transition hover:bg-brand-tint"><Eye className="size-[18px]" /></button>
+                  <button type="button" aria-label={`นำไฟล์ ${file.name} ออก`} title="นำไฟล์ออก" onClick={() => setAttachmentFiles((current) => current.filter((_, fileIndex) => fileIndex !== index))} className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-mute transition hover:bg-danger-bg hover:text-danger-fg"><X className="size-4" /></button>
+                </div>
+              )) : (
+                <div className="rounded-xl border border-dashed border-line p-8 text-center">
+                  <Upload className="mx-auto size-7 text-brand" />
+                  <p className="mt-2 text-[13px] font-semibold text-ink">ยังไม่มีเอกสารแนบ</p>
+                  <p className="mt-1 text-[12px] text-ink-mute">เลือกไฟล์ PDF, JPG หรือ PNG ขนาดไม่เกิน 10 MB</p>
+                </div>
+              )}
+              {attachmentError && <div role="alert" className="text-[12px] font-medium text-danger-fg">{attachmentError}</div>}
+            </div>
+            <footer className="flex flex-col-reverse gap-2 border-t border-line px-4 py-3 sm:flex-row sm:justify-between sm:px-5">
+              {attachmentFiles.length < 3 ? (
+                <label htmlFor="booking-attachment" className="inline-flex h-10 cursor-pointer items-center justify-center rounded-xl border border-line px-4 text-[13px] font-semibold text-brand-ink hover:bg-brand-tint">+ เพิ่มไฟล์</label>
+              ) : <span className="self-center text-[12px] text-ink-mute">แนบครบ 3 ไฟล์แล้ว</span>}
+              <button type="button" onClick={() => setAttachmentPanelOpen(false)} className="jw-btn-sec h-10 px-5">เสร็จสิ้น</button>
+            </footer>
+          </section>
+        </div>
+      ), document.body)}
+
+      {attachmentPreview && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/55 p-3 sm:p-6" onMouseDown={(event) => { if (event.target === event.currentTarget) setAttachmentPreview(null); }}>
+          <div className="flex h-[min(90dvh,900px)] w-full max-w-4xl flex-col overflow-hidden rounded-2xl bg-white shadow-high">
+            <div className="flex items-center gap-3 border-b border-line px-4 py-3">
+              <FileText className="size-5 shrink-0 text-brand-ink" />
+              <span className="min-w-0 flex-1 truncate text-[14px] font-semibold text-ink">{attachmentPreview.file.name}</span>
+              <button type="button" aria-label="ปิดตัวอย่างไฟล์" onClick={() => setAttachmentPreview(null)} className="flex size-9 shrink-0 items-center justify-center rounded-full text-ink-mute hover:bg-soft hover:text-ink"><X className="size-5" /></button>
+            </div>
+            <div className="min-h-0 flex-1 bg-canvas">
+              {attachmentPreview.file.type === 'application/pdf' || attachmentPreview.file.name.toLowerCase().endsWith('.pdf') ? (
+                <iframe title={`ตัวอย่าง ${attachmentPreview.file.name}`} src={attachmentPreview.url} className="size-full border-0" />
+              ) : (
+                <div className="flex size-full items-center justify-center overflow-auto p-3"><img src={attachmentPreview.url} alt={attachmentPreview.file.name} className="max-h-full max-w-full object-contain" /></div>
+              )}
+            </div>
           </div>
         </div>
       )}
