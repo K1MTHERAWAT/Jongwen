@@ -3,17 +3,17 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { ChevronLeft, ChevronRight, LogIn, LogOut, Menu, X } from 'lucide-react';
+import { LogIn, LogOut, Menu, X } from 'lucide-react';
 import { useAuth } from './auth-context';
 import type { NavItem } from './nav';
 import { ROLE_META } from '@jongwen/shared';
-import { useSidebarPreference } from './sidebar-preference';
 
 export function Sidebar({ items }: { items: NavItem[] }) {
   const path = usePathname();
   const { account, logout } = useAuth();
-  const { open, ready, toggle } = useSidebarPreference();
+  const [hovered, setHovered] = useState(false);
   const [drawer, setDrawer] = useState(false);
+  const open = hovered || drawer;
   const openBtn = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -59,10 +59,12 @@ export function Sidebar({ items }: { items: NavItem[] }) {
 
       <aside
         aria-label="เมนูหลัก"
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
         className={[
           'print:hidden',
           'fixed inset-y-0 left-0 z-50 flex w-drawer flex-col justify-between bg-[#FBFCFA] p-3 shadow-pop lg:flex-none',
-          ready ? 'transition-[width] duration-300 ease-in-out' : 'transition-none',
+          'transition-[width] duration-300 ease-in-out',
           drawer ? 'translate-x-0' : '-translate-x-full',
           'lg:sticky lg:top-3 lg:z-auto lg:m-3 lg:h-[calc(100dvh-24px)] lg:translate-x-0',
           'lg:rounded-float lg:border lg:border-line-soft lg:shadow-float',
@@ -93,15 +95,6 @@ export function Sidebar({ items }: { items: NavItem[] }) {
               <X className="size-5" />
             </button>
           </div>
-
-          <button
-            onClick={toggle}
-            aria-label={open ? 'ย่อแถบข้าง' : 'ขยายแถบข้าง'}
-            aria-expanded={open}
-            className="absolute -right-[25px] top-[76px] z-20 hidden h-10 w-7 place-items-center rounded-r-lg border border-l-0 border-line-soft bg-[#FBFCFA] text-ink-mute transition-colors hover:bg-brand-tint hover:text-brand lg:grid"
-          >
-            {open ? <ChevronLeft className="size-4" /> : <ChevronRight className="size-4" />}
-          </button>
 
           {/* Navigation Links */}
           <nav aria-label="เมนูระบบ" className="flex flex-col gap-1 overflow-y-auto overflow-x-hidden">

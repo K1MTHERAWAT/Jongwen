@@ -71,7 +71,7 @@ export function AppShell({
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Main Content Area */}
         <main
-          className={`flex-1 w-full ${maxWidth} mx-auto p-4 pt-16 md:p-6 md:pt-16 lg:p-8 min-w-0 print:p-0 print:max-w-none`}
+          className={`flex-1 w-full ${maxWidth} mx-auto p-4 pt-16 md:p-6 md:pt-16 lg:p-8 min-w-0 print:p-0 print:max-w-none flex flex-col`}
         >
           {loading ? (
             <Card className="p-8 max-w-[480px] mx-auto my-8 text-center text-body text-muted flex flex-col items-center justify-center gap-3">
@@ -155,14 +155,14 @@ export function AppShell({
               </div>
             </Card>
           ) : (
-            <>
-              {children}
+            <div className="flex-1 flex flex-col justify-between gap-6">
+              <div>{children}</div>
               {footer && (
-                <div className="print:hidden mt-5 flex justify-end">
+                <div className="print:hidden sticky bottom-3 z-20 mt-2 rounded-card bg-surface/95 backdrop-blur-md border border-line shadow-float px-4 py-3 flex items-center justify-end">
                   {footer}
                 </div>
               )}
-            </>
+            </div>
           )}
         </main>
       </div>

@@ -66,34 +66,47 @@ export function Stepper({
   onSelect?: (step: number) => void;
 }) {
   return (
-    <div className="flex gap-1.5 w-full">
+    <div className="jw-card px-3 py-3.5 sm:px-5 sm:py-4 flex items-center justify-between w-full">
       {steps.map((label, idx) => {
         const num = idx + 1;
         const done = num < current;
         const active = num === current;
+        const isLast = idx === steps.length - 1;
         return (
-          <button
-            key={label}
-            type="button"
-            disabled={!onSelect || num > current}
-            onClick={() => onSelect?.(num)}
-            className={`flex-1 flex flex-col items-center gap-1 text-[11px] sm:text-[12px] font-semibold transition ${
-              active ? 'text-ink' : 'text-ink-mute'
-            }`}
-          >
-            <span
-              className={`w-7 h-7 rounded-full border-2 flex items-center justify-center text-[13px] font-bold ${
-                done
-                  ? 'bg-brand border-brand text-white'
-                  : active
-                  ? 'bg-brand border-brand text-white'
-                  : 'bg-white border-line text-ink-mute'
+          <React.Fragment key={label}>
+            <button
+              type="button"
+              disabled={!onSelect || num > current}
+              onClick={() => onSelect?.(num)}
+              className={`flex flex-col sm:flex-row items-center gap-1.5 sm:gap-2.5 text-[11px] sm:text-[13px] font-semibold transition shrink-0 ${
+                active
+                  ? 'text-brand-ink'
+                  : done
+                  ? 'text-ink cursor-pointer hover:text-brand'
+                  : 'text-ink-mute'
               }`}
             >
-              {done ? <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} /> : num}
-            </span>
-            <span className="truncate max-w-full">{label}</span>
-          </button>
+              <span
+                className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full border-2 flex items-center justify-center text-[12.5px] sm:text-[13px] font-bold transition-all ${
+                  done
+                    ? 'bg-brand border-brand text-white'
+                    : active
+                    ? 'bg-brand border-brand text-white ring-4 ring-brand/15'
+                    : 'bg-surface-muted border-line text-ink-mute'
+                }`}
+              >
+                {done ? <Icon name="check" className="w-3.5 h-3.5" strokeWidth={3} /> : num}
+              </span>
+              <span className="truncate max-w-[72px] sm:max-w-none">{label}</span>
+            </button>
+            {!isLast && (
+              <div
+                className={`flex-1 h-[2px] mx-1.5 sm:mx-3 rounded-full transition-colors ${
+                  done ? 'bg-brand' : 'bg-line'
+                }`}
+              />
+            )}
+          </React.Fragment>
         );
       })}
     </div>
